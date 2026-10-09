@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import fs from 'node:fs';
-import { API, RUN, createFolderViaUi, devToken, pdfBytes, signInAs } from './helpers';
+import { API, RUN, createFolderViaUi, devToken, openRow, pdfBytes, signInAs } from './helpers';
 
 /**
  * Mandatory end-to-end scenario: folders -> upload -> scan -> new version -> share -> recipient view
@@ -26,11 +26,11 @@ test.describe.serial('document sharing end to end', () => {
     await page.getByRole('link', { name: 'My Files' }).first().click();
     await expect(page).toHaveURL(/\/files\//);
     await createFolderViaUi(page, dir1);
-    await page.getByRole('link', { name: dir1, exact: true }).click();
+    await openRow(page, dir1);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(dir1);
     dir1Id = page.url().split('/files/')[1]!;
     await createFolderViaUi(page, dirB);
-    await page.getByRole('link', { name: dirB, exact: true }).click();
+    await openRow(page, dirB);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(dirB);
     dirBId = page.url().split('/files/')[1]!;
 
@@ -47,7 +47,7 @@ test.describe.serial('document sharing end to end', () => {
       /Uploads complete|Uploaded/,
     );
 
-    await row.getByRole('link', { name: fileName }).click();
+    await row.dblclick();
     await expect(page).toHaveURL(/\/documents\//);
     documentId = page.url().split('/documents/')[1]!;
     await expect(page.getByRole('heading', { level: 1 })).toContainText(fileName);

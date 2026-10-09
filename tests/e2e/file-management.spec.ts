@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { RUN, createFolderViaUi, pdfBytes, signInAs } from './helpers';
+import { RUN, createFolderViaUi, openRow, pdfBytes, rowOf, signInAs } from './helpers';
 
 // 1x1 transparent PNG
 const PNG = Buffer.from(
@@ -50,7 +50,7 @@ test.describe.serial('file management as alice', () => {
     await expect(page.getByText('Enter a name')).toBeVisible();
     await page.keyboard.press('Escape');
 
-    await page.getByRole('link', { name: work, exact: true }).click();
+    await openRow(page, work);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(work);
     workUrl = page.url();
     await createFolderViaUi(page, target);
@@ -76,8 +76,8 @@ test.describe.serial('file management as alice', () => {
     await expect(page.getByTestId('item-row').filter({ hasText: renamed })).toBeVisible();
 
     // star -> Starred page -> unstar
-    await menu(page, renamed, /Add star/);
-    await expect(page.getByText(/Starred "renamed/)).toBeVisible();
+    await menu(page, renamed, /Add to Quick Access/);
+    await expect(page.getByText(/Added "renamed.*to Quick Access/)).toBeVisible();
     await page.goto('/starred');
     await expect(page.getByTestId('item-row').filter({ hasText: renamed })).toBeVisible();
     await menu(page, renamed, /Remove star/);
@@ -95,16 +95,19 @@ test.describe.serial('file management as alice', () => {
     await expect(page.getByText(/Copied as/)).toBeVisible();
 
     // move into target (folder picker only offers folders)
-    await menu(page, renamed, /^Move…/);
+    await menu(page, renamed, /^Move to…/);
     const dlg = page.getByRole('dialog');
     await expect(dlg).toContainText('Choose a destination');
     await dlg.getByRole('button', { name: new RegExp(target) }).click();
     await dlg.getByRole('button', { name: 'Move here' }).click();
-    await expect(page.getByText(/Moved ".*" to/)).toBeVisible();
+    // the copy made above already holds this name in the target: choose Keep both
+    await expect(page.getByRole('dialog', { name: /already exist/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Keep both' }).click();
+    await expect(page.getByText(/1 item moved to/)).toBeVisible();
     await expect(page.getByTestId('item-row').filter({ hasText: renamed })).toHaveCount(0);
 
     // inside target: two copies? (original moved + copy would conflict by name -> copy got auto name or error)
-    await page.getByRole('link', { name: target, exact: true }).click();
+    await openRow(page, target);
     await expect(page.getByTestId('item-row').filter({ hasText: renamed }).first()).toBeVisible();
 
     // search shows it with a breadcrumb
@@ -116,12 +119,12 @@ test.describe.serial('file management as alice', () => {
 
     // delete -> trash -> restore
     await page.goto(workUrl);
-    await page.getByRole('link', { name: target, exact: true }).click();
+    await openRow(page, target);
     const first = page.getByTestId('item-row').filter({ hasText: renamed }).first();
     await first.getByRole('button', { name: `Actions for ${renamed}` }).click();
-    await page.getByRole('menuitem', { name: /Move to trash/ }).click();
+    await page.getByRole('menuitem', { name: /Move to Trash/ }).click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Move to trash' }).click();
-    await expect(page.getByText(/Moved ".*" to trash/)).toBeVisible();
+    await expect(page.getByText(/1 item moved to trash/)).toBeVisible();
     await page.goto('/trash');
     const trashed = page.getByTestId('trash-row').filter({ hasText: renamed }).first();
     await expect(trashed).toBeVisible();
@@ -135,7 +138,7 @@ test.describe.serial('file management as alice', () => {
     await page.goto(workUrl);
     const name = `dup-${RUN}.pdf`;
     await uploadAndWait(page, name, pdfBytes('one'));
-    await menu(page, name, /Move to trash/);
+    await menu(page, name, /Move to Trash/);
     await page.getByRole('alertdialog').getByRole('button', { name: 'Move to trash' }).click();
     await expect(page.getByTestId('item-row').filter({ hasText: name })).toHaveCount(0);
     await uploadAndWait(page, name, pdfBytes('two')); // same name is free again
@@ -179,7 +182,7 @@ test.describe.serial('file management as alice', () => {
     await page.goto(workUrl);
     const name = `pixel-${RUN}.png`;
     const row = await uploadAndWait(page, name, PNG, 'image/png');
-    await row.getByRole('link', { name }).click();
+    await row.dblclick();
     const img = page.getByRole('img', { name: `Preview of ${name}` });
     await expect(img).toBeVisible();
     await expect

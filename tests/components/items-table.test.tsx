@@ -29,6 +29,8 @@ const item = (over: Partial<TreeItem>): TreeItem => ({
   content_type: 'application/pdf',
   status: 'available',
   starred: false,
+  locked: false,
+  locked_by_me: false,
   is_team_folder: false,
   ...over,
 });

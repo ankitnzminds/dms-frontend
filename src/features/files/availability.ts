@@ -74,7 +74,7 @@ export function itemAvailability(item: ActionItem): Record<ItemAction, Availabil
           ? YES
           : NO(notReady)
         : NO('You do not have permission to copy this file.'),
-    star: isDoc ? YES : NO('Only files can be starred.'),
+    star: YES,
     share: can(p, 'share')
       ? ready
         ? YES

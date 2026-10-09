@@ -57,7 +57,7 @@ describe('UploadPanel', () => {
     act(() => report(30, 100));
     const bar = await screen.findByRole('progressbar', { name: /report\.pdf/ });
     expect(bar).toHaveAttribute('aria-valuenow', '30');
-    expect(screen.getByRole('status')).toHaveTextContent('Uploading 1 file');
+    expect(screen.getByRole('status')).toHaveTextContent('Uploading 1 item');
     act(() => finish());
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Uploads complete'));
     expect(screen.getByText(/scanning for malware/i)).toBeInTheDocument();
@@ -76,6 +76,7 @@ describe('UploadPanel', () => {
     expect(
       await screen.findByText('A file with this name already exists here.'),
     ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Keep both' }));
     const input = screen.getByLabelText('New file name');
     expect(input).toHaveValue('report (1).pdf');
     await userEvent.click(screen.getByRole('button', { name: 'Upload as' }));

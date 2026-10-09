@@ -3,11 +3,13 @@ import {
   Archive,
   BarChart3,
   Bell,
+  Bot,
   Clock,
   Database,
   FileSignature,
   FolderTree,
   Gavel,
+  Inbox,
   KeyRound,
   LayoutDashboard,
   ListChecks,
@@ -45,7 +47,7 @@ export const mainNav: NavSection[] = [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/my-files', label: 'My Files', icon: FolderTree },
       { href: '/recent', label: 'Recent', icon: Clock },
-      { href: '/starred', label: 'Starred', icon: Star },
+      { href: '/starred', label: 'Quick Access', icon: Star },
     ],
   },
   {
@@ -53,11 +55,13 @@ export const mainNav: NavSection[] = [
     items: [
       { href: '/shared-with-me', label: 'Shared with me', icon: Share2 },
       { href: '/shared-by-me', label: 'Shared by me', icon: Share2 },
+      { href: '/requests', label: 'Access requests', icon: Inbox },
     ],
   },
   {
     title: 'Library',
     items: [
+      { href: '/assistant', label: 'Assistant', icon: Bot },
       { href: '/notifications', label: 'Notifications', icon: Bell },
       { href: '/trash', label: 'Trash', icon: Trash2 },
       { href: '/approvals', label: 'My approvals', icon: ListChecks },

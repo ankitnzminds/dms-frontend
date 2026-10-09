@@ -6,7 +6,7 @@ import { api, call, type Page, type Schemas } from '@/lib/api-client';
 export type WorkflowDefinition = Schemas['WorkflowDefinitionOut'];
 export type StepSpec = Schemas['StepSpec'];
 export type AssigneeSpec = Schemas['AssigneeSpec'];
-export type Run = Schemas['RunOut'];
+export type Run = Schemas['app__schemas__workflows__RunOut'];
 export type Task = Schemas['TaskOut'];
 
 export function useWorkflows(includeArchived = false) {

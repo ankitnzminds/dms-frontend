@@ -11,8 +11,12 @@ import {
   resolveUploadUrl,
   sha256Hex,
   type UploadFinalize,
+  type Document,
+  type Page,
+  type SearchResult,
   type UploadSession,
 } from '@/lib/api-client';
+import { ensurePath } from '@/features/explorer/hooks';
 import { UploadEngine, type UploadDeps, type UploadItem } from './upload-engine';
 
 /** Real dependencies: typed API client + XHR PUT with progress. */
@@ -20,6 +24,30 @@ export function createLiveDeps(onDone: (i: UploadItem) => void): UploadDeps {
   return {
     sha256: sha256Hex,
     onDone,
+    ensurePath: async (base, path) => (await ensurePath(base, path)).folder.id,
+    findDocument: async (folderId, name) => {
+      const found = await call<Page<SearchResult>>(
+        api.GET('/api/v1/search', {
+          params: {
+            query: {
+              q: name,
+              scope: 'name',
+              kind: 'document',
+              folder_id: folderId,
+              limit: 50,
+              offset: 0,
+            },
+          },
+        }),
+      );
+      for (const r of found.items.filter((x) => x.name.toLowerCase() === name.toLowerCase())) {
+        const d = await call<Document>(
+          api.GET('/api/v1/documents/{document_id}', { params: { path: { document_id: r.id } } }),
+        );
+        if (d.folder_id === folderId) return { id: d.id, latestVersion: d.latest_version_number };
+      }
+      return null;
+    },
     initiate: async ({ item, sha256, idempotencyKey, signal }) => {
       const body = {
         filename: item.name,
@@ -87,6 +115,7 @@ export function UploadProvider({
       new UploadEngine(
         createLiveDeps((item) => {
           void qc.invalidateQueries({ queryKey: ['children'] });
+          void qc.invalidateQueries({ queryKey: ['tree'] });
           void qc.invalidateQueries({ queryKey: ['usage'] });
           void qc.invalidateQueries({ queryKey: ['recent'] });
           if (item.result?.document_id) {

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { API, RUN, createFolderViaUi, devToken, signInAs } from './helpers';
+import { API, RUN, createFolderViaUi, devToken, rowOf, signInAs } from './helpers';
 
 test.describe('access control dialogs and optimistic concurrency', () => {
   test('manage access: broad grants need acknowledgement; grant and revoke work', async ({
@@ -38,8 +38,7 @@ test.describe('access control dialogs and optimistic concurrency', () => {
     await page.getByRole('link', { name: 'My Files' }).first().click();
     const name = `stale-${RUN}`;
     await createFolderViaUi(page, name);
-    const href = await page.getByRole('link', { name, exact: true }).getAttribute('href');
-    const id = href!.split('/files/')[1]!;
+    const id = (await rowOf(page, name).getAttribute('data-item-id'))!;
 
     await page.getByRole('button', { name: `Actions for ${name}` }).click();
     await page.getByRole('menuitem', { name: /Rename/ }).click();

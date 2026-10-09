@@ -36,6 +36,7 @@ const endIso = (d: string) => (d ? new Date(`${d}T23:59:59`).toISOString() : und
 export function SearchView() {
   const params = useSearchParams();
   const q = params.get('q') ?? '';
+  const inFolder = params.get('folder') ?? undefined;
   const [kind, setKind] = useState<'' | 'folder' | 'document'>('');
   const [type, setType] = useState('');
   const [after, setAfter] = useState('');
@@ -49,6 +50,7 @@ export function SearchView() {
 
   const res = useSearch({
     q,
+    folder_id: inFolder,
     scope,
     meta: metas.length ? metas : undefined,
     kind: kind || undefined,
@@ -73,7 +75,11 @@ export function SearchView() {
     <>
       <PageHeader
         title={q ? `Results for “${q}”` : 'Search'}
-        description="Search only returns items you are allowed to see."
+        description={
+          inFolder
+            ? 'Searching inside one folder. Search only returns items you are allowed to see.'
+            : 'Search only returns items you are allowed to see.'
+        }
       />
       <form
         className="mb-3 flex flex-wrap items-end gap-3"

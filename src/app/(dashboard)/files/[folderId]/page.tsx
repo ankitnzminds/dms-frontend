@@ -1,6 +1,6 @@
-import { FolderView } from '@/components/file-browser/folder-view';
+import { Explorer } from '@/components/explorer/explorer';
 
 export default async function FolderPage({ params }: { params: Promise<{ folderId: string }> }) {
   const { folderId } = await params;
-  return <FolderView key={folderId} folderId={folderId} />;
+  return <Explorer key={folderId} folderId={folderId} />;
 }

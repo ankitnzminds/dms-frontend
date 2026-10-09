@@ -26,7 +26,16 @@ export async function createFolderViaUi(page: Page, name: string) {
   await page.getByRole('button', { name: 'New folder' }).click();
   await page.getByLabel('Folder name').fill(name);
   await page.getByRole('button', { name: 'Create folder' }).click();
-  await expect(page.getByRole('link', { name, exact: true })).toBeVisible();
+  await expect(rowOf(page, name)).toBeVisible();
+}
+
+/** A row of the file manager by (exact) item name. */
+export const rowOf = (page: Page, name: string) =>
+  page.getByTestId('item-row').filter({ has: page.getByText(name, { exact: true }) });
+
+/** Windows-style open: double-click the row. */
+export async function openRow(page: Page, name: string) {
+  await rowOf(page, name).dblclick();
 }
 
 export const pdfBytes = (marker: string) =>
@@ -78,6 +87,32 @@ export async function apiAs(request: Req, email: string) {
     },
     async get(path: string) {
       return request.get(`${API}${path}`, { headers });
+    },
+    async put(path: string, data?: unknown) {
+      return request.put(`${API}${path}`, { headers, data });
+    },
+    async del(path: string) {
+      return request.delete(`${API}${path}`, { headers });
+    },
+    /** Create a folder below `parent` and return its id. */
+    async mkdir(parent: string, name: string): Promise<string> {
+      const r = await request.post(`${API}/folders`, {
+        headers,
+        data: { parent_folder_id: parent, name },
+      });
+      expect(r.ok()).toBeTruthy();
+      return (await r.json()).id;
+    },
+    /** Names of the children of a folder (folders and documents). */
+    async names(folderId: string): Promise<string[]> {
+      const r = await request.get(`${API}/folders/${folderId}/children?limit=200`, { headers });
+      return ((await r.json()).items as Array<{ name: string }>).map((i) => i.name);
+    },
+    async childId(folderId: string, name: string): Promise<string | undefined> {
+      const r = await request.get(`${API}/folders/${folderId}/children?limit=200`, { headers });
+      return ((await r.json()).items as Array<{ id: string; name: string }>).find(
+        (i) => i.name === name,
+      )?.id;
     },
   };
 }

@@ -11,7 +11,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "e2e": "playwright test",
+    "e2e": "node scripts/e2e-prep.mjs && playwright test",
     "api:types": "openapi-typescript openapi/openapi.json -o src/lib/api-client/schema.d.ts",
     "api:check": "node scripts/api-check.mjs",
     "api:sync": "node scripts/api-sync.mjs",

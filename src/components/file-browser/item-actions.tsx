@@ -80,7 +80,7 @@ export function ItemActionsProvider({
           return;
         case 'star':
           star.mutate(
-            { id: item.id, starred: !item.starred },
+            { id: item.id, starred: !item.starred, kind: item.kind },
             {
               onSuccess: () =>
                 toast.success(

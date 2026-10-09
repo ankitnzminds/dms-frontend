@@ -28,7 +28,7 @@ for (const scheme of ['light', 'dark'] as const) {
 
     await page.getByRole('link', { name: 'My Files' }).first().click();
     await expect(page).toHaveURL(/\/files\//);
-    await expect(page.getByRole('table')).toBeVisible();
+    await expect(page.getByRole('grid', { name: 'Files and folders' })).toBeVisible();
     await scan(page, 'my files');
 
     await page.goto('/shared-by-me');
@@ -71,7 +71,7 @@ for (const scheme of ['light', 'dark'] as const) {
 
     // a document page (tabs, metadata, processing cards)
     await page.goto('/my-files');
-    await page.getByRole('table').getByRole('link').filter({ hasText: /.pdf$/ }).first().click();
+    await page.getByTestId('item-row').filter({ hasText: /.pdf$/ }).first().dblclick();
     await expect(page.getByRole('tab', { name: 'Approvals' })).toBeVisible();
     await page.waitForLoadState('networkidle');
     await scan(page, 'document page');

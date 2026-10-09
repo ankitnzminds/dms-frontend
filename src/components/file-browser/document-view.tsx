@@ -1,10 +1,12 @@
 'use client';
 
 import {
+  Bot,
   ClipboardCheck,
   Download,
   FileSignature,
   Loader2,
+  Lock,
   Share2,
   ShieldAlert,
   Undo2,
@@ -34,6 +36,9 @@ import {
 } from '@/features/files/availability';
 import { useDocument, useRestoreItem } from '@/features/files/hooks';
 import { useProtection } from '@/features/governance/hooks';
+import { lockErrorText, useLockDocument, useProperties } from '@/features/explorer/hooks';
+import { useChatLauncher } from '@/features/chat/launcher';
+import { RequestAccessDialog } from '@/features/requests/request-access-dialog';
 import { useOrganization } from '@/features/sharing/hooks';
 import { signatureUnavailableReason, useSignatureCapabilities } from '@/features/signatures/hooks';
 import { useUploads } from '@/features/upload/upload-manager';
@@ -106,6 +111,11 @@ function Toolbar({ doc }: { doc: Document }) {
   const protection = useProtection('document', doc.id);
   const input = useRef<HTMLInputElement>(null);
   const [approval, setApproval] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const chat = useChatLauncher();
+  const props = useProperties('document', doc.id);
+  const lockMut = useLockDocument();
+  const lock = props.data?.lock ?? null;
   const [signature, setSignature] = useState(false);
   const item = docToItem(doc);
   const av = itemAvailability(item);
@@ -180,6 +190,66 @@ function Toolbar({ doc }: { doc: Document }) {
           <FileSignature /> Request signature
         </Button>
       </DisabledReason>
+      {lock ? (
+        <DisabledReason
+          reason={
+            lock.is_mine || can(doc.permissions, 'administer')
+              ? null
+              : 'Checked out by someone else. Only an administrator can break the lock.'
+          }
+        >
+          <Button
+            disabled={!lock.is_mine && !can(doc.permissions, 'administer')}
+            onClick={() =>
+              lockMut.mutate(
+                { id: doc.id, lock: false },
+                {
+                  onSuccess: () => toast.success('Checked in'),
+                  onError: (e) => toast.error(lockErrorText(e) ?? friendlyMessage(e)),
+                },
+              )
+            }
+          >
+            <Lock /> {lock.is_mine ? 'Check in' : 'Check in (break lock)'}
+          </Button>
+        </DisabledReason>
+      ) : (
+        can(doc.permissions, 'upload_version') && (
+          <Button
+            onClick={() =>
+              lockMut.mutate(
+                { id: doc.id, lock: true },
+                {
+                  onSuccess: () => toast.success('Checked out'),
+                  onError: (e) => toast.error(lockErrorText(e) ?? friendlyMessage(e)),
+                },
+              )
+            }
+          >
+            <Lock /> Check out
+          </Button>
+        )
+      )}
+      {(!can(doc.permissions, 'download') || !can(doc.permissions, 'view')) && (
+        <Button onClick={() => setRequestOpen(true)}>Request access</Button>
+      )}
+      {requestOpen && (
+        <RequestAccessDialog
+          kind="document"
+          id={doc.id}
+          name={doc.name}
+          have={doc.permissions}
+          onClose={() => setRequestOpen(false)}
+        />
+      )}
+      {chat.enabled && (
+        <Button
+          onClick={() => chat.open({ documentId: doc.id, label: doc.name })}
+          data-testid="ask-about"
+        >
+          <Bot /> Ask about this file
+        </Button>
+      )}
       <ItemMenu
         item={item}
         hide={['download', 'share', 'open']}

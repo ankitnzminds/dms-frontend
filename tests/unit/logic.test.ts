@@ -119,7 +119,8 @@ describe('row action availability (permissions-driven)', () => {
       name: 'f',
       permissions: ['view', 'create_child', 'rename'],
     });
-    expect(a.download.enabled || a.preview.enabled || a.copy.enabled || a.star.enabled).toBe(false);
+    expect(a.download.enabled || a.preview.enabled || a.copy.enabled).toBe(false);
+    expect(a.star.enabled).toBe(true); // folders can be pinned to Quick Access
     expect(a.rename.enabled).toBe(true);
   });
 });

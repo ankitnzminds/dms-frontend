@@ -14,7 +14,7 @@ import {
   type Version,
 } from '@/lib/api-client';
 
-export type SortKey = 'name' | 'updated_at' | 'size';
+export type SortKey = 'name' | 'updated_at' | 'size' | 'type' | 'modified_by';
 export type SortOrder = 'asc' | 'desc';
 
 export interface ChildrenParams {
@@ -296,11 +296,22 @@ export function useCopyDocument() {
   });
 }
 
+/** Documents are starred; folders are pinned (Quick Access favorites). */
 export function useToggleStar() {
   const inv = useInvalidateFiles();
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (v: { id: string; starred: boolean }) => {
-      if (v.starred)
+    mutationFn: async (v: { id: string; starred: boolean; kind?: 'folder' | 'document' }) => {
+      if (v.kind === 'folder') {
+        if (v.starred)
+          await api.PUT('/api/v1/folders/{folder_id}/favorite', {
+            params: { path: { folder_id: v.id } },
+          });
+        else
+          await api.DELETE('/api/v1/folders/{folder_id}/favorite', {
+            params: { path: { folder_id: v.id } },
+          });
+      } else if (v.starred)
         await api.PUT('/api/v1/documents/{document_id}/star', {
           params: { path: { document_id: v.id } },
         });
@@ -309,7 +320,10 @@ export function useToggleStar() {
           params: { path: { document_id: v.id } },
         });
     },
-    onSuccess: inv,
+    onSuccess: () => {
+      inv();
+      void qc.invalidateQueries({ queryKey: ['favorites'] });
+    },
   });
 }
 

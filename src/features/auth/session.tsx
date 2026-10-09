@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { api, call, configureApiRuntime, type Me } from '@/lib/api-client';
+import { clearClipboard } from '@/features/explorer/clipboard';
 import {
   getActiveOrganizationId,
   setActiveOrganizationId,
@@ -39,6 +40,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     await provider?.signOut();
     qc.clear();
+    clearClipboard();
     setStatus('signedOut');
   }, [provider, qc]);
 
@@ -50,6 +52,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       onSessionExpired: () => {
         void provider?.signOut();
         qc.clear();
+        clearClipboard();
         setStatus('signedOut');
         router.replace('/login?reason=expired');
       },

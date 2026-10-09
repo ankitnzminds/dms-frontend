@@ -22,10 +22,13 @@ export interface PickedFolder {
 export function FolderPicker({
   onChange,
   excludeId,
+  excludeIds = [],
   startFolderId,
 }: {
   onChange: (f: PickedFolder | null) => void;
   excludeId?: string;
+  /** Folders (and so their subtrees) that cannot be chosen, e.g. the items being moved. */
+  excludeIds?: string[];
   /** Where browsing begins (defaults to the organization root). */
   startFolderId?: string;
 }) {
@@ -86,7 +89,7 @@ export function FolderPicker({
         ) : (
           <ul>
             {children.data.items
-              .filter((f) => f.id !== excludeId)
+              .filter((f) => f.id !== excludeId && !excludeIds.includes(f.id))
               .map((f) => (
                 <li key={f.id}>
                   <button
@@ -105,7 +108,8 @@ export function FolderPicker({
                   </button>
                 </li>
               ))}
-            {children.data.items.filter((f) => f.id !== excludeId).length === 0 && (
+            {children.data.items.filter((f) => f.id !== excludeId && !excludeIds.includes(f.id))
+              .length === 0 && (
               <li className="px-3 py-4 text-center text-xs text-muted">No subfolders here.</li>
             )}
           </ul>

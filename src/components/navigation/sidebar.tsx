@@ -7,6 +7,7 @@ import { useMe } from '@/features/auth/session';
 import { isAdminRole } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 import { adminNav, mainNav, type NavSection } from './nav-config';
+import { FolderTree, QuickAccessList } from './folder-tree';
 
 function isActive(pathname: string, href: string) {
   if (href === '/admin') return pathname === '/admin';
@@ -57,6 +58,8 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                       </span>
                     )}
                   </Link>
+                  {item.href === '/my-files' && <FolderTree />}
+                  {item.href === '/starred' && <QuickAccessList />}
                 </li>
               );
             })}

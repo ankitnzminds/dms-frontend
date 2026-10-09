@@ -12,6 +12,7 @@ export function notificationHref(n: Linkable): string | null {
     if (rt === 'workflow_run' && id) return `/approvals/runs/${id}`;
     return '/approvals';
   }
+  if (type.startsWith('access_request.')) return '/requests';
   if (type.startsWith('signature.')) {
     return rt === 'signature_request' && id ? `/signatures/${id}` : '/signatures';
   }

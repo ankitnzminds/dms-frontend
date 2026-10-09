@@ -9,6 +9,9 @@ import { UploadPanel } from '@/components/upload/upload-panel';
 import { AccountProblem } from '@/features/auth/account-problem';
 import { useMe, useRequireSession } from '@/features/auth/session';
 import { InvitationBanner } from '@/features/organizations/invitation-banner';
+import { ExplorerOpsProvider } from '@/components/explorer/ops';
+import { UploadPickersProvider } from '@/components/upload/pickers';
+import { ChatLauncherProvider } from '@/features/chat/launcher';
 import { Topbar } from './topbar';
 
 function ShellSkeleton() {
@@ -43,25 +46,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[var(--sidebar-w)_1fr]">
-      <aside className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-surface md:flex">
-        <Brand />
-        <SidebarNav />
-      </aside>
-      <Dialog open={drawer} onOpenChange={setDrawer}>
-        <DialogContent side="left" title="Navigation" hideTitle className="flex flex-col">
-          <Brand />
-          <SidebarNav onNavigate={() => setDrawer(false)} />
-        </DialogContent>
-      </Dialog>
-      <div className="flex min-w-0 flex-col">
-        <Topbar onMenu={() => setDrawer(true)} />
-        <InvitationBanner />
-        <main id="main" tabIndex={-1} className="min-w-0 flex-1 p-3 outline-none sm:p-5">
-          {children}
-        </main>
-      </div>
-      <UploadPanel />
-    </div>
+    <ExplorerOpsProvider>
+      <UploadPickersProvider>
+        <ChatLauncherProvider>
+          <div className="min-h-dvh md:grid md:grid-cols-[var(--sidebar-w)_1fr]">
+            <aside className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-surface md:flex">
+              <Brand />
+              <SidebarNav />
+            </aside>
+            <Dialog open={drawer} onOpenChange={setDrawer}>
+              <DialogContent side="left" title="Navigation" hideTitle className="flex flex-col">
+                <Brand />
+                <SidebarNav onNavigate={() => setDrawer(false)} />
+              </DialogContent>
+            </Dialog>
+            <div className="flex min-w-0 flex-col">
+              <Topbar onMenu={() => setDrawer(true)} />
+              <InvitationBanner />
+              <main id="main" tabIndex={-1} className="min-w-0 flex-1 p-3 outline-none sm:p-5">
+                {children}
+              </main>
+            </div>
+            <UploadPanel />
+          </div>
+        </ChatLauncherProvider>
+      </UploadPickersProvider>
+    </ExplorerOpsProvider>
   );
 }

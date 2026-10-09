@@ -134,6 +134,15 @@ const FRIENDLY: Record<string, string> = {
   not_deleted: 'This item is not in the trash.',
   dependency_unavailable: 'A backend dependency is unavailable. Try again shortly.',
   account_disabled: 'This account is disabled.',
+  document_locked:
+    'This document is checked out by someone else. Ask them to check it in, or ask an administrator to break the lock.',
+  already_has_access: 'You already have this access.',
+  action_expired: 'This action expired. Ask again for a fresh preview.',
+  action_stale: 'Things changed since this preview. Ask again for a fresh preview.',
+  action_mismatch:
+    'This confirmation does not match the previewed action. Ask again for a fresh preview.',
+  action_not_pending: 'This action was already handled.',
+  run_in_progress: 'The assistant is still working on your previous message.',
 };
 
 /** Human-friendly text for an error. Falls back to the server message. */
