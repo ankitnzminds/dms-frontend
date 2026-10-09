@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { AuditTable } from '@/components/admin/audit-table';
 import { PageHeader, Panel } from '@/components/layout/page-header';
 import { PathTrail } from '@/components/navigation/path-trail';
+import { previewKind } from '@/features/preview/kinds';
 import { PreviewPanel } from '@/components/file-preview/preview-panel';
 import { ResourceShares } from '@/components/sharing/resource-shares';
 import { RequestSignatureDialog } from '@/components/signatures/request-dialog';
@@ -316,6 +317,10 @@ export function DocumentView({ documentId }: { documentId: string }) {
   const v = doc.current_version;
   const av = itemAvailability(docToItem(doc));
   const showActivity = canReadAudit(me);
+  // Documents, spreadsheets, slides and PDFs need the full width; images and text sit beside the details.
+  const wideViewer = ['office', 'pdf', 'csv', 'text'].includes(
+    previewKind(v?.content_type, doc.name),
+  );
 
   return (
     <ItemActionsProvider currentFolderId={doc.folder_id}>
@@ -367,12 +372,14 @@ export function DocumentView({ documentId }: { documentId: string }) {
           {showActivity && <TabsTrigger value="activity">Activity</TabsTrigger>}
         </TabsList>
         <TabsContent value="overview">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div
+            className={wideViewer ? 'grid gap-4' : 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]'}
+          >
             <Panel className="min-w-0 self-start p-3">
               {doc.status === 'available' &&
               v &&
               av.preview.enabled &&
-              isPreviewableType(v.content_type) ? (
+              isPreviewableType(v.content_type, doc.name) ? (
                 <PreviewPanel
                   documentId={doc.id}
                   contentType={v.content_type}
@@ -385,7 +392,11 @@ export function DocumentView({ documentId }: { documentId: string }) {
                 </p>
               )}
             </Panel>
-            <div className="grid content-start gap-4">
+            <div
+              className={
+                wideViewer ? 'grid content-start gap-4 lg:grid-cols-2' : 'grid content-start gap-4'
+              }
+            >
               <Panel className="p-4">
                 <h2 className="mb-3 text-sm font-semibold">Details</h2>
                 <DetailsCard doc={doc} />

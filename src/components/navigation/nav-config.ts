@@ -9,6 +9,7 @@ import {
   FileSignature,
   FolderTree,
   Gavel,
+  History,
   Inbox,
   KeyRound,
   LayoutDashboard,
@@ -16,6 +17,7 @@ import {
   Network,
   Settings,
   ShieldAlert,
+  ShieldCheck,
   Share2,
   Star,
   Tags,
@@ -39,6 +41,8 @@ export interface NavSection {
   items: NavItem[];
   /** 'admin' = owner/admin only. 'auditor' = admin or auditor. */
   requires?: 'admin' | 'auditor-or-admin';
+  /** Header toggles the group open/closed (state is remembered per browser). */
+  collapsible?: boolean;
 }
 
 export const mainNav: NavSection[] = [
@@ -72,12 +76,20 @@ export const mainNav: NavSection[] = [
 
 export const adminNav: NavSection[] = [
   {
+    title: 'Users / Groups',
+    requires: 'admin',
+    collapsible: true,
+    items: [
+      { href: '/admin/users', label: 'Users', icon: Users },
+      { href: '/admin/groups', label: 'Groups', icon: UsersRound },
+      { href: '/admin/admins', label: 'Admins', icon: ShieldCheck },
+    ],
+  },
+  {
     title: 'Administration',
     requires: 'admin',
     items: [
       { href: '/admin', label: 'Overview', icon: Activity },
-      { href: '/admin/users', label: 'Users', icon: Users },
-      { href: '/admin/groups', label: 'Groups', icon: UsersRound },
       { href: '/admin/directory', label: 'Directory sync', icon: Network },
       { href: '/admin/workflows', label: 'Workflows', icon: Workflow },
       { href: '/admin/metadata', label: 'Metadata fields', icon: Tags },
@@ -91,6 +103,7 @@ export const adminNav: NavSection[] = [
     requires: 'auditor-or-admin',
     items: [
       { href: '/admin/governance', label: 'Governance', icon: Gavel },
+      { href: '/admin/activity', label: 'Activity', icon: History },
       { href: '/admin/audit', label: 'Audit log', icon: Archive },
       { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
     ],

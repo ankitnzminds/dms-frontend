@@ -11,8 +11,9 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const admin = isAdminRole(me?.role);
   const auditOk =
-    ['/admin/audit', '/admin/reports', '/admin/governance'].some((x) => pathname.startsWith(x)) &&
-    canReadAudit(me);
+    ['/admin/audit', '/admin/activity', '/admin/reports', '/admin/governance'].some((x) =>
+      pathname.startsWith(x),
+    ) && canReadAudit(me);
   if (!admin && !auditOk) {
     return <ForbiddenState message="This area is limited to organization administrators." />;
   }

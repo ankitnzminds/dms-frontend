@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
+import { PolicyEditor } from '@/features/admin-users/policy-editor';
 import { friendlyMessage, isApiError, type Group } from '@/lib/api-client';
 import {
   useAddGroupMember,
@@ -216,6 +217,7 @@ export function GroupsView() {
   const [edit, setEdit] = useState<{ group: Group | null } | null>(null);
   const [members, setMembers] = useState<Group | null>(null);
   const [toDelete, setToDelete] = useState<Group | null>(null);
+  const [policyOf, setPolicyOf] = useState<Group | null>(null);
 
   return (
     <>
@@ -265,6 +267,9 @@ export function GroupsView() {
                     <DropdownMenuItem onSelect={() => setEdit({ group: g })}>
                       Rename / edit…
                     </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setPolicyOf(g)}>
+                      Group policy…
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem destructive onSelect={() => setToDelete(g)}>
                       Delete group…
@@ -277,6 +282,21 @@ export function GroupsView() {
         )}
       </Panel>
       {edit && <GroupDialog group={edit.group} open onOpenChange={(o) => !o && setEdit(null)} />}
+      <Dialog open={!!policyOf} onOpenChange={(o) => !o && setPolicyOf(null)}>
+        <DialogContent
+          className="h-[85vh] max-w-3xl"
+          title={`Group policy: ${policyOf?.name ?? ''}`}
+          description="Applies to every member. A person's own policy overrides it."
+        >
+          {policyOf && (
+            <PolicyEditor
+              scope={{ kind: 'group', id: policyOf.id }}
+              title={`Policy for group ${policyOf.name}`}
+              onClose={() => setPolicyOf(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
       {members && <MembersDialog group={members} onClose={() => setMembers(null)} />}
       <ConfirmDialog
         open={!!toDelete}

@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Layers } from 'lucide-react';
+import { ChevronDown, Layers } from 'lucide-react';
+import { useState } from 'react';
 import { useMe } from '@/features/auth/session';
 import { isAdminRole } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
@@ -15,6 +16,16 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+const COLLAPSE_KEY = 'dms.nav.collapsed';
+
+function readCollapsed(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY) ?? '[]') as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { data: me } = useMe();
@@ -24,6 +35,22 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const visibleAdmin: NavSection[] = adminNav.filter((s) =>
     s.requires === 'admin' ? admin : s.requires === 'auditor-or-admin' ? admin || auditor : true,
   );
+  const [collapsed, setCollapsed] = useState<Set<string>>(() =>
+    typeof window === 'undefined' ? new Set() : readCollapsed(),
+  );
+  function toggle(title: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      try {
+        localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...next]));
+      } catch {
+        /* storage unavailable: the toggle still works for this visit */
+      }
+      return next;
+    });
+  }
   const sections =
     auditor && !admin ? [...mainNav, ...visibleAdmin] : [...mainNav, ...visibleAdmin];
 
@@ -31,10 +58,42 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     <nav aria-label="Primary" className="scroll-thin flex-1 overflow-y-auto px-2 pb-4">
       {sections.map((section, si) => (
         <div key={si} className="mt-4 first:mt-1">
-          {section.title && (
-            <p className="px-2 pb-1 text-xs font-medium text-faint">{section.title}</p>
+          {section.title && section.collapsible ? (
+            <button
+              type="button"
+              aria-expanded={
+                !collapsed.has(section.title) ||
+                section.items.some((i) => isActive(pathname, i.href))
+              }
+              onClick={() => toggle(section.title!)}
+              className="flex w-full items-center justify-between px-2 pb-1 text-xs font-medium uppercase tracking-wide text-faint hover:text-text"
+            >
+              {section.title}
+              <ChevronDown
+                className={cn(
+                  'size-3.5 transition-transform',
+                  collapsed.has(section.title) &&
+                    !section.items.some((i) => isActive(pathname, i.href)) &&
+                    '-rotate-90',
+                )}
+                aria-hidden
+              />
+            </button>
+          ) : (
+            section.title && (
+              <p className="px-2 pb-1 text-xs font-medium text-faint">{section.title}</p>
+            )
           )}
-          <ul className="grid gap-0.5">
+          <ul
+            className={cn(
+              'grid gap-0.5',
+              section.collapsible &&
+                section.title &&
+                collapsed.has(section.title) &&
+                !section.items.some((i) => isActive(pathname, i.href)) &&
+                'hidden',
+            )}
+          >
             {section.items.map((item) => {
               const active = isActive(pathname, item.href);
               const Icon = item.icon;

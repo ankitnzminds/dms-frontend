@@ -51,7 +51,7 @@ export function ReceivedShareRow({ share: s, onPreview, onDownload }: ReceivedSh
     ? 'Folders cannot be previewed.'
     : !can(s.actions, 'preview')
       ? 'The owner did not grant preview.'
-      : s.content_type && !isPreviewableType(s.content_type)
+      : s.content_type && !isPreviewableType(s.content_type, s.name)
         ? 'This file type cannot be previewed.'
         : null;
   return (

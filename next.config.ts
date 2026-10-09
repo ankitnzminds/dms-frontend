@@ -28,6 +28,10 @@ const backendOrigin = proxyTarget ? new URL(proxyTarget).origin : apiOrigin;
 // e.g. SIGNING_FRAME_SRC="https://sign.example.com".
 const signingFrameSrc = process.env.SIGNING_FRAME_SRC ?? 'https:';
 
+// Office viewer/editor (Collabora Online): the origin the iframe and its WOPI form post go to. Empty = the office
+// viewer is not allowed to load. Example: OFFICE_FRAME_SRC="https://office.example.com".
+const officeSrc = (process.env.OFFICE_FRAME_SRC ?? '').trim();
+
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isProd ? '' : " 'unsafe-eval'"}`,
@@ -35,10 +39,11 @@ const csp = [
   `img-src 'self' data: blob: ${apiOrigin} ${backendOrigin}`,
   "font-src 'self' data:",
   `connect-src 'self' ${apiOrigin} ${supabaseOrigin}${isProd ? '' : ' ws:'}`.trim(),
-  `frame-src ${apiOrigin} ${backendOrigin} ${signingFrameSrc}`,
+  `frame-src ${apiOrigin} ${backendOrigin} ${signingFrameSrc} ${officeSrc}`.trim(),
+  "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
-  "form-action 'self'",
+  `form-action 'self' ${officeSrc}`.trim(),
   "frame-ancestors 'none'",
 ].join('; ');
 

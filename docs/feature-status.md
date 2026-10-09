@@ -64,3 +64,11 @@ backend (offline unless stated).
 | Storage-provider configuration/migration                             | NOT_AVAILABLE (section on `/admin/storage`)                                                                                                            |
 | Desktop/mobile sync                                                  | not exposed                                                                                                                                            |
 | Anyone-with-link / external sharing; bulk move; folder copy/download | NOT_AVAILABLE                                                                                                                                          |
+
+## Users / Groups administration
+
+`/admin/users` (list, add, import, export, details, policy, delete), `/admin/groups` (+ group policy),
+`/admin/admins`, `/admin/activity` and a user Activity tab. Code: `src/features/admin-users/`.
+Controls that need a missing backend capability (mobile devices, email, backups, password reset,
+profile image, watermark) are shown disabled or labelled "not enforced yet", never faked. The
+backend matrix is `enterprise-dms-backend/docs/requirements/admin-user-management.md`.

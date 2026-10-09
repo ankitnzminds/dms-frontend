@@ -1,3 +1,4 @@
+import { isPreviewable } from '@/features/preview/kinds';
 import { can } from '@/lib/permissions';
 
 export type ItemAction =
@@ -28,9 +29,9 @@ export interface Availability {
   reason?: string;
 }
 
-const PREVIEWABLE = /^(application\/pdf|image\/(png|jpeg|gif|webp)|text\/.+)$/i;
-export const isPreviewableType = (ct: string | null | undefined) =>
-  !!ct && PREVIEWABLE.test(ct.split(';')[0]!.trim());
+/** Kept for existing callers; Office files are previewable too (the viewer decides how). */
+export const isPreviewableType = (ct: string | null | undefined, name?: string | null) =>
+  isPreviewable(ct, name);
 
 const NO = (reason: string): Availability => ({ enabled: false, reason });
 const YES: Availability = { enabled: true };
@@ -55,7 +56,7 @@ export function itemAvailability(item: ActionItem): Record<ItemAction, Availabil
         ? NO('You do not have permission to preview this file.')
         : !ready
           ? NO(notReady)
-          : item.content_type && !isPreviewableType(item.content_type)
+          : item.content_type && !isPreviewableType(item.content_type, item.name)
             ? NO('This file type cannot be previewed. Download it instead.')
             : YES,
     download: !isDoc
