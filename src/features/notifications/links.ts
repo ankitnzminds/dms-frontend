@@ -18,8 +18,9 @@ export function notificationHref(n: Linkable): string | null {
   }
   if (type === 'share.revoked' || type === 'share.expired') return '/shared-with-me';
   if (!id) return type.startsWith('share') ? '/shared-with-me' : null;
-  if (rt === 'document') return `/documents/${id}`;
-  if (rt === 'folder') return `/files/${id}`;
+  const comment = type === 'comment.created';
+  if (rt === 'document') return comment ? `/documents/${id}?tab=comments` : `/documents/${id}`;
+  if (rt === 'folder') return comment ? `/files/${id}?details=comments` : `/files/${id}`;
   if (rt === 'workflow_run') return `/approvals/runs/${id}`;
   if (rt === 'workflow_task') return '/approvals';
   if (rt === 'signature_request') return `/signatures/${id}`;

@@ -24,6 +24,7 @@ import { RequestSignatureDialog } from '@/components/signatures/request-dialog';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
+import { CommentCount, CommentThread } from '@/components/comments/comment-thread';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DisabledReason } from '@/components/ui/tooltip';
 import { SubmitApprovalDialog } from '@/components/workflows/submit-approval-dialog';
@@ -355,6 +356,10 @@ export function DocumentView({ documentId }: { documentId: string }) {
       <Tabs key={tab} defaultValue={tab}>
         <TabsList aria-label="Document sections">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="comments" data-testid="tab-comments">
+            Comments
+            <CommentCount kind="document" id={doc.id} />
+          </TabsTrigger>
           <TabsTrigger value="versions">Versions</TabsTrigger>
           <TabsTrigger value="sharing">Sharing</TabsTrigger>
           <TabsTrigger value="approvals">Approvals</TabsTrigger>
@@ -395,6 +400,9 @@ export function DocumentView({ documentId }: { documentId: string }) {
               </Panel>
             </div>
           </div>
+        </TabsContent>
+        <TabsContent value="comments">
+          <CommentThread target={{ kind: 'document', id: doc.id }} />
         </TabsContent>
         <TabsContent value="versions">
           <VersionsPanel documentId={doc.id} permissions={doc.permissions} />

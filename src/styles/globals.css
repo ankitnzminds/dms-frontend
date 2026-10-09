@@ -7,20 +7,20 @@
  * status colours reserved for state. All text/background pairs target WCAG AA.
  */
 :root {
-  --bg: #f4f6f7;
+  --bg: #f5f6f8;
   --surface: #ffffff;
-  --surface-2: #eef1f3;
-  --surface-3: #e4e9ec;
-  --line: #dde3e7;
-  --line-strong: #c3ccd3;
-  --text: #121820;
-  --muted: #536070;
-  --faint: #6b7886;
-  --accent: #0a6a72;
-  --accent-hover: #08575e;
+  --surface-2: #f0f2f6;
+  --surface-3: #e4e8ef;
+  --line: #e2e6ed;
+  --line-strong: #c9d0db;
+  --text: #141a26;
+  --muted: #566176;
+  --faint: #6d788c;
+  --accent: #2457d6;
+  --accent-hover: #1b47b5;
   --accent-fg: #ffffff;
-  --accent-soft: #e0f0f1;
-  --accent-soft-fg: #07494f;
+  --accent-soft: #e7eefc;
+  --accent-soft-fg: #173a93;
   --ok: #17703f;
   --ok-soft: #e1f3e8;
   --warn: #8a4f00;
@@ -29,27 +29,40 @@
   --danger-soft: #fbe6e3;
   --info: #1f5a99;
   --info-soft: #e3eefa;
-  --ring: #0a6a72;
-  --shadow-pop: 0 8px 28px -6px rgb(18 24 32 / 0.18), 0 2px 6px rgb(18 24 32 / 0.08);
-  --sidebar-w: 15.5rem;
+  --ring: #2457d6;
+  /* file-type palette (icon tiles) */
+  --ft-folder: #f2b630;
+  --ft-folder-back: #e09a0b;
+  --ft-pdf: #d93a35;
+  --ft-doc: #2b6bd8;
+  --ft-sheet: #1f9254;
+  --ft-slide: #d9682a;
+  --ft-image: #8a52d6;
+  --ft-archive: #b4791a;
+  --ft-text: #5b6679;
+  --ft-code: #0f8f94;
+  --ft-generic: #7b86a0;
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.05);
+  --shadow-pop: 0 12px 32px -8px rgb(16 24 40 / 0.22), 0 2px 6px rgb(16 24 40 / 0.08);
+  --sidebar-w: 16rem;
   color-scheme: light;
 }
 
 .dark {
-  --bg: #0d1114;
-  --surface: #141a1f;
-  --surface-2: #1a2127;
-  --surface-3: #232b33;
-  --line: #262f37;
-  --line-strong: #37424d;
-  --text: #e8edf1;
-  --muted: #9aa7b3;
-  --faint: #8190a0;
-  --accent: #4cbcc5;
-  --accent-hover: #6fcdd5;
-  --accent-fg: #04252a;
-  --accent-soft: #11353a;
-  --accent-soft-fg: #a5e3e8;
+  --bg: #0e1116;
+  --surface: #151a22;
+  --surface-2: #1b212b;
+  --surface-3: #252c38;
+  --line: #262e3a;
+  --line-strong: #38424f;
+  --text: #e8ecf3;
+  --muted: #9ba7ba;
+  --faint: #8794a8;
+  --accent: #7ba3ff;
+  --accent-hover: #9bb8ff;
+  --accent-fg: #0a1330;
+  --accent-soft: #19274a;
+  --accent-soft-fg: #c9d9ff;
   --ok: #5fcf8e;
   --ok-soft: #12301f;
   --warn: #efb256;
@@ -58,8 +71,20 @@
   --danger-soft: #3f1814;
   --info: #7ab4f2;
   --info-soft: #14263b;
-  --ring: #4cbcc5;
-  --shadow-pop: 0 10px 32px -6px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.4);
+  --ring: #7ba3ff;
+  --ft-folder: #f0b537;
+  --ft-folder-back: #c98a12;
+  --ft-pdf: #f0625c;
+  --ft-doc: #5b92f0;
+  --ft-sheet: #3fbf7a;
+  --ft-slide: #f08850;
+  --ft-image: #ad84f0;
+  --ft-archive: #d9a04a;
+  --ft-text: #98a3b8;
+  --ft-code: #38c4c9;
+  --ft-generic: #94a0ba;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-pop: 0 14px 36px -8px rgb(0 0 0 / 0.65), 0 2px 6px rgb(0 0 0 / 0.4);
   color-scheme: dark;
 }
 
@@ -88,9 +113,16 @@
   --color-info-soft: var(--info-soft);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --color-ft-folder: var(--ft-folder);
+  --color-ft-pdf: var(--ft-pdf);
+  --color-ft-doc: var(--ft-doc);
+  --color-ft-sheet: var(--ft-sheet);
+  --color-ft-image: var(--ft-image);
+  --color-ft-archive: var(--ft-archive);
+  --color-ft-text: var(--ft-text);
   --shadow-pop: var(--shadow-pop);
 }
 

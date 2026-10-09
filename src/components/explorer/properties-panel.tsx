@@ -1,6 +1,10 @@
 'use client';
 
 import { Lock, X } from 'lucide-react';
+import { CommentThread } from '@/components/comments/comment-thread';
+import { VersionsPanel } from '@/components/file-browser/versions-panel';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { liveCount, useComments } from '@/features/comments/hooks';
 import { PathTrail } from '@/components/navigation/path-trail';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,31 +31,73 @@ export function PropertiesPanel({
   target,
   onClose,
   selectionCount = 0,
+  initialTab = 'properties',
 }: {
   target: { kind: 'document' | 'folder'; id: string } | null;
   onClose: () => void;
   selectionCount?: number;
+  initialTab?: 'properties' | 'comments' | 'versions';
 }) {
+  const comments = useComments(target);
+  const count = liveCount(comments.data);
   const q = useProperties(target?.kind, target?.id);
   return (
     <aside
-      aria-label="Properties"
-      className="rounded-lg border border-line bg-surface p-4"
+      aria-label="Details"
+      className="rounded-lg border border-line bg-surface shadow-sm"
       data-testid="properties-panel"
     >
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Properties</h2>
+      <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+        <h2 className="truncate text-sm font-semibold">{q.data?.name ?? 'Details'}</h2>
         <Button size="icon-sm" variant="ghost" aria-label="Close properties" onClick={onClose}>
           <X />
         </Button>
       </div>
-      {!target ? (
-        <p className="text-[13px] text-muted">
-          {selectionCount > 1
-            ? `${selectionCount} items selected. Select a single item to see its properties.`
-            : 'Select an item to see its properties.'}
-        </p>
-      ) : q.isPending ? (
+      {target && (
+        <Tabs key={`${target.kind}-${target.id}`} defaultValue={initialTab} className="px-4 pb-4">
+          <TabsList aria-label="Detail sections">
+            <TabsTrigger value="properties">Properties</TabsTrigger>
+            <TabsTrigger value="comments" data-testid="tab-comments">
+              Comments
+              {count > 0 && (
+                <span className="ml-1.5 rounded-full bg-accent-soft px-1.5 text-[11px] text-accent-soft-fg" data-testid="comment-count">
+                  {count}
+                </span>
+              )}
+            </TabsTrigger>
+            {target.kind === 'document' && <TabsTrigger value="versions">Versions</TabsTrigger>}
+          </TabsList>
+          <TabsContent value="properties">{props(q)}</TabsContent>
+          <TabsContent value="comments">
+            <CommentThread target={target} />
+          </TabsContent>
+          {target.kind === 'document' && (
+            <TabsContent value="versions">
+              <VersionsPanel
+                documentId={target.id}
+                permissions={(q.data?.your_permissions ?? []) as never}
+              />
+            </TabsContent>
+          )}
+        </Tabs>
+      )}
+      {!target && (
+        <div className="p-4">
+          <p className="text-[13px] text-muted">
+            {selectionCount > 1
+              ? `${selectionCount} items selected. Select a single item to see its details.`
+              : 'Select an item to see its details.'}
+          </p>
+        </div>
+      )}
+    </aside>
+  );
+}
+
+function props(q: ReturnType<typeof useProperties>) {
+  return (
+    <div>
+      {q.isPending ? (
         <Skeleton className="h-40" />
       ) : q.isError ? (
         <ErrorState error={q.error} onRetry={() => q.refetch()} className="py-4" />
@@ -141,6 +187,6 @@ export function PropertiesPanel({
           );
         })()
       )}
-    </aside>
+    </div>
   );
 }

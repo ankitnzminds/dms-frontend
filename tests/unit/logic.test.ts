@@ -14,7 +14,7 @@ import { hasNextPage, pageCount } from '@/lib/api-client/pagination';
 const base: ShareFormValues = {
   emails: [],
   groupIds: [],
-  preset: 'viewer_download',
+  preset: 'commenter',
   customActions: [],
   expiry: '30',
   customDate: '',
@@ -55,13 +55,13 @@ describe('share form', () => {
       { type: 'user', email: 'bob@acme.test' },
       { type: 'group', id: 'g1' },
     ]);
-    expect(body.actions).toEqual(['view', 'preview', 'download']);
+    expect(body.actions).toEqual(['view', 'preview', 'download', 'comment']);
     expect(body.expires_at).toBe(new Date(now + 30 * 86400000).toISOString());
     expect(body.message).toBe('hi');
   });
 
   it('presets and "none" expiry', () => {
-    expect(actionsFor({ preset: 'viewer', customActions: [] })).toEqual(['view', 'preview']);
+    expect(actionsFor({ preset: 'viewer', customActions: [] })).toEqual(['view', 'preview', 'download']);
     expect(actionsFor({ preset: 'editor', customActions: [] })).toContain('upload_version');
     expect(actionsFor({ preset: 'custom', customActions: ['download'] })).toEqual([
       'view',

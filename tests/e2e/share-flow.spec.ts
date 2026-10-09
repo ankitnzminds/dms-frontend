@@ -71,7 +71,7 @@ test.describe.serial('document sharing end to end', () => {
     await expect(dialog).toContainText('do not get access to its folder');
     await dialog.getByLabel('People (work email addresses)').fill('bob@acme.test');
     await dialog.getByLabel('People (work email addresses)').press('Enter');
-    await dialog.getByLabel('Viewer + download').check();
+    await dialog.getByLabel('Viewer', { exact: true }).check();
     await dialog.getByLabel('Access expires').selectOption('30');
     await dialog.getByRole('button', { name: 'Share', exact: true }).click();
     await expect(page.getByText(/Shared ".*" with 1 recipient/)).toBeVisible();

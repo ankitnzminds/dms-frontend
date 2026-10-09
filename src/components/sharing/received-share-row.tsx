@@ -1,6 +1,7 @@
 'use client';
 
 import { Download, Eye, FolderOpen } from 'lucide-react';
+import { accessLevel } from '@/features/sharing/schemas';
 import Link from 'next/link';
 import { PathTrail } from '@/components/navigation/path-trail';
 import { Button } from '@/components/ui/button';
@@ -93,6 +94,12 @@ export function ReceivedShareRow({ share: s, onPreview, onDownload }: ReceivedSh
       <td className="hidden px-3 py-2.5 md:table-cell">
         {active ? (
           <span className="flex flex-wrap gap-1">
+            <Badge tone="info" data-testid="access-level">
+              {accessLevel(s.actions)}
+            </Badge>
+            {can(s.actions, 'comment') && (
+              <span className="basis-full text-xs text-muted">You can comment</span>
+            )}
             {permissionChips(s.actions).map((c) => (
               <Badge key={c}>{c}</Badge>
             ))}

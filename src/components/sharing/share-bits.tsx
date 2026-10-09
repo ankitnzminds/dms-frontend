@@ -1,6 +1,7 @@
 'use client';
 
 import { Ban, Clock, Loader2 } from 'lucide-react';
+import { accessLevel } from '@/features/sharing/schemas';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,9 @@ export function ActionChips({ actions }: { actions: string[] }) {
   if (actions.length === 0) return <span className="text-xs text-muted">No permissions</span>;
   return (
     <span className="flex flex-wrap gap-1">
+      <Badge tone="info" data-testid="access-level">
+        {accessLevel(actions)}
+      </Badge>
       {actions.map((a) => (
         <Badge key={a} tone="neutral">
           {actionLabel(a)}

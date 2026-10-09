@@ -1,5 +1,6 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { FolderOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -101,7 +102,8 @@ function ExplorerBody({ folderId }: { folderId: string }) {
   const selItems = useMemo(() => items.filter((i) => sel.ids.has(i.id)), [items, sel.ids]);
 
   const [newFolderIn, setNewFolderIn] = useState<string | null>(null);
-  const [propsOpen, setPropsOpen] = useState(false);
+  const detailsParam = useSearchParams().get('details');
+  const [propsOpen, setPropsOpen] = useState(detailsParam === 'comments' || detailsParam === 'properties');
   const [versionsFor, setVersionsFor] = useState<TreeItem | null>(null);
   const [requestFor, setRequestFor] = useState<TreeItem | null>(null);
   const [menuCtx, setMenuCtx] = useState<{ target: MenuContext['target']; items: TreeItem[] }>({
@@ -501,7 +503,7 @@ function ExplorerBody({ folderId }: { folderId: string }) {
         }}
       />
 
-      <div className={cn('grid gap-3', propsOpen && 'lg:grid-cols-[minmax(0,1fr)_20rem]')}>
+      <div className={cn('grid gap-3', propsOpen && 'lg:grid-cols-[minmax(0,1fr)_22rem]')}>
         <ContextMenuRoot>
           <ContextMenuTrigger asChild>
             <div
@@ -614,6 +616,7 @@ function ExplorerBody({ folderId }: { folderId: string }) {
             <PropertiesPanel
               target={propsTarget}
               selectionCount={selItems.length}
+              initialTab={detailsParam === 'comments' ? 'comments' : 'properties'}
               onClose={() => setPropsOpen(false)}
             />
           </div>

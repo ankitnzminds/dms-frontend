@@ -41,7 +41,7 @@ export interface ShareDialogProps {
 const DEFAULTS: ShareFormValues = {
   emails: [],
   groupIds: [],
-  preset: 'viewer_download',
+  preset: 'commenter',
   customActions: ['view', 'preview'],
   expiry: '30',
   customDate: '',

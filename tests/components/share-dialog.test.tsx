@@ -92,9 +92,9 @@ describe('ShareDialog', () => {
   });
 
   it('limits presets to what the caller holds', () => {
-    open(['view', 'preview', 'share']);
-    expect(screen.getByRole('radio', { name: /^Viewer\s*Can view and preview/ })).toBeEnabled();
-    expect(screen.getByRole('radio', { name: /Viewer \+ download/ })).toBeDisabled();
+    open(['view', 'preview', 'download', 'comment', 'share']);
+    expect(screen.getByRole('radio', { name: /^Viewers*Can view, preview and download/ })).toBeEnabled();
+    expect(screen.getByRole('radio', { name: /Commenter/ })).toBeEnabled();
     expect(screen.getByRole('radio', { name: /Editor/ })).toBeDisabled();
   });
 
@@ -153,7 +153,7 @@ describe('ShareDialog', () => {
       { type: 'user', email: 'bob@acme.test' },
       { type: 'group', id: 'g-eng' },
     ]);
-    expect(body.actions).toEqual(['view', 'preview', 'download']);
+    expect(body.actions).toEqual(['view', 'preview', 'download', 'comment']); // Commenter is the default
     expect(body.expires_at).toEqual(expect.any(String)); // 30 day preset by default
   });
 });

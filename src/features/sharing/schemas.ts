@@ -2,16 +2,20 @@ import { z } from 'zod';
 import type { ActionName, ShareCreate } from '@/lib/api-client';
 
 export const PRESETS = {
-  viewer: { label: 'Viewer', hint: 'Can view and preview', actions: ['view', 'preview'] },
-  viewer_download: {
-    label: 'Viewer + download',
-    hint: 'Can view, preview and download',
+  viewer: {
+    label: 'Viewer',
+    hint: 'Can view, preview and download. Cannot comment',
     actions: ['view', 'preview', 'download'],
+  },
+  commenter: {
+    label: 'Commenter',
+    hint: 'Viewer, and can comment',
+    actions: ['view', 'preview', 'download', 'comment'],
   },
   editor: {
     label: 'Editor',
-    hint: 'Can also edit details, rename and upload new versions',
-    actions: ['view', 'preview', 'download', 'edit_metadata', 'rename', 'upload_version'],
+    hint: 'Commenter, and can upload new versions, edit details and rename',
+    actions: ['view', 'preview', 'download', 'comment', 'upload_version', 'edit_metadata', 'rename'],
   },
   custom: { label: 'Custom', hint: 'Pick individual permissions', actions: [] as ActionName[] },
 } as const;
@@ -32,7 +36,7 @@ export const shareFormSchema = z
   .object({
     emails: z.array(z.string()),
     groupIds: z.array(z.string()),
-    preset: z.enum(['viewer', 'viewer_download', 'editor', 'custom']),
+    preset: z.enum(['viewer', 'commenter', 'editor', 'custom']),
     customActions: z.array(z.string()),
     expiry: z.enum(['7', '30', '90', 'custom', 'none']),
     customDate: z.string(),
@@ -96,4 +100,13 @@ export function buildShareRequest(v: ShareFormValues, now = Date.now()): ShareCr
     expires_at: expiryIso(v, now),
     message: v.message.trim() || null,
   };
+}
+
+/** Human access level for a set of granted actions: the highest preset fully contained, else Custom. */
+export function accessLevel(actions: readonly string[]): 'Editor' | 'Commenter' | 'Viewer' | 'Custom' {
+  const has = (a: readonly string[]) => a.every((x) => actions.includes(x));
+  if (has(PRESETS.editor.actions)) return 'Editor';
+  if (has(PRESETS.commenter.actions)) return 'Commenter';
+  if (has(PRESETS.viewer.actions)) return 'Viewer';
+  return 'Custom';
 }

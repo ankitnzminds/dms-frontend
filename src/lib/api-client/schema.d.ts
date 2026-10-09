@@ -715,6 +715,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/comments/{comment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete my comment (or moderate) */
+        delete: operations["delete_comment_api_v1_comments__comment_id__delete"];
+        options?: never;
+        head?: never;
+        /** Edit my comment */
+        patch: operations["edit_comment_api_v1_comments__comment_id__patch"];
+        trace?: never;
+    };
     "/api/v1/documents/{document_id}": {
         parameters: {
             query?: never;
@@ -779,6 +797,24 @@ export interface paths {
         put?: never;
         /** Summarize the current version (needs PREVIEW) */
         post: operations["summary_api_v1_documents__document_id__ai_summary_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{document_id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Comments on a document */
+        get: operations["list_document_comments_api_v1_documents__document_id__comments_get"];
+        put?: never;
+        /** Comment on a document (needs the comment permission) */
+        post: operations["add_document_comment_api_v1_documents__document_id__comments_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1184,6 +1220,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/folders/{folder_id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Comments on a folder */
+        get: operations["list_folder_comments_api_v1_folders__folder_id__comments_get"];
+        put?: never;
+        /** Comment on a folder (needs the comment permission) */
+        post: operations["add_folder_comment_api_v1_folders__folder_id__comments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/folders/{folder_id}/copy": {
         parameters: {
             query?: never;
@@ -1472,6 +1526,23 @@ export interface paths {
         };
         /** Find active members by name/e-mail (for choosing recipients; minimal fields) */
         get: operations["lookup_members_api_v1_members_lookup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/members/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Name/e-mail of one active member of your organization (to label IDs) */
+        get: operations["get_member_api_v1_members__user_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2011,6 +2082,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workflow-tasks/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One task I may see */
+        get: operations["get_task_api_v1_workflow_tasks__task_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workflow-tasks/{task_id}/decision": {
         parameters: {
             query?: never;
@@ -2412,6 +2500,76 @@ export interface components {
             version_id: string;
             /** Version Number */
             version_number: number;
+        };
+        /** CommentCreate */
+        CommentCreate: {
+            /**
+             * Body
+             * @description Plain text.
+             */
+            body: string;
+            /**
+             * Parent Id
+             * @description Reply to this top-level comment.
+             */
+            parent_id?: string | null;
+        };
+        /** CommentEdit */
+        CommentEdit: {
+            /** Body */
+            body: string;
+        };
+        /** CommentList */
+        CommentList: {
+            /**
+             * Can Comment
+             * @description The caller may add comments here.
+             */
+            can_comment: boolean;
+            /** Items */
+            items: components["schemas"]["CommentOut"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** CommentOut */
+        CommentOut: {
+            author: components["schemas"]["UserRef"] | null;
+            /** Body */
+            body: string;
+            /** Can Delete */
+            can_delete: boolean;
+            /** Can Edit */
+            can_edit: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Deleted */
+            deleted: boolean;
+            /** Edited At */
+            edited_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Parent Id */
+            parent_id: string | null;
+            /**
+             * Resource Id
+             * Format: uuid
+             */
+            resource_id: string;
+            /**
+             * Resource Type
+             * @enum {string}
+             */
+            resource_type: "document" | "folder";
         };
         /** ConfirmIn */
         ConfirmIn: {
@@ -3836,6 +3994,42 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /** ReportSummaryOut */
+        ReportSummaryOut: {
+            /** Audit Events By Outcome */
+            audit_events_by_outcome: {
+                [key: string]: number;
+            };
+            /** Denied Attempts */
+            denied_attempts: number;
+            /** Documents By Classification */
+            documents_by_classification: {
+                [key: string]: number;
+            };
+            /** Documents By Status */
+            documents_by_status: {
+                [key: string]: number;
+            };
+            /** Legal Holds */
+            legal_holds: {
+                [key: string]: number;
+            };
+            /** Period Days */
+            period_days: number;
+            /** Retention Policies Enabled */
+            retention_policies_enabled: number;
+            shares: components["schemas"]["SharesSummary"];
+            /** Signature Requests */
+            signature_requests: {
+                [key: string]: number;
+            };
+            /** Top Actions */
+            top_actions: components["schemas"]["TopAction"][];
+            /** Workflow Runs */
+            workflow_runs: {
+                [key: string]: number;
+            };
+        };
         /** RestoreRequest */
         RestoreRequest: {
             /** New Name */
@@ -3970,6 +4164,17 @@ export interface components {
              * @enum {string}
              */
             status: "active" | "expired" | "revoked";
+        };
+        /** SharesSummary */
+        SharesSummary: {
+            /** Active */
+            active: number;
+            /** Expired */
+            expired: number;
+            /** Revoked */
+            revoked: number;
+            /** Total */
+            total: number;
         };
         /** SignatureArtifactOut */
         SignatureArtifactOut: {
@@ -4278,6 +4483,13 @@ export interface components {
             step_index: number;
             /** Step Name */
             step_name: string;
+        };
+        /** TopAction */
+        TopAction: {
+            /** Action */
+            action: string;
+            /** Count */
+            count: number;
         };
         /** TrashItem */
         TrashItem: {
@@ -6083,9 +6295,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ReportSummaryOut"];
                 };
             };
             /** @description Validation Error */
@@ -7166,6 +7376,112 @@ export interface operations {
             };
         };
     };
+    delete_comment_api_v1_comments__comment_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-organization-id"?: string | null;
+                authorization?: string | null;
+            };
+            path: {
+                comment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_comment_api_v1_comments__comment_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-organization-id"?: string | null;
+                authorization?: string | null;
+            };
+            path: {
+                comment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentEdit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentOut"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_document_api_v1_documents__document_id__get: {
         parameters: {
             query?: never;
@@ -7480,6 +7796,117 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_document_comments_api_v1_documents__document_id__comments_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                "x-organization-id"?: string | null;
+                authorization?: string | null;
+            };
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentList"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_document_comment_api_v1_documents__document_id__comments_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-organization-id"?: string | null;
+                authorization?: string | null;
+            };
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentOut"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -8872,6 +9299,117 @@ export interface operations {
             };
         };
     };
+    list_folder_comments_api_v1_folders__folder_id__comments_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                "x-organization-id"?: string | null;
+                authorization?: string | null;
+            };
+            path: {
+                folder_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentList"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_folder_comment_api_v1_folders__folder_id__comments_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-organization-id"?: string | null;
+                authorization?: string | null;
+            };
+            path: {
+                folder_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentOut"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     copy_folder_api_v1_folders__folder_id__copy_post: {
         parameters: {
             query?: never;
@@ -9760,6 +10298,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserRef"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_member_api_v1_members__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-organization-id"?: string | null;
+                authorization?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRef"];
                 };
             };
             /** @description Validation Error */
@@ -11140,7 +11712,7 @@ export interface operations {
     my_tasks_api_v1_workflow_tasks_mine_get: {
         parameters: {
             query?: {
-                status?: ("pending" | "approved" | "rejected" | "cancelled" | "skipped") | null;
+                status?: ("pending" | "approved" | "rejected" | "cancelled" | "skipped" | "all") | null;
                 limit?: number;
                 offset?: number;
             };
@@ -11160,6 +11732,49 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_TaskOut_"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_task_api_v1_workflow_tasks__task_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-organization-id"?: string | null;
+                authorization?: string | null;
+            };
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOut"];
                 };
             };
             /** @description Not Found */
