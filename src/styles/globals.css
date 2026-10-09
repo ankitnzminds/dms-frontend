@@ -1,0 +1,194 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design tokens. One accent (deep teal "archive ink"), cool-neutral paper surfaces,
+ * status colours reserved for state. All text/background pairs target WCAG AA.
+ */
+:root {
+  --bg: #f4f6f7;
+  --surface: #ffffff;
+  --surface-2: #eef1f3;
+  --surface-3: #e4e9ec;
+  --line: #dde3e7;
+  --line-strong: #c3ccd3;
+  --text: #121820;
+  --muted: #536070;
+  --faint: #6b7886;
+  --accent: #0a6a72;
+  --accent-hover: #08575e;
+  --accent-fg: #ffffff;
+  --accent-soft: #e0f0f1;
+  --accent-soft-fg: #07494f;
+  --ok: #17703f;
+  --ok-soft: #e1f3e8;
+  --warn: #8a4f00;
+  --warn-soft: #fbefd6;
+  --danger: #b0261b;
+  --danger-soft: #fbe6e3;
+  --info: #1f5a99;
+  --info-soft: #e3eefa;
+  --ring: #0a6a72;
+  --shadow-pop: 0 8px 28px -6px rgb(18 24 32 / 0.18), 0 2px 6px rgb(18 24 32 / 0.08);
+  --sidebar-w: 15.5rem;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0d1114;
+  --surface: #141a1f;
+  --surface-2: #1a2127;
+  --surface-3: #232b33;
+  --line: #262f37;
+  --line-strong: #37424d;
+  --text: #e8edf1;
+  --muted: #9aa7b3;
+  --faint: #8190a0;
+  --accent: #4cbcc5;
+  --accent-hover: #6fcdd5;
+  --accent-fg: #04252a;
+  --accent-soft: #11353a;
+  --accent-soft-fg: #a5e3e8;
+  --ok: #5fcf8e;
+  --ok-soft: #12301f;
+  --warn: #efb256;
+  --warn-soft: #3a2a0c;
+  --danger: #ff8f84;
+  --danger-soft: #3f1814;
+  --info: #7ab4f2;
+  --info-soft: #14263b;
+  --ring: #4cbcc5;
+  --shadow-pop: 0 10px 32px -6px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.4);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-fg: var(--accent-soft-fg);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --shadow-pop: var(--shadow-pop);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+/* Subtle, purposeful motion only; respects reduced-motion. */
+@keyframes dms-pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes dms-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes dms-slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes dms-scan {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 24px 0;
+  }
+}
+.animate-pop {
+  animation: dms-pop 140ms ease-out;
+}
+.animate-fade {
+  animation: dms-fade 120ms ease-out;
+}
+.animate-slide-in {
+  animation: dms-slide-in 180ms ease-out;
+}
+/* Diagonal-stripe "in progress" fill used for scanning chips and indeterminate bars. */
+.stripe-progress {
+  background-image: repeating-linear-gradient(
+    115deg,
+    transparent 0 6px,
+    color-mix(in srgb, currentColor 18%, transparent) 6px 12px
+  );
+  background-size: 24px 100%;
+  animation: dms-scan 900ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
