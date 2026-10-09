@@ -16,7 +16,9 @@ import { friendlyMessage, isApiError } from '@/lib/api-client';
 export function applyServerError(e: unknown, setError: UseFormSetError<NameForm>): boolean {
   if (!isApiError(e)) return false;
   if (e.code === 'name_conflict') {
-    setError('name', { message: 'An item with this name already exists here. Choose another name.' });
+    setError('name', {
+      message: 'An item with this name already exists here. Choose another name.',
+    });
     return true;
   }
   const fe = e.fieldErrors;
@@ -37,7 +39,10 @@ export function NewFolderDialog({
   onOpenChange: (o: boolean) => void;
 }) {
   const create = useCreateFolder();
-  const form = useForm<NameForm>({ resolver: zodResolver(nameSchema), defaultValues: { name: '' } });
+  const form = useForm<NameForm>({
+    resolver: zodResolver(nameSchema),
+    defaultValues: { name: '' },
+  });
   useEffect(() => {
     if (open) form.reset({ name: '' });
   }, [open, form]);
@@ -63,7 +68,11 @@ export function NewFolderDialog({
           )}
         >
           <DialogBody>
-            <Field id="new-folder-name" label="Folder name" error={form.formState.errors.name?.message}>
+            <Field
+              id="new-folder-name"
+              label="Folder name"
+              error={form.formState.errors.name?.message}
+            >
               {(p) => <Input {...p} autoFocus autoComplete="off" {...form.register('name')} />}
             </Field>
           </DialogBody>
@@ -100,11 +109,15 @@ export function RenameDialog({
   const folder = useFolder(open && kind === 'folder' ? id : undefined);
   const doc = useDocument(open && kind === 'document' ? id : undefined);
   const entity = kind === 'folder' ? folder : doc;
-  const form = useForm<NameForm>({ resolver: zodResolver(nameSchema), defaultValues: { name: currentName } });
+  const form = useForm<NameForm>({
+    resolver: zodResolver(nameSchema),
+    defaultValues: { name: currentName },
+  });
   useEffect(() => {
-    if (open) form.reset({ name: entity.data?.name ?? currentName });
+    // Reset only when the dialog opens: the entity fetch (for row_version) must never overwrite what was typed.
+    if (open) form.reset({ name: currentName });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, entity.data?.row_version]);
+  }, [open]);
 
   const stale = update.error && isApiError(update.error) && update.error.code === 'stale_version';
 
@@ -134,7 +147,10 @@ export function RenameDialog({
               {(p) => <Input {...p} autoFocus autoComplete="off" {...form.register('name')} />}
             </Field>
             {stale && (
-              <div role="alert" className="flex items-center justify-between gap-2 rounded-md bg-warn-soft px-3 py-2 text-xs text-warn">
+              <div
+                role="alert"
+                className="flex items-center justify-between gap-2 rounded-md bg-warn-soft px-3 py-2 text-xs text-warn"
+              >
                 <span>This item was changed by someone else.</span>
                 <Button
                   size="sm"

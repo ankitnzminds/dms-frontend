@@ -1,6 +1,14 @@
 'use client';
 
-import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Loader2, RotateCcw, X } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  RotateCcw,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -23,7 +31,12 @@ const STATUS_TEXT: Record<UploadItem['status'], string> = {
 };
 
 export function uploadErrorText(err: NonNullable<UploadItem['error']>) {
-  const e = new ApiError({ status: err.status, code: err.code, message: err.message, requestId: err.requestId });
+  const e = new ApiError({
+    status: err.status,
+    code: err.code,
+    message: err.message,
+    requestId: err.requestId,
+  });
   switch (err.code) {
     case 'name_conflict':
       return 'A file with this name already exists here.';
@@ -53,7 +66,9 @@ function StaleRetry({ item }: { item: UploadItem }) {
           setErr(null);
           try {
             const d = await call<Document>(
-              api.GET('/api/v1/documents/{document_id}', { params: { path: { document_id: item.documentId! } } }),
+              api.GET('/api/v1/documents/{document_id}', {
+                params: { path: { document_id: item.documentId! } },
+              }),
             );
             engine.retry(item.id, undefined, d.latest_version_number);
           } catch (e) {
@@ -116,39 +131,59 @@ export function UploadRow({ item }: { item: UploadItem }) {
               )}
               {item.error.code === 'stale_version' && item.documentId && <StaleRetry item={item} />}
               {item.error.code === 'name_conflict' && (
-                <RenameRetry
-                  initial={item.name}
-                  onSubmit={(name) => engine.retry(item.id, name)}
-                />
+                <RenameRetry initial={item.name} onSubmit={(name) => engine.retry(item.id, name)} />
               )}
             </div>
           )}
           {item.status === 'done' && item.result?.document_id && (
-            <Link className="text-xs text-accent hover:underline" href={`/documents/${item.result.document_id}`}>
+            <Link
+              className="text-xs text-accent hover:underline"
+              href={`/documents/${item.result.document_id}`}
+            >
               Open document
             </Link>
           )}
         </div>
         <div className="flex gap-0.5">
           {active && (
-            <Button size="icon-sm" variant="ghost" aria-label={`Cancel upload of ${item.name}`} onClick={() => engine.cancel(item.id)}>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label={`Cancel upload of ${item.name}`}
+              onClick={() => engine.cancel(item.id)}
+            >
               <X />
             </Button>
           )}
           {(item.status === 'error' || item.status === 'cancelled') && (
             <>
               {item.error?.code !== 'name_conflict' && item.error?.code !== 'stale_version' && (
-                <Button size="icon-sm" variant="ghost" aria-label={`Retry upload of ${item.name}`} onClick={() => engine.retry(item.id)}>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label={`Retry upload of ${item.name}`}
+                  onClick={() => engine.retry(item.id)}
+                >
                   <RotateCcw />
                 </Button>
               )}
-              <Button size="icon-sm" variant="ghost" aria-label={`Dismiss ${item.name}`} onClick={() => engine.dismiss(item.id)}>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                aria-label={`Dismiss ${item.name}`}
+                onClick={() => engine.dismiss(item.id)}
+              >
                 <X />
               </Button>
             </>
           )}
           {item.status === 'done' && (
-            <Button size="icon-sm" variant="ghost" aria-label={`Dismiss ${item.name}`} onClick={() => engine.dismiss(item.id)}>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label={`Dismiss ${item.name}`}
+              onClick={() => engine.dismiss(item.id)}
+            >
               <X />
             </Button>
           )}
@@ -173,7 +208,9 @@ export function UploadPanel() {
   const { items, engine } = useUploads();
   const [collapsed, setCollapsed] = useState(false);
   if (items.length === 0) return null;
-  const running = items.filter((i) => ['queued', 'hashing', 'starting', 'uploading', 'finalizing'].includes(i.status)).length;
+  const running = items.filter((i) =>
+    ['queued', 'hashing', 'starting', 'uploading', 'finalizing'].includes(i.status),
+  ).length;
   const failed = items.filter((i) => i.status === 'error').length;
   const summary = running
     ? `Uploading ${running} file${running === 1 ? '' : 's'}`

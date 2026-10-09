@@ -12,13 +12,32 @@ import { Label, Select } from '@/components/ui/input';
 import { ErrorState } from '@/components/ui/states';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { useMe } from '@/features/auth/session';
-import { useAddGrant, useAcl, useGroups, useRevokeGrant, type ResourceKind } from '@/features/sharing/hooks';
+import {
+  useAddGrant,
+  useAcl,
+  useGroups,
+  useRevokeGrant,
+  type ResourceKind,
+} from '@/features/sharing/hooks';
 import { useAdminMembers } from '@/features/admin/hooks';
 import { friendlyMessage, type PermissionGrant } from '@/lib/api-client';
 import { formatDate } from '@/lib/format';
 import { actionLabel, isAdminRole } from '@/lib/permissions';
 
-const GRANTABLE = ['view', 'preview', 'download', 'comment', 'edit_metadata', 'rename', 'upload_version', 'copy', 'move', 'share', 'delete', 'manage_access'];
+const GRANTABLE = [
+  'view',
+  'preview',
+  'download',
+  'comment',
+  'edit_metadata',
+  'rename',
+  'upload_version',
+  'copy',
+  'move',
+  'share',
+  'delete',
+  'manage_access',
+];
 
 function subjectLabel(g: PermissionGrant) {
   if (g.subject_type === 'organization') return 'Everyone in the organization';
@@ -57,14 +76,20 @@ export function ManageAccessDialog({
   const [error, setError] = useState<string | null>(null);
   const [toRevoke, setToRevoke] = useState<PermissionGrant | null>(null);
 
-  const options = GRANTABLE.filter((a) => permissions.includes(a) || permissions.includes('administer'));
+  const options = GRANTABLE.filter(
+    (a) => permissions.includes(a) || permissions.includes('administer'),
+  );
   const broad = subjectType === 'organization' || (kind === 'folder' && inherit);
   const needsSubject = subjectType !== 'organization';
   const canSubmit = actions.length > 0 && (!needsSubject || !!subjectId) && (!broad || ack);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title={`Manage access to "${name}"`} description="Direct access grants on this item." className="max-w-2xl">
+      <DialogContent
+        title={`Manage access to "${name}"`}
+        description="Direct access grants on this item."
+        className="max-w-2xl"
+      >
         <DialogBody className="grid gap-5">
           <section aria-label="Current access">
             {acl.isPending ? (
@@ -72,7 +97,9 @@ export function ManageAccessDialog({
             ) : acl.isError ? (
               <ErrorState error={acl.error} onRetry={() => acl.refetch()} className="py-6" />
             ) : acl.data.length === 0 ? (
-              <p className="py-3 text-center text-[13px] text-muted">No direct grants. Access comes from inherited folder permissions.</p>
+              <p className="py-3 text-center text-[13px] text-muted">
+                No direct grants. Access comes from inherited folder permissions.
+              </p>
             ) : (
               <ul className="divide-y divide-line rounded-md border border-line">
                 {acl.data.map((g) => (
@@ -80,8 +107,16 @@ export function ManageAccessDialog({
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[13px] font-medium">
                         {subjectLabel(g)} <Badge tone="outline">{g.subject_type}</Badge>
-                        {g.inherit && <Badge tone="info" className="ml-1">Inherited by subfolders</Badge>}
-                        {g.revoked_at && <Badge tone="danger" className="ml-1">Revoked</Badge>}
+                        {g.inherit && (
+                          <Badge tone="info" className="ml-1">
+                            Inherited by subfolders
+                          </Badge>
+                        )}
+                        {g.revoked_at && (
+                          <Badge tone="danger" className="ml-1">
+                            Revoked
+                          </Badge>
+                        )}
                       </p>
                       <p className="mt-0.5 flex flex-wrap gap-1">
                         {g.actions.map((a) => (
@@ -93,7 +128,12 @@ export function ManageAccessDialog({
                       </p>
                     </div>
                     {!g.revoked_at && (
-                      <Button size="sm" variant="danger-ghost" aria-label={`Revoke access for ${subjectLabel(g)}`} onClick={() => setToRevoke(g)}>
+                      <Button
+                        size="sm"
+                        variant="danger-ghost"
+                        aria-label={`Revoke access for ${subjectLabel(g)}`}
+                        onClick={() => setToRevoke(g)}
+                      >
                         <Trash2 /> Revoke
                       </Button>
                     )}
@@ -114,7 +154,10 @@ export function ManageAccessDialog({
                   subject_id: needsSubject ? subjectId : null,
                   actions,
                   inherit: kind === 'folder' ? inherit : false,
-                  expires_at: days === 'none' ? null : new Date(Date.now() + Number(days) * 86400000).toISOString(),
+                  expires_at:
+                    days === 'none'
+                      ? null
+                      : new Date(Date.now() + Number(days) * 86400000).toISOString(),
                 },
                 {
                   onSuccess: () => {
@@ -149,8 +192,14 @@ export function ManageAccessDialog({
               </div>
               {needsSubject && (
                 <div className="grid gap-1">
-                  <Label htmlFor="acl-subject">{subjectType === 'group' ? 'Group' : 'Member'}</Label>
-                  <Select id="acl-subject" value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
+                  <Label htmlFor="acl-subject">
+                    {subjectType === 'group' ? 'Group' : 'Member'}
+                  </Label>
+                  <Select
+                    id="acl-subject"
+                    value={subjectId}
+                    onChange={(e) => setSubjectId(e.target.value)}
+                  >
                     <option value="">Select…</option>
                     {subjectType === 'group'
                       ? groups.data?.items.map((g) => (
@@ -175,7 +224,9 @@ export function ManageAccessDialog({
                     <Checkbox
                       id={`grant-${a}`}
                       checked={actions.includes(a)}
-                      onCheckedChange={(c) => setActions(c ? [...actions, a] : actions.filter((x) => x !== a))}
+                      onCheckedChange={(c) =>
+                        setActions(c ? [...actions, a] : actions.filter((x) => x !== a))
+                      }
                     />
                     <Label htmlFor={`grant-${a}`} className="font-normal">
                       {actionLabel(a)}
@@ -196,7 +247,11 @@ export function ManageAccessDialog({
               </div>
               {kind === 'folder' && (
                 <div className="flex items-center gap-2 self-end pb-1.5">
-                  <Checkbox id="acl-inherit" checked={inherit} onCheckedChange={(c) => setInherit(c === true)} />
+                  <Checkbox
+                    id="acl-inherit"
+                    checked={inherit}
+                    onCheckedChange={(c) => setInherit(c === true)}
+                  />
                   <Label htmlFor="acl-inherit" className="font-normal">
                     Apply to everything inside this folder
                   </Label>
@@ -209,12 +264,21 @@ export function ManageAccessDialog({
                   <AlertTriangle className="size-4" aria-hidden /> This is a broad grant
                 </p>
                 <p className="mt-1">
-                  {subjectType === 'organization' ? 'Everyone in your organization' : 'The selected people'} will get
-                  these permissions
-                  {kind === 'folder' && inherit ? ' on this folder and every item inside it, including items added later' : ''}.
+                  {subjectType === 'organization'
+                    ? 'Everyone in your organization'
+                    : 'The selected people'}{' '}
+                  will get these permissions
+                  {kind === 'folder' && inherit
+                    ? ' on this folder and every item inside it, including items added later'
+                    : ''}
+                  .
                 </p>
                 <div className="mt-2 flex items-center gap-2">
-                  <Checkbox id="acl-ack" checked={ack} onCheckedChange={(c) => setAck(c === true)} />
+                  <Checkbox
+                    id="acl-ack"
+                    checked={ack}
+                    onCheckedChange={(c) => setAck(c === true)}
+                  />
                   <Label htmlFor="acl-ack" className="font-normal text-warn">
                     I understand who will get access
                   </Label>
@@ -244,7 +308,11 @@ export function ManageAccessDialog({
         open={!!toRevoke}
         onOpenChange={(o) => !o && setToRevoke(null)}
         title="Revoke this access?"
-        description={toRevoke ? `${subjectLabel(toRevoke)} will immediately lose these permissions on "${name}".` : ''}
+        description={
+          toRevoke
+            ? `${subjectLabel(toRevoke)} will immediately lose these permissions on "${name}".`
+            : ''
+        }
         confirmLabel="Revoke access"
         destructive
         pending={revoke.isPending}

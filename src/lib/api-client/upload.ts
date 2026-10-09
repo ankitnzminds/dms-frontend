@@ -47,11 +47,19 @@ export function putBytes<T = unknown>(opts: PutBytesOptions): Promise<T> {
       }
     };
     xhr.onerror = () =>
-      reject(new ApiError({ status: 0, code: 'network_error', message: 'Upload failed: cannot reach the server.' }));
-    xhr.onabort = () => reject(new ApiError({ status: 0, code: 'aborted', message: 'Upload cancelled' }));
+      reject(
+        new ApiError({
+          status: 0,
+          code: 'network_error',
+          message: 'Upload failed: cannot reach the server.',
+        }),
+      );
+    xhr.onabort = () =>
+      reject(new ApiError({ status: 0, code: 'aborted', message: 'Upload cancelled' }));
 
     if (opts.signal) {
-      if (opts.signal.aborted) return reject(new ApiError({ status: 0, code: 'aborted', message: 'Upload cancelled' }));
+      if (opts.signal.aborted)
+        return reject(new ApiError({ status: 0, code: 'aborted', message: 'Upload cancelled' }));
       opts.signal.addEventListener('abort', () => xhr.abort(), { once: true });
     }
     xhr.send(opts.body);

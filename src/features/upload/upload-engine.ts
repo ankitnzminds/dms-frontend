@@ -7,14 +7,7 @@ import {
 } from '@/lib/api-client';
 
 export type UploadStatus =
-  | 'queued'
-  | 'hashing'
-  | 'starting'
-  | 'uploading'
-  | 'finalizing'
-  | 'done'
-  | 'error'
-  | 'cancelled';
+  'queued' | 'hashing' | 'starting' | 'uploading' | 'finalizing' | 'done' | 'error' | 'cancelled';
 
 export interface UploadItem {
   id: string;
@@ -183,7 +176,8 @@ export class UploadEngine {
         });
       }
       const sha = await this.deps.sha256(file);
-      if (ctrl.signal.aborted) throw new ApiError({ status: 0, code: 'aborted', message: 'cancelled' });
+      if (ctrl.signal.aborted)
+        throw new ApiError({ status: 0, code: 'aborted', message: 'cancelled' });
 
       this.patch(id, { status: 'starting' });
       const session = await this.deps.initiate({
@@ -214,11 +208,20 @@ export class UploadEngine {
       } else {
         const err = isApiError(e)
           ? e
-          : new ApiError({ status: 0, code: 'unknown', message: (e as Error)?.message ?? 'Upload failed' });
+          : new ApiError({
+              status: 0,
+              code: 'unknown',
+              message: (e as Error)?.message ?? 'Upload failed',
+            });
         if (sessionId) void this.deps.cancelSession(sessionId).catch(() => {});
         this.patch(id, {
           status: 'error',
-          error: { code: err.code, message: err.message, requestId: err.requestId, status: err.status },
+          error: {
+            code: err.code,
+            message: err.message,
+            requestId: err.requestId,
+            status: err.status,
+          },
         });
       }
     } finally {

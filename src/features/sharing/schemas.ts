@@ -40,13 +40,26 @@ export const shareFormSchema = z
   })
   .superRefine((v, ctx) => {
     if (v.emails.length + v.groupIds.length === 0)
-      ctx.addIssue({ code: 'custom', path: ['emails'], message: 'Add at least one person or group' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['emails'],
+        message: 'Add at least one person or group',
+      });
     if (v.preset === 'custom' && v.customActions.length === 0)
-      ctx.addIssue({ code: 'custom', path: ['customActions'], message: 'Choose at least one permission' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['customActions'],
+        message: 'Choose at least one permission',
+      });
     if (v.expiry === 'custom') {
-      if (!v.customDate) ctx.addIssue({ code: 'custom', path: ['customDate'], message: 'Choose an expiry date' });
+      if (!v.customDate)
+        ctx.addIssue({ code: 'custom', path: ['customDate'], message: 'Choose an expiry date' });
       else if (endOfLocalDay(v.customDate).getTime() <= Date.now())
-        ctx.addIssue({ code: 'custom', path: ['customDate'], message: 'Choose a date in the future' });
+        ctx.addIssue({
+          code: 'custom',
+          path: ['customDate'],
+          message: 'Choose a date in the future',
+        });
     }
   });
 export type ShareFormValues = z.infer<typeof shareFormSchema>;
@@ -62,7 +75,10 @@ export function actionsFor(v: Pick<ShareFormValues, 'preset' | 'customActions'>)
   return base.length && !base.includes('view') ? ['view', ...base] : base;
 }
 
-export function expiryIso(v: Pick<ShareFormValues, 'expiry' | 'customDate'>, now = Date.now()): string | null {
+export function expiryIso(
+  v: Pick<ShareFormValues, 'expiry' | 'customDate'>,
+  now = Date.now(),
+): string | null {
   if (v.expiry === 'none') return null;
   if (v.expiry === 'custom') return endOfLocalDay(v.customDate).toISOString();
   return new Date(now + Number(v.expiry) * 86400000).toISOString();

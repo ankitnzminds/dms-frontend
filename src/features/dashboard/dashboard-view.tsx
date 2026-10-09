@@ -17,7 +17,15 @@ import { formatBytes, formatDate, formatRelative } from '@/lib/format';
 import { isAdminRole } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 
-function StorageMeter({ used, reserved, quota }: { used: number; reserved: number; quota: number | null }) {
+function StorageMeter({
+  used,
+  reserved,
+  quota,
+}: {
+  used: number;
+  reserved: number;
+  quota: number | null;
+}) {
   const pctUsed = quota ? Math.min(100, (used / quota) * 100) : 0;
   const pctRes = quota ? Math.min(100 - pctUsed, (reserved / quota) * 100) : 0;
   const hot = pctUsed + pctRes > 90;
@@ -26,9 +34,16 @@ function StorageMeter({ used, reserved, quota }: { used: number; reserved: numbe
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-[15px] font-semibold tabular">
           {formatBytes(used)}
-          <span className="font-normal text-muted"> {quota ? `of ${formatBytes(quota)} used` : 'used (no quota set)'}</span>
+          <span className="font-normal text-muted">
+            {' '}
+            {quota ? `of ${formatBytes(quota)} used` : 'used (no quota set)'}
+          </span>
         </p>
-        {reserved > 0 && <p className="text-xs text-muted tabular">{formatBytes(reserved)} reserved by uploads in progress</p>}
+        {reserved > 0 && (
+          <p className="text-xs text-muted tabular">
+            {formatBytes(reserved)} reserved by uploads in progress
+          </p>
+        )}
       </div>
       {quota ? (
         <div
@@ -40,7 +55,10 @@ function StorageMeter({ used, reserved, quota }: { used: number; reserved: numbe
           aria-valuetext={`${formatBytes(used)} of ${formatBytes(quota)} used`}
           className="mt-2 flex h-2.5 overflow-hidden rounded-full bg-surface-3"
         >
-          <div className={cn('h-full', hot ? 'bg-danger' : 'bg-accent')} style={{ width: `${pctUsed}%` }} />
+          <div
+            className={cn('h-full', hot ? 'bg-danger' : 'bg-accent')}
+            style={{ width: `${pctUsed}%` }}
+          />
           <div className="stripe-progress h-full text-accent" style={{ width: `${pctRes}%` }} />
         </div>
       ) : null}
@@ -68,7 +86,10 @@ export function DashboardView() {
 
   return (
     <>
-      <PageHeader title={`Welcome${me?.display_name ? `, ${me.display_name.split(' ')[0]}` : ''}`} description={me?.organization_name ?? undefined} />
+      <PageHeader
+        title={`Welcome${me?.display_name ? `, ${me.display_name.split(' ')[0]}` : ''}`}
+        description={me?.organization_name ?? undefined}
+      />
       <div className="grid gap-4 lg:grid-cols-3">
         <Panel className="p-4 lg:col-span-2">
           <h2 className="mb-2 text-sm font-semibold">Storage</h2>
@@ -78,7 +99,11 @@ export function DashboardView() {
             <ErrorState error={usage.error} onRetry={() => usage.refetch()} className="py-4" />
           ) : (
             <>
-              <StorageMeter used={usage.data.used_bytes} reserved={usage.data.reserved_bytes} quota={usage.data.quota_bytes} />
+              <StorageMeter
+                used={usage.data.used_bytes}
+                reserved={usage.data.reserved_bytes}
+                quota={usage.data.quota_bytes}
+              />
               {admin && (
                 <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-line pt-3 sm:grid-cols-6">
                   <Count label="Documents" value={usage.data.documents} />
@@ -108,7 +133,7 @@ export function DashboardView() {
               ) : (
                 <>
                   You have <strong>{notes.data.unread_count}</strong> unread.{' '}
-                  <Link className="text-accent hover:underline" href="/notifications">
+                  <Link className="text-accent underline underline-offset-2" href="/notifications">
                     Read them
                   </Link>
                 </>
@@ -117,12 +142,19 @@ export function DashboardView() {
           )}
           {admin && usage.data && (
             <p className="mt-3 flex items-center gap-2 text-[13px]">
-              <ShieldAlert className={cn('size-4', usage.data.quarantined_documents ? 'text-danger' : 'text-muted')} aria-hidden />
+              <ShieldAlert
+                className={cn(
+                  'size-4',
+                  usage.data.quarantined_documents ? 'text-danger' : 'text-muted',
+                )}
+                aria-hidden
+              />
               {usage.data.quarantined_documents === 0 ? (
                 'No quarantined files.'
               ) : (
                 <Link className="text-danger hover:underline" href="/admin/quarantine">
-                  {usage.data.quarantined_documents} quarantined file{usage.data.quarantined_documents === 1 ? '' : 's'}
+                  {usage.data.quarantined_documents} quarantined file
+                  {usage.data.quarantined_documents === 1 ? '' : 's'}
                 </Link>
               )}
             </p>
@@ -139,21 +171,32 @@ export function DashboardView() {
             </Link>
           </div>
           {recent.isPending ? (
-            <div className="p-4"><Skeleton className="h-24" /></div>
+            <div className="p-4">
+              <Skeleton className="h-24" />
+            </div>
           ) : recent.isError ? (
             <ErrorState error={recent.error} onRetry={() => recent.refetch()} className="py-6" />
           ) : recent.data.items.length === 0 ? (
-            <EmptyState title="Nothing opened recently" description="Documents you preview or download show up here." className="py-8" />
+            <EmptyState
+              title="Nothing opened recently"
+              description="Documents you preview or download show up here."
+              className="py-8"
+            />
           ) : (
             <ul className="mt-1 divide-y divide-line">
               {recent.data.items.map((r) => (
                 <li key={r.id} className="flex items-center gap-2.5 px-4 py-2">
                   <ItemIcon kind={r.kind} contentType={r.content_type} />
-                  <Link className="truncate text-[13px] font-medium hover:text-accent hover:underline" href={`/documents/${r.id}`}>
+                  <Link
+                    className="truncate text-[13px] font-medium hover:text-accent hover:underline"
+                    href={`/documents/${r.id}`}
+                  >
                     {r.name}
                   </Link>
                   <StatusChip status={r.status} />
-                  <span className="ml-auto whitespace-nowrap text-xs text-muted">{formatRelative(r.updated_at)}</span>
+                  <span className="ml-auto whitespace-nowrap text-xs text-muted">
+                    {formatRelative(r.updated_at)}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -171,7 +214,9 @@ export function DashboardView() {
             </Link>
           </div>
           {shared.isPending ? (
-            <div className="p-4"><Skeleton className="h-24" /></div>
+            <div className="p-4">
+              <Skeleton className="h-24" />
+            </div>
           ) : shared.isError ? (
             <ErrorState error={shared.error} onRetry={() => shared.refetch()} className="py-6" />
           ) : shared.data.items.length === 0 ? (
@@ -182,12 +227,17 @@ export function DashboardView() {
                 <li key={s.share_id} className="px-4 py-2">
                   <Link
                     className="block truncate text-[13px] font-medium hover:text-accent hover:underline"
-                    href={s.resource_type === 'document' ? `/documents/${s.resource_id}` : `/files/${s.resource_id}`}
+                    href={
+                      s.resource_type === 'document'
+                        ? `/documents/${s.resource_id}`
+                        : `/files/${s.resource_id}`
+                    }
                   >
                     {s.name}
                   </Link>
                   <p className="truncate text-xs text-muted">
-                    From {s.shared_by.display_name ?? s.shared_by.email} on {formatDate(s.shared_at)}
+                    From {s.shared_by.display_name ?? s.shared_by.email} on{' '}
+                    {formatDate(s.shared_at)}
                   </p>
                   {s.breadcrumb.length > 0 && <PathTrail segments={s.breadcrumb} size="sm" />}
                 </li>
@@ -204,7 +254,14 @@ export function DashboardView() {
                 Open audit log
               </Link>
             </div>
-            <AuditTable data={audit.data} isLoading={audit.isPending} error={audit.error} onRetry={() => audit.refetch()} onOffsetChange={() => {}} compact />
+            <AuditTable
+              data={audit.data}
+              isLoading={audit.isPending}
+              error={audit.error}
+              onRetry={() => audit.refetch()}
+              onOffsetChange={() => {}}
+              compact
+            />
           </Panel>
         )}
       </div>

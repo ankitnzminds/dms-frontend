@@ -22,7 +22,13 @@ function ScanBadge({ s }: { s: Version['scan_status'] }) {
   return <Badge tone="danger">Scan error</Badge>;
 }
 
-export function VersionsPanel({ documentId, permissions }: { documentId: string; permissions: readonly string[] }) {
+export function VersionsPanel({
+  documentId,
+  permissions,
+}: {
+  documentId: string;
+  permissions: readonly string[];
+}) {
   const q = useVersions(documentId);
   const restore = useRestoreVersion(documentId);
   const [target, setTarget] = useState<Version | null>(null);
@@ -39,12 +45,24 @@ export function VersionsPanel({ documentId, permissions }: { documentId: string;
           <caption className="sr-only">Versions of this document, newest first</caption>
           <thead>
             <tr className="border-b border-line text-left text-xs text-muted">
-              <th scope="col" className="px-3 py-2 font-medium">Version</th>
-              <th scope="col" className="px-3 py-2 font-medium">Size</th>
-              <th scope="col" className="px-3 py-2 font-medium">SHA-256</th>
-              <th scope="col" className="px-3 py-2 font-medium">Created</th>
-              <th scope="col" className="px-3 py-2 font-medium">Scan</th>
-              <th scope="col" className="px-3 py-2 text-right font-medium">Actions</th>
+              <th scope="col" className="px-3 py-2 font-medium">
+                Version
+              </th>
+              <th scope="col" className="px-3 py-2 font-medium">
+                Size
+              </th>
+              <th scope="col" className="px-3 py-2 font-medium">
+                SHA-256
+              </th>
+              <th scope="col" className="px-3 py-2 font-medium">
+                Created
+              </th>
+              <th scope="col" className="px-3 py-2 font-medium">
+                Scan
+              </th>
+              <th scope="col" className="px-3 py-2 text-right font-medium">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -62,11 +80,17 @@ export function VersionsPanel({ documentId, permissions }: { documentId: string;
                     ? 'Only clean versions can be restored.'
                     : null;
               return (
-                <tr key={v.id} className="border-b border-line last:border-0" data-testid="version-row">
+                <tr
+                  key={v.id}
+                  className="border-b border-line last:border-0"
+                  data-testid="version-row"
+                >
                   <td className="px-3 py-2 font-medium">
                     v{v.version_number} {v.is_current && <Badge tone="accent">Current</Badge>}
                     {v.restored_from_version_number != null && (
-                      <span className="ml-1 text-xs text-muted">(restored from v{v.restored_from_version_number})</span>
+                      <span className="ml-1 text-xs text-muted">
+                        (restored from v{v.restored_from_version_number})
+                      </span>
                     )}
                   </td>
                   <td className="tabular px-3 py-2 text-muted">{formatBytes(v.size_bytes)}</td>
@@ -84,7 +108,11 @@ export function VersionsPanel({ documentId, permissions }: { documentId: string;
                           size="sm"
                           disabled={!!dlReason}
                           aria-label={`Download version ${v.version_number}`}
-                          onClick={() => downloadDocument(documentId, v.version_number).catch((e) => toast.error(friendlyMessage(e)))}
+                          onClick={() =>
+                            downloadDocument(documentId, v.version_number).catch((e) =>
+                              toast.error(friendlyMessage(e)),
+                            )
+                          }
                         >
                           <Download /> Download
                         </Button>

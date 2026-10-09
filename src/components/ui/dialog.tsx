@@ -36,7 +36,11 @@ export function DialogContent({
         )}
         {...props}
       >
-        <div className={cn(hideTitle ? 'sr-only' : 'flex items-start gap-3 border-b border-line px-5 py-3.5')}>
+        <div
+          className={cn(
+            hideTitle ? 'sr-only' : 'flex items-start gap-3 border-b border-line px-5 py-3.5',
+          )}
+        >
           <div className="min-w-0 flex-1">
             <D.Title className="text-[15px] font-semibold leading-6">{title}</D.Title>
             {description ? (
@@ -61,13 +65,18 @@ export function DialogContent({
 }
 
 export function DialogBody({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('scroll-thin min-h-0 flex-1 overflow-y-auto px-5 py-4', className)} {...p} />;
+  return (
+    <div className={cn('scroll-thin min-h-0 flex-1 overflow-y-auto px-5 py-4', className)} {...p} />
+  );
 }
 
 export function DialogFooter({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('flex flex-wrap items-center justify-end gap-2 border-t border-line px-5 py-3', className)}
+      className={cn(
+        'flex flex-wrap items-center justify-end gap-2 border-t border-line px-5 py-3',
+        className,
+      )}
       {...p}
     />
   );

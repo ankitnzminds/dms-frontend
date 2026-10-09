@@ -10,7 +10,13 @@ import { PageHeader, Panel } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { SkeletonRows } from '@/components/ui/skeleton';
@@ -34,17 +40,31 @@ const groupSchema = z.object({
 });
 type GroupForm = z.infer<typeof groupSchema>;
 
-function GroupDialog({ group, open, onOpenChange }: { group: Group | null; open: boolean; onOpenChange: (o: boolean) => void }) {
+function GroupDialog({
+  group,
+  open,
+  onOpenChange,
+}: {
+  group: Group | null;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
   const create = useCreateGroup();
   const update = useUpdateGroup();
   const form = useForm<GroupForm>({
     resolver: zodResolver(groupSchema),
-    values: { name: group?.name ?? '', kind: group?.kind ?? 'group', description: group?.description ?? '' },
+    values: {
+      name: group?.name ?? '',
+      kind: group?.kind ?? 'group',
+      description: group?.description ?? '',
+    },
   });
   const pending = create.isPending || update.isPending;
   const onError = (e: unknown) => {
-    if (isApiError(e) && e.code === 'name_conflict') form.setError('name', { message: 'A group with this name already exists.' });
-    else if (isApiError(e) && e.fieldErrors.name) form.setError('name', { message: e.fieldErrors.name });
+    if (isApiError(e) && e.code === 'name_conflict')
+      form.setError('name', { message: 'A group with this name already exists.' });
+    else if (isApiError(e) && e.fieldErrors.name)
+      form.setError('name', { message: e.fieldErrors.name });
     else toast.error(friendlyMessage(e));
   };
   return (
@@ -55,8 +75,16 @@ function GroupDialog({ group, open, onOpenChange }: { group: Group | null; open:
           onSubmit={form.handleSubmit((v) => {
             const body = { name: v.name, description: v.description || null };
             const ok = (msg: string) => () => (toast.success(msg), onOpenChange(false));
-            if (group) update.mutate({ id: group.id, body }, { onSuccess: ok(`Saved "${v.name}"`), onError });
-            else create.mutate({ ...body, kind: v.kind }, { onSuccess: ok(`Created "${v.name}"`), onError });
+            if (group)
+              update.mutate(
+                { id: group.id, body },
+                { onSuccess: ok(`Saved "${v.name}"`), onError },
+              );
+            else
+              create.mutate(
+                { ...body, kind: v.kind },
+                { onSuccess: ok(`Created "${v.name}"`), onError },
+              );
           })}
         >
           <DialogBody className="grid gap-3">
@@ -79,9 +107,12 @@ function GroupDialog({ group, open, onOpenChange }: { group: Group | null; open:
             </Field>
           </DialogBody>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button variant="secondary" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
             <Button type="submit" variant="primary" disabled={pending}>
-              {pending && <Loader2 className="animate-spin" aria-hidden />} {group ? 'Save' : 'Create group'}
+              {pending && <Loader2 className="animate-spin" aria-hidden />}{' '}
+              {group ? 'Save' : 'Create group'}
             </Button>
           </DialogFooter>
         </form>
@@ -97,7 +128,9 @@ function MembersDialog({ group, onClose }: { group: Group; onClose: () => void }
   const remove = useRemoveGroupMember(group.id);
   const [pick, setPick] = useState('');
   const inGroup = new Set(members.data?.map((m) => m.user_id));
-  const candidates = all.data?.items.filter((m) => !inGroup.has(m.user_id) && m.membership_status === 'active') ?? [];
+  const candidates =
+    all.data?.items.filter((m) => !inGroup.has(m.user_id) && m.membership_status === 'active') ??
+    [];
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent title={`Members of ${group.name}`}>
@@ -117,11 +150,17 @@ function MembersDialog({ group, onClose }: { group: Group; onClose: () => void }
               {(p) => (
                 <Select {...p} value={pick} onChange={(e) => setPick(e.target.value)}>
                   <option value="">Select a person…</option>
-                  {candidates.map((m) => <option key={m.user_id} value={m.user_id}>{m.display_name ?? m.email} ({m.email})</option>)}
+                  {candidates.map((m) => (
+                    <option key={m.user_id} value={m.user_id}>
+                      {m.display_name ?? m.email} ({m.email})
+                    </option>
+                  ))}
                 </Select>
               )}
             </Field>
-            <Button type="submit" variant="primary" disabled={!pick || add.isPending}>Add</Button>
+            <Button type="submit" variant="primary" disabled={!pick || add.isPending}>
+              Add
+            </Button>
           </form>
           {members.isPending ? (
             <SkeletonRows rows={3} label="Loading members" />
@@ -130,11 +169,16 @@ function MembersDialog({ group, onClose }: { group: Group; onClose: () => void }
           ) : members.data.length === 0 ? (
             <p className="text-center text-[13px] text-muted">No members yet.</p>
           ) : (
-            <ul className="divide-y divide-line rounded-md border border-line" aria-label="Group members">
+            <ul
+              className="divide-y divide-line rounded-md border border-line"
+              aria-label="Group members"
+            >
               {members.data.map((m) => (
                 <li key={m.user_id} className="flex items-center gap-2 px-3 py-2">
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-medium">{m.display_name ?? m.email}</span>
+                    <span className="block truncate text-[13px] font-medium">
+                      {m.display_name ?? m.email}
+                    </span>
                     <span className="block truncate text-xs text-muted">{m.email}</span>
                   </span>
                   <Button
@@ -142,7 +186,12 @@ function MembersDialog({ group, onClose }: { group: Group; onClose: () => void }
                     variant="ghost"
                     aria-label={`Remove ${m.email} from ${group.name}`}
                     disabled={remove.isPending}
-                    onClick={() => remove.mutate(m.user_id, { onSuccess: () => toast.success('Member removed'), onError: (er) => toast.error(friendlyMessage(er)) })}
+                    onClick={() =>
+                      remove.mutate(m.user_id, {
+                        onSuccess: () => toast.success('Member removed'),
+                        onError: (er) => toast.error(friendlyMessage(er)),
+                      })
+                    }
                   >
                     <X />
                   </Button>
@@ -152,7 +201,9 @@ function MembersDialog({ group, onClose }: { group: Group; onClose: () => void }
           )}
         </DialogBody>
         <DialogFooter>
-          <Button variant="primary" onClick={onClose}>Done</Button>
+          <Button variant="primary" onClick={onClose}>
+            Done
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -171,7 +222,11 @@ export function GroupsView() {
       <PageHeader
         title="Groups"
         description="Groups make it easy to share with many people at once."
-        actions={<Button variant="primary" onClick={() => setEdit({ group: null })}><Plus /> New group</Button>}
+        actions={
+          <Button variant="primary" onClick={() => setEdit({ group: null })}>
+            <Plus /> New group
+          </Button>
+        }
       />
       <Panel>
         {list.isPending ? (
@@ -179,24 +234,41 @@ export function GroupsView() {
         ) : list.isError ? (
           <ErrorState error={list.error} onRetry={() => list.refetch()} />
         ) : list.data.items.length === 0 ? (
-          <EmptyState icon={UsersRound} title="No groups yet" description="Create a group, then add people to it." />
+          <EmptyState
+            icon={UsersRound}
+            title="No groups yet"
+            description="Create a group, then add people to it."
+          />
         ) : (
           <ul className="divide-y divide-line" aria-label="Groups">
             {list.data.items.map((g) => (
               <li key={g.id} className="flex items-center gap-3 px-4 py-3" data-testid="group-row">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-medium">{g.name} <Badge tone="outline">{g.kind}</Badge></p>
-                  <p className="text-xs text-muted">{g.member_count} member{g.member_count === 1 ? '' : 's'}{g.description ? ` · ${g.description}` : ''}</p>
+                  <p className="text-[13px] font-medium">
+                    {g.name} <Badge tone="outline">{g.kind}</Badge>
+                  </p>
+                  <p className="text-xs text-muted">
+                    {g.member_count} member{g.member_count === 1 ? '' : 's'}
+                    {g.description ? ` · ${g.description}` : ''}
+                  </p>
                 </div>
-                <Button size="sm" onClick={() => setMembers(g)}>Members</Button>
+                <Button size="sm" onClick={() => setMembers(g)}>
+                  Members
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button size="icon-sm" variant="ghost" aria-label={`Actions for ${g.name}`}><MoreHorizontal /></Button>
+                    <Button size="icon-sm" variant="ghost" aria-label={`Actions for ${g.name}`}>
+                      <MoreHorizontal />
+                    </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => setEdit({ group: g })}>Rename / edit…</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setEdit({ group: g })}>
+                      Rename / edit…
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem destructive onSelect={() => setToDelete(g)}>Delete group…</DropdownMenuItem>
+                    <DropdownMenuItem destructive onSelect={() => setToDelete(g)}>
+                      Delete group…
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </li>

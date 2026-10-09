@@ -35,7 +35,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <>
         <InvitationBanner />
-        <AccountProblem error={new ApiError({ status: 403, code: 'no_membership', message: 'No organization' })} />
+        <AccountProblem
+          error={new ApiError({ status: 403, code: 'no_membership', message: 'No organization' })}
+        />
       </>
     );
   }

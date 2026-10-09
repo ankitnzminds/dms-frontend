@@ -24,7 +24,10 @@ test('a flagged upload ends up quarantined and is listed for admins', async ({ p
 
   // never offer download for a non-available file
   await row.getByRole('button', { name: `Actions for ${name}` }).click();
-  await expect(page.getByRole('menuitem', { name: 'Download' })).toHaveAttribute('data-disabled', '');
+  await expect(page.getByRole('menuitem', { name: 'Download' })).toHaveAttribute(
+    'data-disabled',
+    '',
+  );
   await page.keyboard.press('Escape');
 
   await page.goto('/admin/quarantine');

@@ -20,7 +20,11 @@ const schema = z.object({
   name: z.string().trim().min(1, 'Enter an organization name').max(200),
   mask_shared_breadcrumbs: z.boolean(),
   require_share_expiry: z.boolean(),
-  max_share_days: z.number({ error: 'Enter a number of days' }).int('Use whole days').min(1, 'At least 1 day').max(3650, 'At most 3650 days'),
+  max_share_days: z
+    .number({ error: 'Enter a number of days' })
+    .int('Use whole days')
+    .min(1, 'At least 1 day')
+    .max(3650, 'At most 3650 days'),
 });
 type Values = z.infer<typeof schema>;
 
@@ -29,7 +33,12 @@ export function SettingsView() {
   const update = useUpdateOrganization();
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { name: '', mask_shared_breadcrumbs: false, require_share_expiry: false, max_share_days: 365 },
+    defaultValues: {
+      name: '',
+      mask_shared_breadcrumbs: false,
+      require_share_expiry: false,
+      max_share_days: 365,
+    },
   });
 
   useEffect(() => {
@@ -70,7 +79,8 @@ export function SettingsView() {
                   if (isApiError(e) && e.status === 422) {
                     const fe = e.fieldErrors;
                     if (fe.name) form.setError('name', { message: fe.name });
-                    if (fe.max_share_days) form.setError('max_share_days', { message: fe.max_share_days });
+                    if (fe.max_share_days)
+                      form.setError('max_share_days', { message: fe.max_share_days });
                   }
                   toast.error(friendlyMessage(e));
                 },
@@ -85,9 +95,17 @@ export function SettingsView() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <Label htmlFor="s-mask">Hide folder names in shared paths</Label>
-              <p className="text-xs text-muted">Recipients see only the item, not the names of the folders above it.</p>
+              <p className="text-xs text-muted">
+                Recipients see only the item, not the names of the folders above it.
+              </p>
             </div>
-            <Controller control={form.control} name="mask_shared_breadcrumbs" render={({ field }) => <Switch id="s-mask" checked={field.value} onCheckedChange={field.onChange} />} />
+            <Controller
+              control={form.control}
+              name="mask_shared_breadcrumbs"
+              render={({ field }) => (
+                <Switch id="s-mask" checked={field.value} onCheckedChange={field.onChange} />
+              )}
+            />
           </div>
 
           <div className="flex items-start justify-between gap-4">
@@ -95,15 +113,38 @@ export function SettingsView() {
               <Label htmlFor="s-req">Require an expiry on every share</Label>
               <p className="text-xs text-muted">People cannot create shares that never expire.</p>
             </div>
-            <Controller control={form.control} name="require_share_expiry" render={({ field }) => <Switch id="s-req" checked={field.value} onCheckedChange={field.onChange} />} />
+            <Controller
+              control={form.control}
+              name="require_share_expiry"
+              render={({ field }) => (
+                <Switch id="s-req" checked={field.value} onCheckedChange={field.onChange} />
+              )}
+            />
           </div>
 
-          <Field id="s-max" label="Longest allowed share (days)" error={form.formState.errors.max_share_days?.message}>
-            {(p) => <Input {...p} type="number" min={1} max={3650} className="w-32" {...form.register('max_share_days', { valueAsNumber: true })} />}
+          <Field
+            id="s-max"
+            label="Longest allowed share (days)"
+            error={form.formState.errors.max_share_days?.message}
+          >
+            {(p) => (
+              <Input
+                {...p}
+                type="number"
+                min={1}
+                max={3650}
+                className="w-32"
+                {...form.register('max_share_days', { valueAsNumber: true })}
+              />
+            )}
           </Field>
 
           <div>
-            <Button type="submit" variant="primary" disabled={update.isPending || !form.formState.isDirty}>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={update.isPending || !form.formState.isDirty}
+            >
               {update.isPending && <Loader2 className="animate-spin" aria-hidden />} Save changes
             </Button>
           </div>

@@ -22,10 +22,15 @@ export function NotificationRow({ n, onOpen }: { n: Notification; onOpen?: () =>
     <>
       <span
         aria-hidden
-        className={cn('mt-1.5 size-2 shrink-0 rounded-full', unread ? 'bg-accent' : 'bg-transparent')}
+        className={cn(
+          'mt-1.5 size-2 shrink-0 rounded-full',
+          unread ? 'bg-accent' : 'bg-transparent',
+        )}
       />
       <span className="min-w-0 flex-1">
-        <span className={cn('block truncate text-[13px]', unread && 'font-semibold')}>{n.title}</span>
+        <span className={cn('block truncate text-[13px]', unread && 'font-semibold')}>
+          {n.title}
+        </span>
         {n.body && <span className="block truncate text-xs text-muted">{n.body}</span>}
         <span className="block text-xs text-faint">{formatRelative(n.created_at)}</span>
       </span>
@@ -57,7 +62,12 @@ export function NotificationsMenu() {
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
-        <Button variant="ghost" size="icon" className="relative" aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative"
+          aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`}
+        >
           <Bell />
           {unread > 0 && (
             <span
@@ -84,7 +94,8 @@ export function NotificationsMenu() {
               disabled={unread === 0 || markAll.isPending}
               onClick={() =>
                 markAll.mutate(undefined, {
-                  onSuccess: (r) => toast.success(`Marked ${(r as { updated?: number })?.updated ?? 0} as read`),
+                  onSuccess: (r) =>
+                    toast.success(`Marked ${(r as { updated?: number })?.updated ?? 0} as read`),
                   onError: (e) => toast.error(friendlyMessage(e)),
                 })
               }
@@ -98,7 +109,11 @@ export function NotificationsMenu() {
             ) : q.isError ? (
               <ErrorState error={q.error} onRetry={() => q.refetch()} className="py-6" />
             ) : q.data.items.length === 0 ? (
-              <EmptyState title="You are all caught up" description="New shares and updates will appear here." className="py-8" />
+              <EmptyState
+                title="You are all caught up"
+                description="New shares and updates will appear here."
+                className="py-8"
+              />
             ) : (
               <ul className="divide-y divide-line">
                 {q.data.items.map((n) => (

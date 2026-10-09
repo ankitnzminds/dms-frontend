@@ -10,7 +10,14 @@ describe('state components', () => {
     const onRetry = vi.fn();
     render(
       <ErrorState
-        error={new ApiError({ status: 500, code: 'internal_error', message: 'boom', requestId: 'req-123' })}
+        error={
+          new ApiError({
+            status: 500,
+            code: 'internal_error',
+            message: 'boom',
+            requestId: 'req-123',
+          })
+        }
         onRetry={onRetry}
       />,
     );
@@ -21,13 +28,21 @@ describe('state components', () => {
   });
 
   it.each([403, 404])('treats %i neutrally (not found, or you do not have access)', (status) => {
-    render(<ErrorState error={new ApiError({ status, code: status === 404 ? 'not_found' : 'forbidden', message: 'x' })} />);
+    render(
+      <ErrorState
+        error={
+          new ApiError({ status, code: status === 404 ? 'not_found' : 'forbidden', message: 'x' })
+        }
+      />,
+    );
     expect(screen.getByText(/not found, or you do not have access/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Retry/ })).toBeNull();
   });
 
   it('EmptyState renders title, description and action', () => {
-    render(<EmptyState title="Nothing here" description="Add something" action={<button>Add</button>} />);
+    render(
+      <EmptyState title="Nothing here" description="Add something" action={<button>Add</button>} />,
+    );
     expect(screen.getByText('Nothing here')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument();
   });

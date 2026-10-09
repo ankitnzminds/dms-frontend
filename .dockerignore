@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.github
+.env
+.env.*
+!.env.example
+.shots
+coverage
+playwright-report
+test-results
+tests
+docs
+*.md
+Dockerfile
+.dockerignore

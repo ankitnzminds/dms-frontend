@@ -31,7 +31,11 @@ export function InvitationBanner() {
   const pending = me?.pending_invitations ?? [];
   if (pending.length === 0) return null;
   return (
-    <div role="region" aria-label="Pending invitations" className="border-b border-line bg-info-soft px-4 py-2.5 text-[13px] text-info">
+    <div
+      role="region"
+      aria-label="Pending invitations"
+      className="border-b border-line bg-info-soft px-4 py-2.5 text-[13px] text-info"
+    >
       <ul className="grid gap-1.5">
         {pending.map((inv) => (
           <li key={inv.organization_id} className="flex flex-wrap items-center gap-2">

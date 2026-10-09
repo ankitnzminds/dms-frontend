@@ -15,7 +15,9 @@ const session = (id = 's1') => ({
   upload_url: `/api/v1/uploads/${id}/content`,
 });
 
-function deps(over: Partial<UploadDeps> = {}): UploadDeps & { onDoneSpy: ReturnType<typeof vi.fn> } {
+function deps(
+  over: Partial<UploadDeps> = {},
+): UploadDeps & { onDoneSpy: ReturnType<typeof vi.fn> } {
   let n = 0;
   const onDoneSpy = vi.fn();
   return {
@@ -25,7 +27,13 @@ function deps(over: Partial<UploadDeps> = {}): UploadDeps & { onDoneSpy: ReturnT
       onProgress(1, 2);
       onProgress(2, 2);
     }),
-    finalize: vi.fn(async () => ({ document_id: 'd1', version_id: 'v1', version_number: 1, message: 'ok', status: 'pending_scan' as const })),
+    finalize: vi.fn(async () => ({
+      document_id: 'd1',
+      version_id: 'v1',
+      version_number: 1,
+      message: 'ok',
+      status: 'pending_scan' as const,
+    })),
     cancelSession: vi.fn(async () => {}),
     onDone: onDoneSpy,
     uuid: () => `id-${++n}`,
@@ -34,7 +42,8 @@ function deps(over: Partial<UploadDeps> = {}): UploadDeps & { onDoneSpy: ReturnT
   };
 }
 
-const file = (name = 'a.pdf', size = 3) => new File([new Uint8Array(size)], name, { type: 'application/pdf' });
+const file = (name = 'a.pdf', size = 3) =>
+  new File([new Uint8Array(size)], name, { type: 'application/pdf' });
 const settled = (e: UploadEngine, id: string) =>
   vi.waitFor(() => {
     const s = e.getSnapshot().find((i) => i.id === id)!.status;
@@ -63,20 +72,29 @@ describe('UploadEngine', () => {
   });
 
   it('uses a fresh Idempotency-Key for every attempt', async () => {
-    const d = deps({ initiate: vi.fn().mockRejectedValueOnce(new ApiError({ status: 500, code: 'x', message: 'x' })).mockResolvedValue(session()) });
+    const d = deps({
+      initiate: vi
+        .fn()
+        .mockRejectedValueOnce(new ApiError({ status: 500, code: 'x', message: 'x' }))
+        .mockResolvedValue(session()),
+    });
     const e = new UploadEngine(d);
     const [id] = e.enqueueFiles([file()], 'f');
     await settled(e, id!);
     e.retry(id!);
     await vi.waitFor(() => expect(get(e, id!).status).toBe('done'));
-    const keys = (d.initiate as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0].idempotencyKey);
+    const keys = (d.initiate as ReturnType<typeof vi.fn>).mock.calls.map(
+      (c) => c[0].idempotencyKey,
+    );
     expect(new Set(keys).size).toBe(2);
   });
 
   it('surfaces name_conflict and lets the user retry with a new name', async () => {
     const initiate = vi
       .fn()
-      .mockRejectedValueOnce(new ApiError({ status: 409, code: 'name_conflict', message: 'exists', requestId: 'r1' }))
+      .mockRejectedValueOnce(
+        new ApiError({ status: 409, code: 'name_conflict', message: 'exists', requestId: 'r1' }),
+      )
       .mockResolvedValue(session());
     const e = new UploadEngine(deps({ initiate }));
     const [id] = e.enqueueFiles([file('report.pdf')], 'f');
@@ -90,7 +108,11 @@ describe('UploadEngine', () => {
   });
 
   it('reports quota_exceeded from initiate and from the PUT without finalizing', async () => {
-    const d = deps({ put: vi.fn().mockRejectedValue(new ApiError({ status: 409, code: 'quota_exceeded', message: 'full' })) });
+    const d = deps({
+      put: vi
+        .fn()
+        .mockRejectedValue(new ApiError({ status: 409, code: 'quota_exceeded', message: 'full' })),
+    });
     const e = new UploadEngine(d);
     const [id] = e.enqueueFiles([file()], 'f');
     await settled(e, id!);
@@ -112,10 +134,15 @@ describe('UploadEngine', () => {
   it('cancel aborts an in-flight upload and cancels the server session', async () => {
     let release!: () => void;
     const d = deps({
-      put: vi.fn(({ signal }) => new Promise((_res, rej) => {
-        signal.addEventListener('abort', () => rej(new ApiError({ status: 0, code: 'aborted', message: 'cancelled' })));
-        release = () => rej(new Error('unused'));
-      })),
+      put: vi.fn(
+        ({ signal }) =>
+          new Promise((_res, rej) => {
+            signal.addEventListener('abort', () =>
+              rej(new ApiError({ status: 0, code: 'aborted', message: 'cancelled' })),
+            );
+            release = () => rej(new Error('unused'));
+          }),
+      ),
     });
     const e = new UploadEngine(d);
     const [id] = e.enqueueFiles([file()], 'f');
@@ -155,7 +182,10 @@ describe('UploadEngine', () => {
     const id = e.enqueueVersion(file(), 'doc-1', 2);
     await settled(e, id);
     expect(get(e, id).error?.code).toBe('stale_version');
-    expect(initiate.mock.calls[0]![0].item).toMatchObject({ documentId: 'doc-1', expectedLatestVersion: 2 });
+    expect(initiate.mock.calls[0]![0].item).toMatchObject({
+      documentId: 'doc-1',
+      expectedLatestVersion: 2,
+    });
     e.retry(id, undefined, 3);
     await vi.waitFor(() => expect(get(e, id).status).toBe('done'));
     expect(initiate.mock.calls[1]![0].item.expectedLatestVersion).toBe(3);
@@ -164,7 +194,9 @@ describe('UploadEngine', () => {
 
 describe('resolveUploadUrl', () => {
   it('resolves the relative upload_url against the API root (prefix already included)', () => {
-    expect(resolveUploadUrl('/api/v1/uploads/x/content', 'http://localhost:8000')).toBe('http://localhost:8000/api/v1/uploads/x/content');
+    expect(resolveUploadUrl('/api/v1/uploads/x/content', 'http://localhost:8000')).toBe(
+      'http://localhost:8000/api/v1/uploads/x/content',
+    );
     expect(resolveUploadUrl('http://other/x', 'http://localhost:8000')).toBe('http://other/x');
   });
 });

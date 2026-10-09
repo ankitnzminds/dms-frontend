@@ -35,13 +35,17 @@ test.describe.serial('document sharing end to end', () => {
     dirBId = page.url().split('/files/')[1]!;
 
     // 3. upload a small PDF-like file
-    await page.getByTestId('upload-input').setInputFiles({ name: fileName, mimeType: 'application/pdf', buffer: v1 });
+    await page
+      .getByTestId('upload-input')
+      .setInputFiles({ name: fileName, mimeType: 'application/pdf', buffer: v1 });
     const row = page.getByTestId('item-row').filter({ hasText: fileName });
     await expect(row).toBeVisible();
 
     // 4. processing -> available (the Scanning chip disappears once the worker finishes)
     await expect(row.locator('[data-status="processing"]')).toHaveCount(0, { timeout: 60_000 });
-    await expect(page.getByRole('region', { name: 'Uploads' })).toContainText(/Uploads complete|Uploaded/);
+    await expect(page.getByRole('region', { name: 'Uploads' })).toContainText(
+      /Uploads complete|Uploaded/,
+    );
 
     await row.getByRole('link', { name: fileName }).click();
     await expect(page).toHaveURL(/\/documents\//);
@@ -50,11 +54,15 @@ test.describe.serial('document sharing end to end', () => {
     await expect(page.getByText('Available', { exact: true }).first()).toBeVisible();
 
     // 5. upload a new version
-    await page.getByTestId('version-input').setInputFiles({ name: fileName, mimeType: 'application/pdf', buffer: v2 });
+    await page
+      .getByTestId('version-input')
+      .setInputFiles({ name: fileName, mimeType: 'application/pdf', buffer: v2 });
     await page.getByRole('tab', { name: 'Versions' }).click();
     const versions = page.getByTestId('version-row');
     await expect(versions).toHaveCount(2, { timeout: 30_000 });
-    await expect(versions.filter({ hasText: 'v2' }).getByText('Clean')).toBeVisible({ timeout: 60_000 });
+    await expect(versions.filter({ hasText: 'v2' }).getByText('Clean')).toBeVisible({
+      timeout: 60_000,
+    });
     await expect(versions.filter({ hasText: 'v2' }).getByText('Current')).toBeVisible();
 
     // 6. share with bob (view + download, with expiry)
@@ -72,7 +80,10 @@ test.describe.serial('document sharing end to end', () => {
     await expect(page.getByTestId('share-row')).toContainText('Active');
   });
 
-  test('bob sees plain-text breadcrumb, cannot open parents, downloads', async ({ browser, request }) => {
+  test('bob sees plain-text breadcrumb, cannot open parents, downloads', async ({
+    browser,
+    request,
+  }) => {
     const ctx = await browser.newContext({ acceptDownloads: true });
     const page = await ctx.newPage();
     await signInAs(page, 'Bob');
@@ -86,8 +97,13 @@ test.describe.serial('document sharing end to end', () => {
     // dir1 and dirB are not navigable for bob: plain text, no links. (The org root is separately
     // authorized for every member, so the API marks it navigable and it may render as a link.)
     await expect(trail.getByRole('link', { name: new RegExp(`${dir1}|${dirB}`) })).toHaveCount(0);
-    await expect(trail.locator('[data-navigable="false"]')).toHaveText([new RegExp(dir1), new RegExp(dirB)]);
-    await expect(row.locator(`a[href="/files/${dir1Id}"], a[href="/files/${dirBId}"]`)).toHaveCount(0);
+    await expect(trail.locator('[data-navigable="false"]')).toHaveText([
+      new RegExp(dir1),
+      new RegExp(dirB),
+    ]);
+    await expect(row.locator(`a[href="/files/${dir1Id}"], a[href="/files/${dirBId}"]`)).toHaveCount(
+      0,
+    );
     await expect(row.getByText('Download', { exact: true }).first()).toBeVisible();
 
     // 8. direct URLs to the parents are a neutral not-found state
@@ -109,7 +125,11 @@ test.describe.serial('document sharing end to end', () => {
     void request;
   });
 
-  test('alice revokes; bob loses access; audit log shows the events', async ({ browser, page, request }) => {
+  test('alice revokes; bob loses access; audit log shows the events', async ({
+    browser,
+    page,
+    request,
+  }) => {
     // 10. alice revokes
     await signInAs(page, 'Alice');
     await page.goto('/shared-by-me');
@@ -124,7 +144,9 @@ test.describe.serial('document sharing end to end', () => {
     const bob = await ctx.newPage();
     await signInAs(bob, 'Bob');
     await bob.goto('/shared-with-me');
-    await expect(bob.getByTestId('received-share-row').filter({ hasText: fileName })).toHaveCount(0);
+    await expect(bob.getByTestId('received-share-row').filter({ hasText: fileName })).toHaveCount(
+      0,
+    );
     await bob.getByLabel('Show expired & revoked').click();
     const revoked = bob.getByTestId('received-share-row').filter({ hasText: fileName });
     await expect(revoked).toContainText('Access revoked');

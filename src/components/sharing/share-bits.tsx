@@ -39,16 +39,29 @@ export function ActionChips({ actions }: { actions: string[] }) {
 }
 
 export function recipientLabel(r: Share['recipients'][number]) {
-  return r.type === 'group' ? `${r.name ?? 'Group'} (group)` : (r.email ?? r.name ?? 'Unknown user');
+  return r.type === 'group'
+    ? `${r.name ?? 'Group'} (group)`
+    : (r.email ?? r.name ?? 'Unknown user');
 }
 
-export function RevokeShareButton({ share, label = 'Revoke' }: { share: Pick<Share, 'id' | 'resource_name' | 'status'>; label?: string }) {
+export function RevokeShareButton({
+  share,
+  label = 'Revoke',
+}: {
+  share: Pick<Share, 'id' | 'resource_name' | 'status'>;
+  label?: string;
+}) {
   const [open, setOpen] = useState(false);
   const revoke = useRevokeShare();
   if (share.status !== 'active') return null;
   return (
     <>
-      <Button size="sm" variant="danger-ghost" onClick={() => setOpen(true)} aria-label={`Revoke share of ${share.resource_name ?? 'item'}`}>
+      <Button
+        size="sm"
+        variant="danger-ghost"
+        onClick={() => setOpen(true)}
+        aria-label={`Revoke share of ${share.resource_name ?? 'item'}`}
+      >
         {revoke.isPending ? <Loader2 className="animate-spin" /> : <Ban />} {label}
       </Button>
       <ConfirmDialog

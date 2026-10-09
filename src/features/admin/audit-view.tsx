@@ -10,8 +10,24 @@ import type { AuditEvent } from '@/lib/api-client';
 import { useAuditEvents, type AuditFilters } from './hooks';
 
 const PAGE = 25;
-type Draft = { action: string; outcome: string; resource_type: string; resource_id: string; actor_user_id: string; since: string; until: string };
-const EMPTY: Draft = { action: '', outcome: '', resource_type: '', resource_id: '', actor_user_id: '', since: '', until: '' };
+type Draft = {
+  action: string;
+  outcome: string;
+  resource_type: string;
+  resource_id: string;
+  actor_user_id: string;
+  since: string;
+  until: string;
+};
+const EMPTY: Draft = {
+  action: '',
+  outcome: '',
+  resource_type: '',
+  resource_id: '',
+  actor_user_id: '',
+  since: '',
+  until: '',
+};
 
 const csvCell = (v: unknown) => {
   const s = v === null || v === undefined ? '' : typeof v === 'string' ? v : JSON.stringify(v);
@@ -20,8 +36,28 @@ const csvCell = (v: unknown) => {
 
 /** Client-side CSV of exactly the rows currently loaded (one page). */
 export function auditToCsv(items: AuditEvent[]): string {
-  const head = ['time', 'action', 'outcome', 'actor_email', 'actor_user_id', 'resource_type', 'resource_id', 'request_id', 'metadata'];
-  const rows = items.map((e) => [e.created_at, e.action, e.outcome, e.actor_email, e.actor_user_id, e.resource_type, e.resource_id, e.request_id, e.metadata]);
+  const head = [
+    'time',
+    'action',
+    'outcome',
+    'actor_email',
+    'actor_user_id',
+    'resource_type',
+    'resource_id',
+    'request_id',
+    'metadata',
+  ];
+  const rows = items.map((e) => [
+    e.created_at,
+    e.action,
+    e.outcome,
+    e.actor_email,
+    e.actor_user_id,
+    e.resource_type,
+    e.resource_id,
+    e.request_id,
+    e.metadata,
+  ]);
   return [head, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n');
 }
 
@@ -42,7 +78,8 @@ export function AuditView() {
     offset,
   };
   const q = useAuditEvents(filters);
-  const set = (k: keyof Draft) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setDraft((d) => ({ ...d, [k]: e.target.value }));
+  const set = (k: keyof Draft) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setDraft((d) => ({ ...d, [k]: e.target.value }));
 
   function exportCsv() {
     if (!q.data) return;
@@ -76,7 +113,9 @@ export function AuditView() {
         }}
       >
         <Field id="a-action" label="Action starts with" hint="For example share. or document.">
-          {(p) => <Input {...p} value={draft.action} onChange={set('action')} placeholder="share." />}
+          {(p) => (
+            <Input {...p} value={draft.action} onChange={set('action')} placeholder="share." />
+          )}
         </Field>
         <Field id="a-outcome" label="Outcome">
           {(p) => (
@@ -92,7 +131,11 @@ export function AuditView() {
           {(p) => (
             <Select {...p} value={draft.resource_type} onChange={set('resource_type')}>
               <option value="">Any</option>
-              {['document', 'folder', 'share', 'user', 'group', 'organization'].map((t) => <option key={t} value={t}>{t}</option>)}
+              {['document', 'folder', 'share', 'user', 'group', 'organization'].map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
             </Select>
           )}
         </Field>
@@ -109,12 +152,20 @@ export function AuditView() {
           {(p) => <Input {...p} type="date" value={draft.until} onChange={set('until')} />}
         </Field>
         <div className="flex items-end gap-2">
-          <Button type="submit" variant="primary">Apply filters</Button>
+          <Button type="submit" variant="primary">
+            Apply filters
+          </Button>
           <Button onClick={() => (setDraft(EMPTY), setApplied(EMPTY), setOffset(0))}>Reset</Button>
         </div>
       </form>
       <Panel>
-        <AuditTable data={q.data} isLoading={q.isPending} error={q.error} onRetry={() => q.refetch()} onOffsetChange={setOffset} />
+        <AuditTable
+          data={q.data}
+          isLoading={q.isPending}
+          error={q.error}
+          onRetry={() => q.refetch()}
+          onOffsetChange={setOffset}
+        />
       </Panel>
     </>
   );

@@ -62,18 +62,22 @@ export function useInviteMember() {
 export function useUpdateMember() {
   return useAdminMutation(
     (v: { userId: string; body: Schemas['MemberUpdate'] }) =>
-      call<Member>(api.PATCH('/api/v1/admin/members/{user_id}', { params: { path: { user_id: v.userId } }, body: v.body })),
+      call<Member>(
+        api.PATCH('/api/v1/admin/members/{user_id}', {
+          params: { path: { user_id: v.userId } },
+          body: v.body,
+        }),
+      ),
     [['admin', 'members']],
   );
 }
 
 export function useRevokeSessions() {
-  return useAdminMutation(
-    async (userId: string) => {
-      await api.POST('/api/v1/admin/members/{user_id}/revoke-sessions', { params: { path: { user_id: userId } } });
-    },
-    [],
-  );
+  return useAdminMutation(async (userId: string) => {
+    await api.POST('/api/v1/admin/members/{user_id}/revoke-sessions', {
+      params: { path: { user_id: userId } },
+    });
+  }, []);
 }
 
 export function useAdminGroups(q = '', limit = 100, offset = 0) {
@@ -82,7 +86,10 @@ export function useAdminGroups(q = '', limit = 100, offset = 0) {
     placeholderData: keepPreviousData,
     queryFn: ({ signal }) =>
       call<Page<Group>>(
-        api.GET('/api/v1/admin/groups', { params: { query: { q: q || undefined, limit, offset } }, signal }),
+        api.GET('/api/v1/admin/groups', {
+          params: { query: { q: q || undefined, limit, offset } },
+          signal,
+        }),
       ),
   });
 }
@@ -97,7 +104,12 @@ export function useCreateGroup() {
 export function useUpdateGroup() {
   return useAdminMutation(
     (v: { id: string; body: Schemas['GroupUpdate'] }) =>
-      call<Group>(api.PATCH('/api/v1/admin/groups/{group_id}', { params: { path: { group_id: v.id } }, body: v.body })),
+      call<Group>(
+        api.PATCH('/api/v1/admin/groups/{group_id}', {
+          params: { path: { group_id: v.id } },
+          body: v.body,
+        }),
+      ),
     [['admin', 'groups'], ['groups']],
   );
 }
@@ -116,7 +128,12 @@ export function useGroupMembers(groupId: string | undefined) {
     queryKey: ['admin', 'group-members', groupId],
     enabled: !!groupId,
     queryFn: ({ signal }) =>
-      call<Member[]>(api.GET('/api/v1/admin/groups/{group_id}/members', { params: { path: { group_id: groupId! } }, signal })),
+      call<Member[]>(
+        api.GET('/api/v1/admin/groups/{group_id}/members', {
+          params: { path: { group_id: groupId! } },
+          signal,
+        }),
+      ),
   });
 }
 
@@ -128,7 +145,10 @@ export function useAddGroupMember(groupId: string) {
         body: { user_id: userId },
       });
     },
-    [['admin', 'group-members', groupId], ['admin', 'groups']],
+    [
+      ['admin', 'group-members', groupId],
+      ['admin', 'groups'],
+    ],
   );
 }
 
@@ -139,7 +159,10 @@ export function useRemoveGroupMember(groupId: string) {
         params: { path: { group_id: groupId, user_id: userId } },
       });
     },
-    [['admin', 'group-members', groupId], ['admin', 'groups']],
+    [
+      ['admin', 'group-members', groupId],
+      ['admin', 'groups'],
+    ],
   );
 }
 
@@ -161,7 +184,9 @@ export function useAuditEvents(f: AuditFilters, enabled = true) {
     enabled,
     placeholderData: keepPreviousData,
     queryFn: ({ signal }) =>
-      call<Page<AuditEvent>>(api.GET('/api/v1/admin/audit-events', { params: { query: f }, signal })),
+      call<Page<AuditEvent>>(
+        api.GET('/api/v1/admin/audit-events', { params: { query: f }, signal }),
+      ),
   });
 }
 
@@ -170,14 +195,17 @@ export function useQuarantine(limit = 50, offset = 0) {
     queryKey: ['admin', 'quarantine', limit, offset],
     placeholderData: keepPreviousData,
     queryFn: ({ signal }) =>
-      call<Page<QuarantineItem>>(api.GET('/api/v1/admin/quarantine', { params: { query: { limit, offset } }, signal })),
+      call<Page<QuarantineItem>>(
+        api.GET('/api/v1/admin/quarantine', { params: { query: { limit, offset } }, signal }),
+      ),
     refetchInterval: 10_000,
   });
 }
 
 export function useUpdateOrganization() {
   return useAdminMutation(
-    (b: Schemas['OrganizationUpdate']) => call<Organization>(api.PATCH('/api/v1/organization', { body: b })),
+    (b: Schemas['OrganizationUpdate']) =>
+      call<Organization>(api.PATCH('/api/v1/organization', { body: b })),
     [['organization'], ['me']],
   );
 }

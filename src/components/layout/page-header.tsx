@@ -14,7 +14,9 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <header className={cn('mb-4 flex flex-wrap items-start justify-between gap-x-4 gap-y-2', className)}>
+    <header
+      className={cn('mb-4 flex flex-wrap items-start justify-between gap-x-4 gap-y-2', className)}
+    >
       <div className="min-w-0">
         {trail && <div className="mb-1">{trail}</div>}
         <h1 className="truncate text-xl font-semibold tracking-tight">{title}</h1>

@@ -16,10 +16,12 @@ export function MoveDialog({
   name,
   open,
   onOpenChange,
+  startFolderId,
 }: {
   kind: 'folder' | 'document';
   id: string;
   name: string;
+  startFolderId?: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
@@ -29,9 +31,18 @@ export function MoveDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title={`Move "${name}"`} description="Choose a destination folder you can add items to.">
+      <DialogContent
+        title={`Move "${name}"`}
+        description="Choose a destination folder you can add items to."
+      >
         <DialogBody>
-          {open && <FolderPicker onChange={setTarget} excludeId={kind === 'folder' ? id : undefined} />}
+          {open && (
+            <FolderPicker
+              onChange={setTarget}
+              startFolderId={startFolderId}
+              excludeId={kind === 'folder' ? id : undefined}
+            />
+          )}
           {error && (
             <p role="alert" className="mt-2 text-xs text-danger">
               {error}
@@ -78,9 +89,11 @@ export function CopyDialog({
   name,
   open,
   onOpenChange,
+  startFolderId,
 }: {
   id: string;
   name: string;
+  startFolderId?: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
@@ -91,10 +104,17 @@ export function CopyDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title={`Copy "${name}"`} description="The copy is a new, independent document.">
+      <DialogContent
+        title={`Copy "${name}"`}
+        description="The copy is a new, independent document."
+      >
         <DialogBody className="grid gap-3">
-          {open && <FolderPicker onChange={setTarget} />}
-          <Field id="copy-name" label="Name for the copy (optional)" hint="Leave empty to keep the original name.">
+          {open && <FolderPicker onChange={setTarget} startFolderId={startFolderId} />}
+          <Field
+            id="copy-name"
+            label="Name for the copy (optional)"
+            hint="Leave empty to keep the original name."
+          >
             {(p) => <Input {...p} value={newName} onChange={(e) => setNewName(e.target.value)} />}
           </Field>
           {error && (

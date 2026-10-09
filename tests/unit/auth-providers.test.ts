@@ -14,11 +14,15 @@ function memoryStorage() {
 }
 
 const tokenFetch = (token = 'jwt-1') =>
-  vi.fn(async () => new Response(JSON.stringify({ access_token: token }), { status: 200 })) as unknown as typeof fetch;
+  vi.fn(
+    async () => new Response(JSON.stringify({ access_token: token }), { status: 200 }),
+  ) as unknown as typeof fetch;
 
 describe('DevAuthProvider', () => {
   it('refuses to be constructed in a production build', () => {
-    expect(() => new DevAuthProvider('http://x/api/v1', tokenFetch(), memoryStorage(), true)).toThrow(/production/);
+    expect(
+      () => new DevAuthProvider('http://x/api/v1', tokenFetch(), memoryStorage(), true),
+    ).toThrow(/production/);
   });
 
   it('signs in via the dev token endpoint and keeps the token in memory only', async () => {
@@ -31,8 +35,13 @@ describe('DevAuthProvider', () => {
     expect(await p.getAccessToken()).toBeNull();
     await p.signIn({ kind: 'dev', email: 'alice@acme.test' });
 
-    expect(fetchImpl).toHaveBeenCalledWith('http://x/api/v1/dev/token', expect.objectContaining({ method: 'POST' }));
-    expect(JSON.parse((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![1].body)).toEqual({ email: 'alice@acme.test' });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      'http://x/api/v1/dev/token',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(
+      JSON.parse((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![1].body),
+    ).toEqual({ email: 'alice@acme.test' });
     expect(await p.getAccessToken()).toBe('jwt-alice');
     expect(listener).toHaveBeenCalledWith(true);
     // only the email is stored, never the token
@@ -59,14 +68,18 @@ describe('DevAuthProvider', () => {
   });
 
   it('reports a helpful error when the dev endpoint is missing', async () => {
-    const fetchImpl = vi.fn(async () => new Response('{}', { status: 404 })) as unknown as typeof fetch;
+    const fetchImpl = vi.fn(
+      async () => new Response('{}', { status: 404 }),
+    ) as unknown as typeof fetch;
     const p = new DevAuthProvider('http://x/api/v1', fetchImpl, memoryStorage(), false);
     await expect(p.signIn({ kind: 'dev', email: 'a@b.c' })).rejects.toThrow(/AUTH_PROVIDER=local/);
   });
 
   it('rejects password credentials', async () => {
     const p = new DevAuthProvider('http://x/api/v1', tokenFetch(), memoryStorage(), false);
-    await expect(p.signIn({ kind: 'password', email: 'a@b.c', password: 'x' })).rejects.toBeInstanceOf(AuthError);
+    await expect(
+      p.signIn({ kind: 'password', email: 'a@b.c', password: 'x' }),
+    ).rejects.toBeInstanceOf(AuthError);
   });
 });
 
@@ -75,7 +88,10 @@ function mockSupabase() {
   let cb: ((e: string, s: unknown) => void) | undefined;
   const auth = {
     getSession: vi.fn(async () => ({ data: { session: { access_token: 'sb-jwt' } }, error: null })),
-    refreshSession: vi.fn(async () => ({ data: { session: { access_token: 'sb-jwt-2' } }, error: null })),
+    refreshSession: vi.fn(async () => ({
+      data: { session: { access_token: 'sb-jwt-2' } },
+      error: null,
+    })),
     signInWithPassword: vi.fn(async () => ({ data: {}, error: null })),
     signOut: vi.fn(async () => ({ error: null })),
     resetPasswordForEmail: vi.fn(async () => ({ data: {}, error: null })),
@@ -84,7 +100,12 @@ function mockSupabase() {
       return { data: { subscription: { unsubscribe } } };
     }),
   };
-  return { client: { auth } as never, auth, emit: (s: unknown) => cb?.('SIGNED_IN', s), unsubscribe };
+  return {
+    client: { auth } as never,
+    auth,
+    emit: (s: unknown) => cb?.('SIGNED_IN', s),
+    unsubscribe,
+  };
 }
 
 describe('SupabaseAuthProvider (mocked client; not tested against a live project)', () => {
@@ -98,7 +119,10 @@ describe('SupabaseAuthProvider (mocked client; not tested against a live project
   it('returns null when there is no session or an error', async () => {
     const m = mockSupabase();
     m.auth.getSession.mockResolvedValueOnce({ data: { session: null }, error: null } as never);
-    m.auth.refreshSession.mockResolvedValueOnce({ data: { session: null }, error: { message: 'x' } } as never);
+    m.auth.refreshSession.mockResolvedValueOnce({
+      data: { session: null },
+      error: { message: 'x' },
+    } as never);
     const p = new SupabaseAuthProvider(m.client);
     expect(await p.getAccessToken()).toBeNull();
     expect(await p.refresh()).toBeNull();
@@ -110,8 +134,13 @@ describe('SupabaseAuthProvider (mocked client; not tested against a live project
     await p.signIn({ kind: 'password', email: 'a@b.c', password: 'pw' });
     expect(m.auth.signInWithPassword).toHaveBeenCalledWith({ email: 'a@b.c', password: 'pw' });
 
-    m.auth.signInWithPassword.mockResolvedValueOnce({ data: {}, error: { message: 'Invalid login credentials', status: 400 } } as never);
-    await expect(p.signIn({ kind: 'password', email: 'a@b.c', password: 'bad' })).rejects.toThrow('Incorrect email or password.');
+    m.auth.signInWithPassword.mockResolvedValueOnce({
+      data: {},
+      error: { message: 'Invalid login credentials', status: 400 },
+    } as never);
+    await expect(p.signIn({ kind: 'password', email: 'a@b.c', password: 'bad' })).rejects.toThrow(
+      'Incorrect email or password.',
+    );
   });
 
   it('signs out, subscribes/unsubscribes, and sends password reset emails', async () => {
@@ -129,6 +158,8 @@ describe('SupabaseAuthProvider (mocked client; not tested against a live project
     expect(m.unsubscribe).toHaveBeenCalled();
 
     await p.requestPasswordReset('a@b.c');
-    expect(m.auth.resetPasswordForEmail).toHaveBeenCalledWith('a@b.c', { redirectTo: 'http://app/login' });
+    expect(m.auth.resetPasswordForEmail).toHaveBeenCalledWith('a@b.c', {
+      redirectTo: 'http://app/login',
+    });
   });
 });

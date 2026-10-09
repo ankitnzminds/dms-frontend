@@ -32,7 +32,10 @@ export function PathTrail({
         <Link
           key={`s${i}`}
           href={`/files/${s.folder_id}`}
-          className={cn('rounded-sm text-muted underline-offset-2 hover:text-text hover:underline', linkClassName)}
+          className={cn(
+            'rounded-sm text-muted underline-offset-2 hover:text-text hover:underline',
+            linkClassName,
+          )}
         >
           {label}
         </Link>
@@ -58,8 +61,17 @@ export function PathTrail({
     );
   }
   return (
-    <nav aria-label="Location" data-path={[...segments.map((s) => s.name ?? "…"), ...(current ? [current] : [])].join(" > ")} className={className}>
-      <ol className={cn('flex flex-wrap items-center gap-x-1 gap-y-0.5', size === 'sm' ? 'text-xs' : 'text-[13px]')}>
+    <nav
+      aria-label="Location"
+      data-path={[...segments.map((s) => s.name ?? '…'), ...(current ? [current] : [])].join(' > ')}
+      className={className}
+    >
+      <ol
+        className={cn(
+          'flex flex-wrap items-center gap-x-1 gap-y-0.5',
+          size === 'sm' ? 'text-xs' : 'text-[13px]',
+        )}
+      >
         {nodes.map((n, i) => (
           <li key={i} className="flex min-w-0 items-center gap-1">
             {i > 0 && <ChevronRight className="size-3 shrink-0 text-faint" aria-hidden />}

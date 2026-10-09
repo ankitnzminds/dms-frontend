@@ -18,7 +18,12 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <div className={cn('flex flex-col items-center justify-center gap-2 px-6 py-14 text-center', className)}>
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center gap-2 px-6 py-14 text-center',
+        className,
+      )}
+    >
       <div className="grid size-10 place-items-center rounded-lg bg-surface-2 text-muted">
         <Icon className="size-5" />
       </div>
@@ -64,7 +69,10 @@ export function ErrorState({
     return <NotFoundState />;
   }
   return (
-    <div role="alert" className={cn('flex flex-col items-center gap-2 px-6 py-12 text-center', className)}>
+    <div
+      role="alert"
+      className={cn('flex flex-col items-center gap-2 px-6 py-12 text-center', className)}
+    >
       <div className="grid size-10 place-items-center rounded-lg bg-danger-soft text-danger">
         <AlertTriangle className="size-5" />
       </div>

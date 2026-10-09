@@ -13,7 +13,11 @@ import {
 type Theme = 'light' | 'dark' | 'system';
 const KEY = 'dms.theme';
 
-const Ctx = createContext<{ theme: Theme; resolved: 'light' | 'dark'; setTheme: (t: Theme) => void }>({
+const Ctx = createContext<{
+  theme: Theme;
+  resolved: 'light' | 'dark';
+  setTheme: (t: Theme) => void;
+}>({
   theme: 'system',
   resolved: 'light',
   setTheme: () => {},
@@ -89,7 +93,12 @@ export function ThemeToggle() {
             ['system', 'System', Monitor],
           ] as const
         ).map(([v, label, I]) => (
-          <DropdownMenuItem key={v} onSelect={() => setTheme(v)} aria-checked={theme === v} role="menuitemradio">
+          <DropdownMenuItem
+            key={v}
+            onSelect={() => setTheme(v)}
+            aria-checked={theme === v}
+            role="menuitemradio"
+          >
             <I /> {label}
             {theme === v && <span className="ml-auto text-xs text-accent">Active</span>}
           </DropdownMenuItem>

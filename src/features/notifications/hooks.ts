@@ -3,7 +3,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, call, type NotificationPage } from '@/lib/api-client';
 
-export function useNotifications(opts: { limit?: number; offset?: number; unreadOnly?: boolean; poll?: boolean } = {}) {
+export function useNotifications(
+  opts: { limit?: number; offset?: number; unreadOnly?: boolean; poll?: boolean } = {},
+) {
   const { limit = 20, offset = 0, unreadOnly = false, poll = false } = opts;
   return useQuery({
     queryKey: ['notifications', limit, offset, unreadOnly],

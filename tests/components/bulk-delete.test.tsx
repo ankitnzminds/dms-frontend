@@ -38,7 +38,9 @@ describe('BulkDeleteDialog', () => {
     expect(calls).toEqual([]); // nothing deleted before confirmation
 
     await userEvent.click(screen.getByRole('button', { name: 'Move to trash' }));
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('2 of 3 moved to trash; 1 failed.'));
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('2 of 3 moved to trash; 1 failed.'),
+    );
     expect(calls).toEqual(['ok', 'bad', 'fold']);
     expect(screen.getByText('You do not have permission to do that.')).toBeInTheDocument();
     expect(onFinished).toHaveBeenCalledWith(['bad']);

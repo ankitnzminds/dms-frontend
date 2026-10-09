@@ -51,7 +51,16 @@ export function useItemActions() {
 type DialogKind = 'preview' | 'rename' | 'move' | 'copy' | 'share' | 'access' | 'delete';
 
 /** Owns the dialogs for row actions so list pages stay thin. */
-export function ItemActionsProvider({ children, onOpenFolder }: { children: React.ReactNode; onOpenFolder?: (id: string) => void }) {
+export function ItemActionsProvider({
+  children,
+  onOpenFolder,
+  currentFolderId,
+}: {
+  children: React.ReactNode;
+  onOpenFolder?: (id: string) => void;
+  /** Folder the list is showing; move/copy pickers start here. */
+  currentFolderId?: string;
+}) {
   const router = useRouter();
   const [dlg, setDlg] = useState<{ kind: DialogKind; item: ActionItem } | null>(null);
   const del = useDeleteItem();
@@ -73,7 +82,10 @@ export function ItemActionsProvider({ children, onOpenFolder }: { children: Reac
           star.mutate(
             { id: item.id, starred: !item.starred },
             {
-              onSuccess: () => toast.success(item.starred ? `Removed "${item.name}" from starred` : `Starred "${item.name}"`),
+              onSuccess: () =>
+                toast.success(
+                  item.starred ? `Removed "${item.name}" from starred` : `Starred "${item.name}"`,
+                ),
               onError: (e) => toast.error(friendlyMessage(e)),
             },
           );
@@ -95,13 +107,44 @@ export function ItemActionsProvider({ children, onOpenFolder }: { children: Reac
       {it && dlg.kind === 'rename' && (
         <RenameDialog open kind={it.kind} id={it.id} currentName={it.name} onOpenChange={close} />
       )}
-      {it && dlg.kind === 'move' && <MoveDialog open kind={it.kind} id={it.id} name={it.name} onOpenChange={close} />}
-      {it && dlg.kind === 'copy' && <CopyDialog open id={it.id} name={it.name} onOpenChange={close} />}
+      {it && dlg.kind === 'move' && (
+        <MoveDialog
+          open
+          kind={it.kind}
+          id={it.id}
+          name={it.name}
+          startFolderId={currentFolderId}
+          onOpenChange={close}
+        />
+      )}
+      {it && dlg.kind === 'copy' && (
+        <CopyDialog
+          open
+          id={it.id}
+          name={it.name}
+          startFolderId={currentFolderId}
+          onOpenChange={close}
+        />
+      )}
       {it && dlg.kind === 'share' && (
-        <ShareDialog open kind={it.kind} id={it.id} name={it.name} permissions={it.permissions} onOpenChange={close} />
+        <ShareDialog
+          open
+          kind={it.kind}
+          id={it.id}
+          name={it.name}
+          permissions={it.permissions}
+          onOpenChange={close}
+        />
       )}
       {it && dlg.kind === 'access' && (
-        <ManageAccessDialog open kind={it.kind} id={it.id} name={it.name} permissions={it.permissions} onOpenChange={close} />
+        <ManageAccessDialog
+          open
+          kind={it.kind}
+          id={it.id}
+          name={it.name}
+          permissions={it.permissions}
+          onOpenChange={close}
+        />
       )}
       {it && dlg.kind === 'preview' && (
         <Dialog open onOpenChange={close}>
@@ -146,8 +189,19 @@ export function ItemActionsProvider({ children, onOpenFolder }: { children: Reac
   );
 }
 
-const MENU: { action: ItemAction; label: (i: ActionItem) => string; icon: React.ComponentType; group: number; destructive?: boolean }[] = [
-  { action: 'open', label: (i) => (i.kind === 'folder' ? 'Open folder' : 'Open details'), icon: FolderOpen, group: 0 },
+const MENU: {
+  action: ItemAction;
+  label: (i: ActionItem) => string;
+  icon: React.ComponentType;
+  group: number;
+  destructive?: boolean;
+}[] = [
+  {
+    action: 'open',
+    label: (i) => (i.kind === 'folder' ? 'Open folder' : 'Open details'),
+    icon: FolderOpen,
+    group: 0,
+  },
   { action: 'preview', label: () => 'Preview', icon: Eye, group: 0 },
   { action: 'download', label: () => 'Download', icon: Download, group: 0 },
   { action: 'share', label: () => 'Share…', icon: Share2, group: 1 },

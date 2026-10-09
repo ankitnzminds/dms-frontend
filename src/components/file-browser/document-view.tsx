@@ -17,7 +17,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DisabledReason } from '@/components/ui/tooltip';
 import { useAuditEvents } from '@/features/admin/hooks';
 import { useMe } from '@/features/auth/session';
-import { itemAvailability, isPreviewableType, type ActionItem } from '@/features/files/availability';
+import {
+  itemAvailability,
+  isPreviewableType,
+  type ActionItem,
+} from '@/features/files/availability';
 import { useDocument, useRestoreItem, useUpdateDocumentMeta } from '@/features/files/hooks';
 import { useUploads } from '@/features/upload/upload-manager';
 import { friendlyMessage, isApiError, type Document } from '@/lib/api-client';
@@ -44,9 +48,21 @@ export function docToItem(d: Document): ActionItem {
 function StatusBanner({ doc }: { doc: Document }) {
   if (doc.status === 'available') return null;
   const map = {
-    processing: ['info', 'Scanning for malware', 'This file becomes available after the scan finishes. This page updates automatically.'],
-    quarantined: ['danger', 'Quarantined', 'The scanner flagged this file. It cannot be downloaded or previewed.'],
-    failed: ['danger', 'Processing failed', 'This upload could not be completed. Upload the file again.'],
+    processing: [
+      'info',
+      'Scanning for malware',
+      'This file becomes available after the scan finishes. This page updates automatically.',
+    ],
+    quarantined: [
+      'danger',
+      'Quarantined',
+      'The scanner flagged this file. It cannot be downloaded or previewed.',
+    ],
+    failed: [
+      'danger',
+      'Processing failed',
+      'This upload could not be completed. Upload the file again.',
+    ],
   } as const;
   const [tone, title, body] = map[doc.status];
   return (
@@ -55,7 +71,11 @@ function StatusBanner({ doc }: { doc: Document }) {
       aria-live="polite"
       className={`mb-4 flex items-start gap-3 rounded-lg px-4 py-3 text-[13px] ${tone === 'info' ? 'bg-info-soft text-info' : 'bg-danger-soft text-danger'}`}
     >
-      {doc.status === 'processing' ? <Loader2 className="mt-0.5 size-4 animate-spin" aria-hidden /> : <ShieldAlert className="mt-0.5 size-4" aria-hidden />}
+      {doc.status === 'processing' ? (
+        <Loader2 className="mt-0.5 size-4 animate-spin" aria-hidden />
+      ) : (
+        <ShieldAlert className="mt-0.5 size-4" aria-hidden />
+      )}
       <div>
         <p className="font-semibold">{title}</p>
         <p>{body}</p>
@@ -81,12 +101,24 @@ function Details({ doc }: { doc: Document }) {
       {rows.map(([k, val]) => (
         <div key={k} className="contents">
           <dt className="text-muted">{k}</dt>
-          <dd className="min-w-0 break-words">{k === 'Status' && doc.status === 'available' ? <Badge tone="ok">Available</Badge> : val}</dd>
+          <dd className="min-w-0 break-words">
+            {k === 'Status' && doc.status === 'available' ? (
+              <Badge tone="ok">Available</Badge>
+            ) : (
+              val
+            )}
+          </dd>
         </div>
       ))}
       <dt className="text-muted">Classification</dt>
       <dd>
-        <DisabledReason reason={can(doc.permissions, 'manage_access') ? null : 'Changing the classification needs the manage access permission.'}>
+        <DisabledReason
+          reason={
+            can(doc.permissions, 'manage_access')
+              ? null
+              : 'Changing the classification needs the manage access permission.'
+          }
+        >
           <Select
             aria-label="Classification"
             className="h-7 w-40 text-[13px]"
@@ -98,7 +130,11 @@ function Details({ doc }: { doc: Document }) {
                 {
                   onSuccess: () => toast.success('Classification updated'),
                   onError: (er) =>
-                    toast.error(isApiError(er) && er.code === 'stale_version' ? 'This document changed. Reload and try again.' : friendlyMessage(er)),
+                    toast.error(
+                      isApiError(er) && er.code === 'stale_version'
+                        ? 'This document changed. Reload and try again.'
+                        : friendlyMessage(er),
+                    ),
                 },
               )
             }
@@ -142,7 +178,11 @@ function Toolbar({ doc }: { doc: Document }) {
         }}
       />
       <DisabledReason reason={av.download.enabled ? null : av.download.reason}>
-        <Button variant="primary" disabled={!av.download.enabled} onClick={() => run('download', item)}>
+        <Button
+          variant="primary"
+          disabled={!av.download.enabled}
+          onClick={() => run('download', item)}
+        >
           <Download /> Download
         </Button>
       </DisabledReason>
@@ -166,7 +206,14 @@ function ActivityTab({ id }: { id: string }) {
   const q = useAuditEvents({ resource_type: 'document', resource_id: id, limit: 20, offset });
   return (
     <Panel>
-      <AuditTable data={q.data} isLoading={q.isPending} error={q.error} onRetry={() => q.refetch()} onOffsetChange={setOffset} emptyText="Nothing has happened to this document yet." />
+      <AuditTable
+        data={q.data}
+        isLoading={q.isPending}
+        error={q.error}
+        onRetry={() => q.refetch()}
+        onOffsetChange={setOffset}
+        emptyText="Nothing has happened to this document yet."
+      />
     </Panel>
   );
 }
@@ -192,7 +239,7 @@ export function DocumentView({ documentId }: { documentId: string }) {
   const showActivity = canReadAudit(me);
 
   return (
-    <ItemActionsProvider>
+    <ItemActionsProvider currentFolderId={doc.folder_id}>
       <PageHeader
         title={
           <span className="flex items-center gap-2">
@@ -203,7 +250,10 @@ export function DocumentView({ documentId }: { documentId: string }) {
         actions={<Toolbar doc={doc} />}
       />
       {doc.deleted_at && (
-        <div role="status" className="mb-4 flex flex-wrap items-center gap-3 rounded-lg bg-warn-soft px-4 py-3 text-[13px] text-warn">
+        <div
+          role="status"
+          className="mb-4 flex flex-wrap items-center gap-3 rounded-lg bg-warn-soft px-4 py-3 text-[13px] text-warn"
+        >
           This document is in the trash.
           <Button
             size="sm"
@@ -211,7 +261,10 @@ export function DocumentView({ documentId }: { documentId: string }) {
             onClick={() =>
               restore.mutate(
                 { kind: 'document', id: doc.id },
-                { onSuccess: () => toast.success('Restored'), onError: (e) => toast.error(friendlyMessage(e)) },
+                {
+                  onSuccess: () => toast.success('Restored'),
+                  onError: (e) => toast.error(friendlyMessage(e)),
+                },
               )
             }
           >
@@ -230,8 +283,16 @@ export function DocumentView({ documentId }: { documentId: string }) {
         <TabsContent value="overview">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
             <Panel className="min-w-0 p-3">
-              {doc.status === 'available' && v && av.preview.enabled && isPreviewableType(v.content_type) ? (
-                <PreviewPanel documentId={doc.id} contentType={v.content_type} name={doc.name} canDownload={av.download.enabled} />
+              {doc.status === 'available' &&
+              v &&
+              av.preview.enabled &&
+              isPreviewableType(v.content_type) ? (
+                <PreviewPanel
+                  documentId={doc.id}
+                  contentType={v.content_type}
+                  name={doc.name}
+                  canDownload={av.download.enabled}
+                />
               ) : (
                 <p className="px-2 py-10 text-center text-[13px] text-muted">
                   {av.preview.reason ?? 'Preview is not available for this file.'}
@@ -259,4 +320,3 @@ export function DocumentView({ documentId }: { documentId: string }) {
     </ItemActionsProvider>
   );
 }
-

@@ -22,7 +22,8 @@ export function DropZone({
   const depth = useRef(0);
 
   if (!enabled) return <div className={className}>{children}</div>;
-  const hasFiles = (e: React.DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes('Files');
+  const hasFiles = (e: React.DragEvent) =>
+    Array.from(e.dataTransfer?.types ?? []).includes('Files');
 
   return (
     // The surrounding page exposes the same function via the Upload button, so this wrapper is a progressive enhancement.

@@ -24,8 +24,18 @@ export function StorageView() {
               {[
                 ['Used', formatBytes(u.data.used_bytes)],
                 ['Reserved by uploads', formatBytes(u.data.reserved_bytes)],
-                ['Quota', u.data.quota_bytes === null ? 'No quota' : formatBytes(u.data.quota_bytes)],
-                ['Free', u.data.quota_bytes === null ? '-' : formatBytes(Math.max(0, u.data.quota_bytes - u.data.used_bytes - u.data.reserved_bytes))],
+                [
+                  'Quota',
+                  u.data.quota_bytes === null ? 'No quota' : formatBytes(u.data.quota_bytes),
+                ],
+                [
+                  'Free',
+                  u.data.quota_bytes === null
+                    ? '-'
+                    : formatBytes(
+                        Math.max(0, u.data.quota_bytes - u.data.used_bytes - u.data.reserved_bytes),
+                      ),
+                ],
                 ['Documents', u.data.documents.toLocaleString()],
                 ['Versions', u.data.versions.toLocaleString()],
                 ['Folders', u.data.folders.toLocaleString()],
@@ -44,8 +54,8 @@ export function StorageView() {
             Storage provider <Badge tone="warn">Not available yet</Badge>
           </h2>
           <p className="mt-1 text-[13px] text-muted">
-            Choosing or migrating the storage provider cannot be done from this app yet. Files are stored in the
-            provider configured by the platform team when the service was deployed.
+            Choosing or migrating the storage provider cannot be done from this app yet. Files are
+            stored in the provider configured by the platform team when the service was deployed.
           </p>
         </Panel>
       </div>

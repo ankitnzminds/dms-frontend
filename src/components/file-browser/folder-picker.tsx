@@ -22,18 +22,31 @@ export interface PickedFolder {
 export function FolderPicker({
   onChange,
   excludeId,
+  startFolderId,
 }: {
   onChange: (f: PickedFolder | null) => void;
   excludeId?: string;
+  /** Where browsing begins (defaults to the organization root). */
+  startFolderId?: string;
 }) {
   const root = useRootFolder();
-  const [currentId, setCurrentId] = useState<string | undefined>(undefined);
+  const [currentId, setCurrentId] = useState<string | undefined>(startFolderId);
   const id = currentId ?? root.data?.id;
   const folder = useFolder(id);
-  const children = useChildren(id, { limit: 200, offset: 0, sort: 'name', order: 'asc', kind: 'folder' });
+  const children = useChildren(id, {
+    limit: 200,
+    offset: 0,
+    sort: 'name',
+    order: 'asc',
+    kind: 'folder',
+  });
 
   const picked: PickedFolder | null = folder.data
-    ? { id: folder.data.id, name: folder.data.name, canCreate: can(folder.data.permissions, 'create_child') }
+    ? {
+        id: folder.data.id,
+        name: folder.data.name,
+        canCreate: can(folder.data.permissions, 'create_child'),
+      }
     : null;
 
   // Publish selection whenever the current folder changes.
@@ -79,7 +92,9 @@ export function FolderPicker({
                   <button
                     type="button"
                     onClick={() => setCurrentId(f.id)}
-                    className={cn('flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-surface-2')}
+                    className={cn(
+                      'flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-surface-2',
+                    )}
                   >
                     <FolderIcon className="size-4 text-accent" aria-hidden />
                     <span className="flex-1 truncate">{f.name}</span>

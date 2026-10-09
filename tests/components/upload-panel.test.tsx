@@ -7,8 +7,15 @@ import { ApiError } from '@/lib/api-client';
 import { renderApp } from './test-utils';
 
 const session = {
-  id: 's1', folder_id: 'f', document_id: null, filename: 'a.pdf', declared_size: 3, content_type: 'x',
-  state: 'initiated', expires_at: '2026-01-01T00:00:00Z', upload_url: '/api/v1/uploads/s1/content',
+  id: 's1',
+  folder_id: 'f',
+  document_id: null,
+  filename: 'a.pdf',
+  declared_size: 3,
+  content_type: 'x',
+  state: 'initiated',
+  expires_at: '2026-01-01T00:00:00Z',
+  upload_url: '/api/v1/uploads/s1/content',
 };
 
 function engineWith(over: Partial<UploadDeps> = {}) {
@@ -16,7 +23,13 @@ function engineWith(over: Partial<UploadDeps> = {}) {
     sha256: async () => 'h',
     initiate: async () => session,
     put: async () => {},
-    finalize: async () => ({ document_id: 'd1', version_id: 'v', version_number: 1, message: 'ok', status: 'pending_scan' as const }),
+    finalize: async () => ({
+      document_id: 'd1',
+      version_id: 'v',
+      version_number: 1,
+      message: 'ok',
+      status: 'pending_scan' as const,
+    }),
     cancelSession: async () => {},
     ...over,
   });
@@ -53,46 +66,78 @@ describe('UploadPanel', () => {
   it('name_conflict: explains and offers rename-and-upload', async () => {
     const initiate = vi
       .fn()
-      .mockRejectedValueOnce(new ApiError({ status: 409, code: 'name_conflict', message: 'exists' }))
+      .mockRejectedValueOnce(
+        new ApiError({ status: 409, code: 'name_conflict', message: 'exists' }),
+      )
       .mockResolvedValue(session);
     const engine = engineWith({ initiate });
     renderApp(<UploadPanel />, { engine });
     act(() => void engine.enqueueFiles([file()], 'f'));
-    expect(await screen.findByText('A file with this name already exists here.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('A file with this name already exists here.'),
+    ).toBeInTheDocument();
     const input = screen.getByLabelText('New file name');
     expect(input).toHaveValue('report (1).pdf');
     await userEvent.click(screen.getByRole('button', { name: 'Upload as' }));
-    await waitFor(() => expect(screen.getByTestId('upload-row')).toHaveAttribute('data-status', 'done'));
+    await waitFor(() =>
+      expect(screen.getByTestId('upload-row')).toHaveAttribute('data-status', 'done'),
+    );
     expect(initiate.mock.calls[1]![0].item.name).toBe('report (1).pdf');
   });
 
   it('quota_exceeded: shows the storage message and a retry control', async () => {
-    const engine = engineWith({ initiate: async () => { throw new ApiError({ status: 409, code: 'quota_exceeded', message: 'q' }); } });
+    const engine = engineWith({
+      initiate: async () => {
+        throw new ApiError({ status: 409, code: 'quota_exceeded', message: 'q' });
+      },
+    });
     renderApp(<UploadPanel />, { engine });
     act(() => void engine.enqueueFiles([file()], 'f'));
     const row = await screen.findByTestId('upload-row');
     await waitFor(() => expect(row).toHaveAttribute('data-status', 'error'));
-    expect(within(row).getByRole('alert')).toHaveTextContent('Not enough storage left in your organization.');
-    expect(within(row).getByRole('button', { name: /Retry upload of report\.pdf/ })).toBeInTheDocument();
+    expect(within(row).getByRole('alert')).toHaveTextContent(
+      'Not enough storage left in your organization.',
+    );
+    expect(
+      within(row).getByRole('button', { name: /Retry upload of report\.pdf/ }),
+    ).toBeInTheDocument();
   });
 
   it('blocked file type and oversize have specific messages', async () => {
-    const engine = engineWith({ initiate: async () => { throw new ApiError({ status: 422, code: 'blocked_file_type', message: 'x' }); } });
+    const engine = engineWith({
+      initiate: async () => {
+        throw new ApiError({ status: 422, code: 'blocked_file_type', message: 'x' });
+      },
+    });
     renderApp(<UploadPanel />, { engine });
     act(() => void engine.enqueueFiles([file('x.exe')], 'f'));
     expect(await screen.findByText('This file type is not allowed.')).toBeInTheDocument();
-    act(() => void engine.enqueueFiles([{ name: 'huge.bin', size: 200 * 1024 * 1024, type: '' } as unknown as File], 'f'));
+    act(
+      () =>
+        void engine.enqueueFiles(
+          [{ name: 'huge.bin', size: 200 * 1024 * 1024, type: '' } as unknown as File],
+          'f',
+        ),
+    );
     expect(await screen.findByText(/100 MB/)).toBeInTheDocument();
   });
 
   it('cancel is available while uploading', async () => {
     const engine = engineWith({
       put: ({ signal }) =>
-        new Promise((_r, rej) => signal.addEventListener('abort', () => rej(new ApiError({ status: 0, code: 'aborted', message: 'c' })))),
+        new Promise((_r, rej) =>
+          signal.addEventListener('abort', () =>
+            rej(new ApiError({ status: 0, code: 'aborted', message: 'c' })),
+          ),
+        ),
     });
     renderApp(<UploadPanel />, { engine });
     act(() => void engine.enqueueFiles([file()], 'f'));
-    await userEvent.click(await screen.findByRole('button', { name: /Cancel upload of report\.pdf/ }));
-    await waitFor(() => expect(screen.getByTestId('upload-row')).toHaveAttribute('data-status', 'cancelled'));
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Cancel upload of report\.pdf/ }),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('upload-row')).toHaveAttribute('data-status', 'cancelled'),
+    );
   });
 });

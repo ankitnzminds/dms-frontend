@@ -28,12 +28,20 @@ export default function NotificationsPage() {
         actions={
           <>
             <div className="flex items-center gap-2">
-              <Switch id="unread-only" checked={unreadOnly} onCheckedChange={(c) => (setUnreadOnly(c), setOffset(0))} />
-              <Label htmlFor="unread-only" className="font-normal">Unread only</Label>
+              <Switch
+                id="unread-only"
+                checked={unreadOnly}
+                onCheckedChange={(c) => (setUnreadOnly(c), setOffset(0))}
+              />
+              <Label htmlFor="unread-only" className="font-normal">
+                Unread only
+              </Label>
             </div>
             <Button
               disabled={!q.data?.unread_count || markAll.isPending}
-              onClick={() => markAll.mutate(undefined, { onError: (e) => toast.error(friendlyMessage(e)) })}
+              onClick={() =>
+                markAll.mutate(undefined, { onError: (e) => toast.error(friendlyMessage(e)) })
+              }
             >
               <CheckCheck /> Mark all read
             </Button>
@@ -46,7 +54,11 @@ export default function NotificationsPage() {
         ) : q.isError ? (
           <ErrorState error={q.error} onRetry={() => q.refetch()} />
         ) : q.data.items.length === 0 ? (
-          <EmptyState icon={Bell} title={unreadOnly ? 'No unread notifications' : 'No notifications yet'} description="Shares and other events that involve you appear here." />
+          <EmptyState
+            icon={Bell}
+            title={unreadOnly ? 'No unread notifications' : 'No notifications yet'}
+            description="Shares and other events that involve you appear here."
+          />
         ) : (
           <>
             <ul className="divide-y divide-line" aria-label="Notifications">
@@ -56,7 +68,13 @@ export default function NotificationsPage() {
                 </li>
               ))}
             </ul>
-            <PaginationBar total={q.data.total} limit={PAGE} offset={offset} count={q.data.items.length} onOffsetChange={setOffset} />
+            <PaginationBar
+              total={q.data.total}
+              limit={PAGE}
+              offset={offset}
+              count={q.data.items.length}
+              onOffsetChange={setOffset}
+            />
           </>
         )}
       </Panel>

@@ -9,7 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Input, Label, Select, Textarea } from '@/components/ui/input';
-import { useGroups, useCreateShare, useOrganization, type ResourceKind } from '@/features/sharing/hooks';
+import {
+  useGroups,
+  useCreateShare,
+  useOrganization,
+  type ResourceKind,
+} from '@/features/sharing/hooks';
 import {
   PRESETS,
   EXPIRY_PRESETS,
@@ -50,7 +55,10 @@ export function ShareDialog({ kind, id, name, permissions, open, onOpenChange }:
   const [draftError, setDraftError] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const form = useForm<ShareFormValues>({ resolver: zodResolver(shareFormSchema), defaultValues: DEFAULTS });
+  const form = useForm<ShareFormValues>({
+    resolver: zodResolver(shareFormSchema),
+    defaultValues: DEFAULTS,
+  });
   const v = form.watch();
 
   useEffect(() => {
@@ -62,7 +70,10 @@ export function ShareDialog({ kind, id, name, permissions, open, onOpenChange }:
     }
   }, [open, form]);
 
-  const settings = (org.data?.settings ?? {}) as { require_share_expiry?: boolean; max_share_days?: number };
+  const settings = (org.data?.settings ?? {}) as {
+    require_share_expiry?: boolean;
+    max_share_days?: number;
+  };
   const requireExpiry = !!settings.require_share_expiry;
   const maxDays = typeof settings.max_share_days === 'number' ? settings.max_share_days : null;
 
@@ -100,7 +111,9 @@ export function ShareDialog({ kind, id, name, permissions, open, onOpenChange }:
       setServerError(null);
       create.mutate(buildShareRequest(values), {
         onSuccess: (s) => {
-          toast.success(`Shared "${name}" with ${s.recipients.length} recipient${s.recipients.length === 1 ? '' : 's'}`);
+          toast.success(
+            `Shared "${name}" with ${s.recipients.length} recipient${s.recipients.length === 1 ? '' : 's'}`,
+          );
           onOpenChange(false);
         },
         onError: (e) => {
@@ -134,7 +147,11 @@ export function ShareDialog({ kind, id, name, permissions, open, onOpenChange }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title={`Share "${name}"`} description="Choose who gets access and what they can do." className="max-w-xl">
+      <DialogContent
+        title={`Share "${name}"`}
+        description="Choose who gets access and what they can do."
+        className="max-w-xl"
+      >
         <form
           noValidate
           onSubmit={(e) => {
@@ -149,22 +166,30 @@ export function ShareDialog({ kind, id, name, permissions, open, onOpenChange }:
             <div className="flex gap-2 rounded-md bg-info-soft px-3 py-2 text-xs text-info">
               <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
               <p>
-                Recipients get access to this {kind} only. They do <strong>not</strong> get access to its folder or to
-                anything next to it.
+                Recipients get access to this {kind} only. They do <strong>not</strong> get access
+                to its folder or to anything next to it.
               </p>
             </div>
 
             <div className="grid gap-1">
               <Label htmlFor="share-email">People (work email addresses)</Label>
-              <div className="flex flex-wrap gap-1.5 rounded-md border border-line-strong p-1.5" >
+              <div className="flex flex-wrap gap-1.5 rounded-md border border-line-strong p-1.5">
                 {v.emails.map((em) => (
-                  <span key={em} className="inline-flex items-center gap-1 rounded-sm bg-accent-soft px-1.5 py-0.5 text-xs text-accent-soft-fg">
+                  <span
+                    key={em}
+                    className="inline-flex items-center gap-1 rounded-sm bg-accent-soft px-1.5 py-0.5 text-xs text-accent-soft-fg"
+                  >
                     {em}
                     <button
                       type="button"
                       aria-label={`Remove ${em}`}
                       className="rounded-sm hover:bg-accent/20"
-                      onClick={() => form.setValue('emails', v.emails.filter((x) => x !== em))}
+                      onClick={() =>
+                        form.setValue(
+                          'emails',
+                          v.emails.filter((x) => x !== em),
+                        )
+                      }
                     >
                       <X className="size-3" />
                     </button>
@@ -195,8 +220,16 @@ export function ShareDialog({ kind, id, name, permissions, open, onOpenChange }:
                   onBlur={() => draft.trim() && commitDraft()}
                 />
               </div>
-              <p id="share-email-msg" role={draftError || errors.emails ? 'alert' : undefined} className={draftError || errors.emails ? 'text-xs text-danger' : 'text-xs text-muted'}>
-                {draftError ?? errors.emails?.message ?? 'Press Enter after each address. Only members of this organization can be added.'}
+              <p
+                id="share-email-msg"
+                role={draftError || errors.emails ? 'alert' : undefined}
+                className={
+                  draftError || errors.emails ? 'text-xs text-danger' : 'text-xs text-muted'
+                }
+              >
+                {draftError ??
+                  errors.emails?.message ??
+                  'Press Enter after each address. Only members of this organization can be added.'}
               </p>
             </div>
 
@@ -205,7 +238,9 @@ export function ShareDialog({ kind, id, name, permissions, open, onOpenChange }:
               {groups.isPending ? (
                 <p className="text-xs text-muted">Loading groups…</p>
               ) : groups.isError ? (
-                <p className="text-xs text-muted">Groups could not be loaded. You can still share by email.</p>
+                <p className="text-xs text-muted">
+                  Groups could not be loaded. You can still share by email.
+                </p>
               ) : groups.data.items.length === 0 ? (
                 <p className="text-xs text-muted">No groups exist in this organization.</p>
               ) : (
@@ -219,7 +254,10 @@ export function ShareDialog({ kind, id, name, permissions, open, onOpenChange }:
                           id={cid}
                           checked={checked}
                           onCheckedChange={(c) =>
-                            form.setValue('groupIds', c ? [...v.groupIds, g.id] : v.groupIds.filter((x) => x !== g.id))
+                            form.setValue(
+                              'groupIds',
+                              c ? [...v.groupIds, g.id] : v.groupIds.filter((x) => x !== g.id),
+                            )
                           }
                         />
                         <Label htmlFor={cid} className="font-normal">
@@ -256,7 +294,9 @@ export function ShareDialog({ kind, id, name, permissions, open, onOpenChange }:
                       <span>
                         <span className="block text-[13px] font-medium">{PRESETS[k].label}</span>
                         <span className="block text-xs text-muted">
-                          {ok ? PRESETS[k].hint : 'You do not hold all of these permissions yourself'}
+                          {ok
+                            ? PRESETS[k].hint
+                            : 'You do not hold all of these permissions yourself'}
                         </span>
                       </span>
                     </label>
@@ -315,7 +355,11 @@ export function ShareDialog({ kind, id, name, permissions, open, onOpenChange }:
                     id="share-date"
                     type="date"
                     min={new Date(Date.now() + 86400000).toISOString().slice(0, 10)}
-                    max={maxDays !== null ? new Date(Date.now() + maxDays * 86400000).toISOString().slice(0, 10) : undefined}
+                    max={
+                      maxDays !== null
+                        ? new Date(Date.now() + maxDays * 86400000).toISOString().slice(0, 10)
+                        : undefined
+                    }
                     aria-invalid={!!errors.customDate}
                     {...form.register('customDate')}
                   />

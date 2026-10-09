@@ -4,11 +4,12 @@ import { cn } from '@/lib/utils';
 const fieldBase =
   'w-full rounded-md border border-line-strong bg-surface px-2.5 text-sm text-text placeholder:text-faint transition-colors hover:border-faint disabled:cursor-not-allowed disabled:opacity-60 aria-[invalid=true]:border-danger';
 
-export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
-  ({ className, type = 'text', ...props }, ref) => (
-    <input ref={ref} type={type} className={cn(fieldBase, 'h-8', className)} {...props} />
-  ),
-);
+export const Input = React.forwardRef<
+  HTMLInputElement,
+  React.InputHTMLAttributes<HTMLInputElement>
+>(({ className, type = 'text', ...props }, ref) => (
+  <input ref={ref} type={type} className={cn(fieldBase, 'h-8', className)} {...props} />
+));
 Input.displayName = 'Input';
 
 export const Textarea = React.forwardRef<
@@ -31,9 +32,7 @@ export const Select = React.forwardRef<
 Select.displayName = 'Select';
 
 export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
-  return (
-    <label className={cn('text-[13px] font-medium text-text', className)} {...props} />
-  );
+  return <label className={cn('text-[13px] font-medium text-text', className)} {...props} />;
 }
 
 /** Label + control + hint + inline error, wired with aria attributes. */
@@ -49,7 +48,11 @@ export function Field({
   label: string;
   hint?: string;
   error?: string;
-  children: (a: { id: string; 'aria-invalid': boolean; 'aria-describedby'?: string }) => React.ReactNode;
+  children: (a: {
+    id: string;
+    'aria-invalid': boolean;
+    'aria-describedby'?: string;
+  }) => React.ReactNode;
   className?: string;
 }) {
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;

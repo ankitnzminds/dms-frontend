@@ -14,7 +14,16 @@ import { formatBytes, formatDate, formatExpiry } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { ShareStatusBadge } from './share-bits';
 
-const PERM_ORDER = ['view', 'preview', 'download', 'edit_metadata', 'rename', 'upload_version', 'comment', 'create_child'];
+const PERM_ORDER = [
+  'view',
+  'preview',
+  'download',
+  'edit_metadata',
+  'rename',
+  'upload_version',
+  'comment',
+  'create_child',
+];
 
 /** Summarise the granted actions into a few readable chips. */
 export function permissionChips(actions: string[]) {
@@ -32,7 +41,11 @@ export function ReceivedShareRow({ share: s, onPreview, onDownload }: ReceivedSh
   const active = s.status === 'active';
   const isDoc = s.resource_type === 'document';
   const href = isDoc ? `/documents/${s.resource_id}` : `/files/${s.resource_id}`;
-  const dlReason = !isDoc ? 'Folders cannot be downloaded.' : can(s.actions, 'download') ? null : 'The owner did not grant download.';
+  const dlReason = !isDoc
+    ? 'Folders cannot be downloaded.'
+    : can(s.actions, 'download')
+      ? null
+      : 'The owner did not grant download.';
   const pvReason = !isDoc
     ? 'Folders cannot be previewed.'
     : !can(s.actions, 'preview')
@@ -51,7 +64,10 @@ export function ReceivedShareRow({ share: s, onPreview, onDownload }: ReceivedSh
           <ItemIcon kind={s.resource_type} contentType={s.content_type} className="mt-0.5" />
           <div className="min-w-0">
             {active ? (
-              <Link href={href} className="block truncate font-medium hover:text-accent hover:underline">
+              <Link
+                href={href}
+                className="block truncate font-medium hover:text-accent hover:underline"
+              >
                 {s.name}
               </Link>
             ) : (
@@ -60,7 +76,11 @@ export function ReceivedShareRow({ share: s, onPreview, onDownload }: ReceivedSh
             {active && s.breadcrumb.length > 0 ? (
               <PathTrail segments={s.breadcrumb} size="sm" className="mt-0.5" />
             ) : (
-              !active && <span className="text-xs text-muted">Location hidden: this share is no longer active</span>
+              !active && (
+                <span className="text-xs text-muted">
+                  Location hidden: this share is no longer active
+                </span>
+              )
             )}
             {s.message && <p className="mt-0.5 text-xs italic text-muted">“{s.message}”</p>}
           </div>
@@ -80,7 +100,9 @@ export function ReceivedShareRow({ share: s, onPreview, onDownload }: ReceivedSh
         ) : (
           <span className="text-xs text-muted">No access</span>
         )}
-        {isDoc && <span className="mt-1 block text-xs text-faint">{formatBytes(s.size_bytes)}</span>}
+        {isDoc && (
+          <span className="mt-1 block text-xs text-faint">{formatBytes(s.size_bytes)}</span>
+        )}
       </td>
       <td className="px-3 py-2.5">
         <ShareStatusBadge status={s.status} />
@@ -97,12 +119,24 @@ export function ReceivedShareRow({ share: s, onPreview, onDownload }: ReceivedSh
             {isDoc && (
               <>
                 <DisabledReason reason={pvReason}>
-                  <Button size="icon-sm" variant="ghost" aria-label={`Preview ${s.name}`} disabled={!!pvReason} onClick={() => onPreview?.(s)}>
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    aria-label={`Preview ${s.name}`}
+                    disabled={!!pvReason}
+                    onClick={() => onPreview?.(s)}
+                  >
                     <Eye />
                   </Button>
                 </DisabledReason>
                 <DisabledReason reason={dlReason}>
-                  <Button size="icon-sm" variant="ghost" aria-label={`Download ${s.name}`} disabled={!!dlReason} onClick={() => onDownload?.(s)}>
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    aria-label={`Download ${s.name}`}
+                    disabled={!!dlReason}
+                    onClick={() => onDownload?.(s)}
+                  >
                     <Download />
                   </Button>
                 </DisabledReason>

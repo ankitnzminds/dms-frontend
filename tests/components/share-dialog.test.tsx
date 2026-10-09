@@ -9,8 +9,30 @@ import { apiError, renderApp } from './test-utils';
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), warning: vi.fn() }));
 vi.mock('sonner', () => ({ toast, Toaster: () => null }));
 
-const ORG = { id: 'o', name: 'Acme', slug: 'a', status: 'active', quota_bytes: null, root_folder_id: 'r', settings: {} };
-const GROUPS = { items: [{ id: 'g-eng', name: 'Engineering', kind: 'department', description: null, member_count: 3, created_at: '2026-01-01T00:00:00Z' }], total: 1, limit: 100, offset: 0 };
+const ORG = {
+  id: 'o',
+  name: 'Acme',
+  slug: 'a',
+  status: 'active',
+  quota_bytes: null,
+  root_folder_id: 'r',
+  settings: {},
+};
+const GROUPS = {
+  items: [
+    {
+      id: 'g-eng',
+      name: 'Engineering',
+      kind: 'department',
+      description: null,
+      member_count: 3,
+      created_at: '2026-01-01T00:00:00Z',
+    },
+  ],
+  total: 1,
+  limit: 100,
+  offset: 0,
+};
 
 let posted: unknown = null;
 
@@ -23,9 +45,28 @@ beforeEach(() => {
   );
 });
 
-function open(permissions = ['view', 'preview', 'download', 'edit_metadata', 'rename', 'upload_version', 'share']) {
+function open(
+  permissions = [
+    'view',
+    'preview',
+    'download',
+    'edit_metadata',
+    'rename',
+    'upload_version',
+    'share',
+  ],
+) {
   const onOpenChange = vi.fn();
-  renderApp(<ShareDialog kind="document" id="doc-1" name="plan.pdf" permissions={permissions} open onOpenChange={onOpenChange} />);
+  renderApp(
+    <ShareDialog
+      kind="document"
+      id="doc-1"
+      name="plan.pdf"
+      permissions={permissions}
+      open
+      onOpenChange={onOpenChange}
+    />,
+  );
   return { onOpenChange };
 }
 
@@ -60,7 +101,10 @@ describe('ShareDialog', () => {
   it('shows unknown_recipient precisely and keeps the dialog open', async () => {
     server.use(
       http.post(`${API}/documents/doc-1/shares`, () =>
-        HttpResponse.json(apiError(422, 'unknown_recipient', 'No active member found for stranger@evil.test'), { status: 422 }),
+        HttpResponse.json(
+          apiError(422, 'unknown_recipient', 'No active member found for stranger@evil.test'),
+          { status: 422 },
+        ),
       ),
     );
     const { onOpenChange } = open();
@@ -78,9 +122,17 @@ describe('ShareDialog', () => {
         posted = await request.json();
         return HttpResponse.json(
           {
-            id: 's1', actions: ['view', 'preview', 'download'], created_at: '2026-01-01T00:00:00Z',
-            created_by: { id: 'u', email: 'a@b.c' }, expires_at: null, recipients: [{ type: 'user', id: 'u2', email: 'bob@acme.test' }],
-            resource_id: 'doc-1', resource_name: 'plan.pdf', resource_type: 'document', revoked_at: null, status: 'active',
+            id: 's1',
+            actions: ['view', 'preview', 'download'],
+            created_at: '2026-01-01T00:00:00Z',
+            created_by: { id: 'u', email: 'a@b.c' },
+            expires_at: null,
+            recipients: [{ type: 'user', id: 'u2', email: 'bob@acme.test' }],
+            resource_id: 'doc-1',
+            resource_name: 'plan.pdf',
+            resource_type: 'document',
+            revoked_at: null,
+            status: 'active',
           },
           { status: 201 },
         );
@@ -92,10 +144,15 @@ describe('ShareDialog', () => {
     expect(toast.success).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole('button', { name: 'Share' }));
 
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('Shared "plan.pdf"')));
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('Shared "plan.pdf"')),
+    );
     expect(onOpenChange).toHaveBeenCalledWith(false);
     const body = posted as { recipients: unknown[]; actions: string[]; expires_at: string | null };
-    expect(body.recipients).toEqual([{ type: 'user', email: 'bob@acme.test' }, { type: 'group', id: 'g-eng' }]);
+    expect(body.recipients).toEqual([
+      { type: 'user', email: 'bob@acme.test' },
+      { type: 'group', id: 'g-eng' },
+    ]);
     expect(body.actions).toEqual(['view', 'preview', 'download']);
     expect(body.expires_at).toEqual(expect.any(String)); // 30 day preset by default
   });

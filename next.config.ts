@@ -42,7 +42,9 @@ const config: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   async rewrites() {
-    return proxyTarget ? [{ source: '/api/v1/:path*', destination: `${proxyTarget}/api/v1/:path*` }] : [];
+    return proxyTarget
+      ? [{ source: '/api/v1/:path*', destination: `${proxyTarget}/api/v1/:path*` }]
+      : [];
   },
   async headers() {
     return [

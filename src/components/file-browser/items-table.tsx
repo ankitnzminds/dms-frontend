@@ -65,7 +65,10 @@ export function ItemsTable({
   const selectable = !!onSelectionChange;
   // Folders first within the page (stable).
   const data = useMemo(
-    () => (items ? [...items].sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'folder' ? -1 : 1)) : []),
+    () =>
+      items
+        ? [...items].sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'folder' ? -1 : 1))
+        : [],
     [items],
   );
 
@@ -81,7 +84,11 @@ export function ItemsTable({
         >
           {label}
           <Icon className={cn('size-3', active ? 'text-text' : 'text-faint')} aria-hidden />
-          <span className="sr-only">{active ? `, sorted ${sort!.order === 'asc' ? 'ascending' : 'descending'}` : ', sortable'}</span>
+          <span className="sr-only">
+            {active
+              ? `, sorted ${sort!.order === 'asc' ? 'ascending' : 'descending'}`
+              : ', sortable'}
+          </span>
         </button>
       ) : (
         label
@@ -95,7 +102,13 @@ export function ItemsTable({
               header: ({ table }) => (
                 <Checkbox
                   aria-label="Select all on this page"
-                  checked={table.getIsAllRowsSelected() ? true : table.getIsSomeRowsSelected() ? 'indeterminate' : false}
+                  checked={
+                    table.getIsAllRowsSelected()
+                      ? true
+                      : table.getIsSomeRowsSelected()
+                        ? 'indeterminate'
+                        : false
+                  }
                   onCheckedChange={(c) => table.toggleAllRowsSelected(c === true)}
                 />
               ),
@@ -118,10 +131,16 @@ export function ItemsTable({
           return (
             <div className="flex min-w-0 items-center gap-2.5">
               <ItemIcon kind={t.kind} contentType={t.content_type} teamFolder={t.is_team_folder} />
-              <Link href={href} className="truncate font-medium hover:text-accent hover:underline" title={t.name}>
+              <Link
+                href={href}
+                className="truncate font-medium hover:text-accent hover:underline"
+                title={t.name}
+              >
                 {t.name}
               </Link>
-              {t.starred && <Star className="size-3 shrink-0 fill-warn text-warn" aria-label="Starred" />}
+              {t.starred && (
+                <Star className="size-3 shrink-0 fill-warn text-warn" aria-label="Starred" />
+              )}
               <StatusChip status={t.status} />
             </div>
           );
@@ -129,7 +148,11 @@ export function ItemsTable({
       }),
       col.accessor('size_bytes', {
         header: () => sortHeader('Size', 'size'),
-        cell: (c) => <span className="tabular text-muted">{c.row.original.kind === 'folder' ? '-' : formatBytes(c.getValue())}</span>,
+        cell: (c) => (
+          <span className="tabular text-muted">
+            {c.row.original.kind === 'folder' ? '-' : formatBytes(c.getValue())}
+          </span>
+        ),
         meta: { className: 'hidden sm:table-cell w-28 text-right' },
       }),
       col.accessor('updated_at', {
@@ -172,15 +195,23 @@ export function ItemsTable({
           <caption className="sr-only">{caption}</caption>
           <thead>
             {table.getHeaderGroups().map((hg) => (
-              <tr key={hg.id} className="border-b border-line text-left text-xs font-medium text-muted">
+              <tr
+                key={hg.id}
+                className="border-b border-line text-left text-xs font-medium text-muted"
+              >
                 {hg.headers.map((h) => {
                   const k = sort && h.column.id === (sort.key === 'size' ? 'size_bytes' : sort.key);
                   return (
                     <th
                       key={h.id}
                       scope="col"
-                      aria-sort={k ? (sort!.order === 'asc' ? 'ascending' : 'descending') : undefined}
-                      className={cn('px-3 py-2 font-medium', (h.column.columnDef.meta as { className?: string } | undefined)?.className)}
+                      aria-sort={
+                        k ? (sort!.order === 'asc' ? 'ascending' : 'descending') : undefined
+                      }
+                      className={cn(
+                        'px-3 py-2 font-medium',
+                        (h.column.columnDef.meta as { className?: string } | undefined)?.className,
+                      )}
                     >
                       {flexRender(h.column.columnDef.header, h.getContext())}
                     </th>
@@ -201,7 +232,10 @@ export function ItemsTable({
                 {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}
-                    className={cn('px-3 py-2 align-middle', (cell.column.columnDef.meta as { className?: string } | undefined)?.className)}
+                    className={cn(
+                      'px-3 py-2 align-middle',
+                      (cell.column.columnDef.meta as { className?: string } | undefined)?.className,
+                    )}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>

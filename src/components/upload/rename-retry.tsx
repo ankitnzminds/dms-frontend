@@ -5,7 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 /** Inline "choose another name" form for name_conflict. */
-export function RenameRetry({ initial, onSubmit }: { initial: string; onSubmit: (name: string) => void }) {
+export function RenameRetry({
+  initial,
+  onSubmit,
+}: {
+  initial: string;
+  onSubmit: (name: string) => void;
+}) {
   const [name, setName] = useState(() => suggest(initial));
   const id = useId();
   return (
@@ -19,8 +25,18 @@ export function RenameRetry({ initial, onSubmit }: { initial: string; onSubmit: 
       <label htmlFor={id} className="sr-only">
         New file name
       </label>
-      <Input id={id} value={name} onChange={(e) => setName(e.target.value)} className="h-7 text-xs" />
-      <Button type="submit" size="sm" variant="primary" disabled={!name.trim() || name.trim() === initial}>
+      <Input
+        id={id}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        className="h-7 text-xs"
+      />
+      <Button
+        type="submit"
+        size="sm"
+        variant="primary"
+        disabled={!name.trim() || name.trim() === initial}
+      >
         Upload as
       </Button>
     </form>

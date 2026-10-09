@@ -5,7 +5,11 @@ export default function SignaturesPage() {
     <NotAvailable
       title="E-signatures"
       summary="Collect legally binding signatures on documents without leaving the system."
-      planned={['Signature requests with signing order', 'Signed copies stored as immutable versions', 'Signing certificates and audit trail']}
+      planned={[
+        'Signature requests with signing order',
+        'Signed copies stored as immutable versions',
+        'Signing certificates and audit trail',
+      ]}
     />
   );
 }

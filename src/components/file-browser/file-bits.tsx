@@ -33,7 +33,8 @@ export function ItemIcon({
   if (ct.startsWith('image/')) return <FileImage className={cn(cls, 'text-info')} aria-hidden />;
   if (ct.includes('spreadsheet') || ct.includes('excel') || ct === 'text/csv')
     return <FileSpreadsheet className={cn(cls, 'text-ok')} aria-hidden />;
-  if (ct.includes('zip') || ct.includes('compressed')) return <FileArchive className={cn(cls, 'text-warn')} aria-hidden />;
+  if (ct.includes('zip') || ct.includes('compressed'))
+    return <FileArchive className={cn(cls, 'text-warn')} aria-hidden />;
   if (ct.includes('pdf') || ct.startsWith('text/') || ct.includes('word'))
     return <FileText className={cn(cls, 'text-muted')} aria-hidden />;
   return <FileIcon className={cn(cls, 'text-muted')} aria-hidden />;

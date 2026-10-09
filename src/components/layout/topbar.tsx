@@ -24,9 +24,12 @@ function GlobalSearch() {
   const [value, setValue] = useState(params.get('q') ?? '');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => () => {
-    if (timer.current) clearTimeout(timer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
 
   const go = (q: string) => {
     if (q.trim()) router.push(`/search?q=${encodeURIComponent(q.trim())}`);
@@ -42,7 +45,10 @@ function GlobalSearch() {
         go(value);
       }}
     >
-      <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-faint" aria-hidden />
+      <Search
+        className="pointer-events-none absolute left-2.5 top-2 size-4 text-faint"
+        aria-hidden
+      />
       <Input
         type="search"
         aria-label="Search files and folders"
@@ -81,7 +87,9 @@ function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel className="grid">
-          <span className="truncate text-[13px] font-semibold text-text">{me?.display_name ?? me?.email}</span>
+          <span className="truncate text-[13px] font-semibold text-text">
+            {me?.display_name ?? me?.email}
+          </span>
           <span className="truncate font-normal">{me?.email}</span>
           {me?.role && <span className="font-normal capitalize">Role: {me.role}</span>}
         </DropdownMenuLabel>
@@ -102,7 +110,13 @@ function UserMenu() {
 export function Topbar({ onMenu }: { onMenu: () => void }) {
   return (
     <div className="sticky top-0 z-30 flex h-[52px] items-center gap-2 border-b border-line bg-surface/90 px-3 backdrop-blur md:px-5">
-      <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open navigation" onClick={onMenu}>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="md:hidden"
+        aria-label="Open navigation"
+        onClick={onMenu}
+      >
         <Menu />
       </Button>
       <Suspense fallback={<div className="w-full max-w-md" />}>

@@ -35,13 +35,16 @@ function DevPanel({ onDone }: { onDone: () => void }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   return (
-    <section aria-labelledby="dev-signin" className="rounded-lg border border-dashed border-warn/60 bg-warn-soft/50 p-4">
+    <section
+      aria-labelledby="dev-signin"
+      className="rounded-lg border border-dashed border-warn/60 bg-warn-soft/50 p-4"
+    >
       <h2 id="dev-signin" className="flex items-center gap-2 text-[13px] font-semibold text-warn">
         <FlaskConical className="size-4" aria-hidden /> Development sign-in
       </h2>
       <p className="mb-3 mt-1 text-xs text-muted">
-        Local only. Signs in as a seeded user through the backend dev token endpoint. This panel cannot exist in a
-        production build.
+        Local only. Signs in as a seeded user through the backend dev token endpoint. This panel
+        cannot exist in a production build.
       </p>
       <ul className="grid gap-2 sm:grid-cols-2">
         {DEV_USERS.map((u) => (
@@ -114,9 +117,17 @@ function PasswordForm({ onDone }: { onDone: () => void }) {
         <Field id="email" label="Work email" error={formState.errors.email?.message}>
           {(p) => <Input {...p} type="email" autoComplete="email" {...register('email')} />}
         </Field>
-        {formError && <p role="alert" className="text-xs text-danger">{formError}</p>}
-        <Button type="submit" variant="primary" size="lg">Send reset email</Button>
-        <Button variant="link" onClick={() => setForgot(false)}>Back to sign in</Button>
+        {formError && (
+          <p role="alert" className="text-xs text-danger">
+            {formError}
+          </p>
+        )}
+        <Button type="submit" variant="primary" size="lg">
+          Send reset email
+        </Button>
+        <Button variant="link" onClick={() => setForgot(false)}>
+          Back to sign in
+        </Button>
       </form>
     );
   }
@@ -139,7 +150,9 @@ function PasswordForm({ onDone }: { onDone: () => void }) {
         {(p) => <Input {...p} type="email" autoComplete="email" {...register('email')} />}
       </Field>
       <Field id="password" label="Password" error={formState.errors.password?.message}>
-        {(p) => <Input {...p} type="password" autoComplete="current-password" {...register('password')} />}
+        {(p) => (
+          <Input {...p} type="password" autoComplete="current-password" {...register('password')} />
+        )}
       </Field>
       {formError && (
         <p role="alert" className="text-xs text-danger">
@@ -176,7 +189,9 @@ export function LoginView() {
           </span>
           <div>
             <h1 className="text-xl font-semibold tracking-tight">Sign in to Enterprise DMS</h1>
-            <p className="text-[13px] text-muted">Documents, versions and sharing for your organization.</p>
+            <p className="text-[13px] text-muted">
+              Documents, versions and sharing for your organization.
+            </p>
           </div>
         </div>
         {reason === 'expired' && (

@@ -21,13 +21,21 @@ const PAGE_SIZE = 50;
 
 export function FolderView({ folderId }: { folderId: string }) {
   const folder = useFolder(folderId);
-  const [sort, setSort] = useState<{ key: SortKey; order: SortOrder }>({ key: 'name', order: 'asc' });
+  const [sort, setSort] = useState<{ key: SortKey; order: SortOrder }>({
+    key: 'name',
+    order: 'asc',
+  });
   const [offset, setOffset] = useState(0);
   const [selection, setSelection] = useState<RowSelectionState>({});
   const [newFolder, setNewFolder] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
 
-  const children = useChildren(folderId, { limit: PAGE_SIZE, offset, sort: sort.key, order: sort.order });
+  const children = useChildren(folderId, {
+    limit: PAGE_SIZE,
+    offset,
+    sort: sort.key,
+    order: sort.order,
+  });
 
   const items = children.data?.items;
   const selected = useMemo(() => (items ?? []).filter((i) => selection[i.id]), [items, selection]);
@@ -40,7 +48,7 @@ export function FolderView({ folderId }: { folderId: string }) {
   const createReason = canCreate ? null : 'You do not have permission to add items to this folder.';
 
   return (
-    <ItemActionsProvider>
+    <ItemActionsProvider currentFolderId={folderId}>
       <PageHeader
         title={f?.name ?? 'Loading…'}
         trail={f && f.breadcrumb.length > 0 ? <PathTrail segments={f.breadcrumb} /> : undefined}
@@ -68,8 +76,15 @@ export function FolderView({ folderId }: { folderId: string }) {
           <span className="font-medium text-accent-soft-fg" aria-live="polite">
             {selected.length} selected
           </span>
-          <DisabledReason reason={bulkDeleteBlocked ? `You cannot delete "${bulkDeleteBlocked.name}".` : null}>
-            <Button size="sm" variant="danger-ghost" disabled={!!bulkDeleteBlocked} onClick={() => setBulkOpen(true)}>
+          <DisabledReason
+            reason={bulkDeleteBlocked ? `You cannot delete "${bulkDeleteBlocked.name}".` : null}
+          >
+            <Button
+              size="sm"
+              variant="danger-ghost"
+              disabled={!!bulkDeleteBlocked}
+              onClick={() => setBulkOpen(true)}
+            >
               <Trash2 /> Move to trash
             </Button>
           </DisabledReason>
@@ -95,7 +110,11 @@ export function FolderView({ folderId }: { folderId: string }) {
             sort={sort}
             onSortChange={(key) => {
               setOffset(0);
-              setSort((s) => (s.key === key ? { key, order: s.order === 'asc' ? 'desc' : 'asc' } : { key, order: 'asc' }));
+              setSort((s) =>
+                s.key === key
+                  ? { key, order: s.order === 'asc' ? 'desc' : 'asc' }
+                  : { key, order: 'asc' },
+              );
             }}
             selection={selection}
             onSelectionChange={setSelection}
@@ -135,4 +154,3 @@ export function FolderView({ folderId }: { folderId: string }) {
     </ItemActionsProvider>
   );
 }
-

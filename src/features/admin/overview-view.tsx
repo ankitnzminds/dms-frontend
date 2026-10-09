@@ -35,7 +35,15 @@ export function AdminOverview() {
                 <div key={k as string}>
                   <dt className="text-xs text-muted">{k}</dt>
                   <dd className="text-[17px] font-semibold tabular">
-                    {href ? <Link className="hover:text-accent hover:underline" href={href as string}>{typeof v === 'number' ? v.toLocaleString() : v}</Link> : typeof v === 'number' ? v.toLocaleString() : v}
+                    {href ? (
+                      <Link className="hover:text-accent hover:underline" href={href as string}>
+                        {typeof v === 'number' ? v.toLocaleString() : v}
+                      </Link>
+                    ) : typeof v === 'number' ? (
+                      v.toLocaleString()
+                    ) : (
+                      v
+                    )}
                   </dd>
                 </div>
               ))}
@@ -45,9 +53,18 @@ export function AdminOverview() {
         <Panel>
           <div className="flex items-center justify-between px-4 pt-3">
             <h2 className="text-sm font-semibold">Latest audit events</h2>
-            <Link className="text-xs text-accent hover:underline" href="/admin/audit">Open audit log</Link>
+            <Link className="text-xs text-accent hover:underline" href="/admin/audit">
+              Open audit log
+            </Link>
           </div>
-          <AuditTable data={audit.data} isLoading={audit.isPending} error={audit.error} onRetry={() => audit.refetch()} onOffsetChange={() => {}} compact />
+          <AuditTable
+            data={audit.data}
+            isLoading={audit.isPending}
+            error={audit.error}
+            onRetry={() => audit.refetch()}
+            onOffsetChange={() => {}}
+            compact
+          />
         </Panel>
       </div>
     </>

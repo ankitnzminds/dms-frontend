@@ -31,7 +31,10 @@ export function NotAvailable({
                 <li key={p}>{p}</li>
               ))}
             </ul>
-            <p className="mt-4 text-xs text-faint">Nothing on this page is wired to data. It will be enabled when the backend ships the feature.</p>
+            <p className="mt-4 text-xs text-faint">
+              Nothing on this page is wired to data. It will be enabled when the backend ships the
+              feature.
+            </p>
           </div>
         </div>
       </Panel>

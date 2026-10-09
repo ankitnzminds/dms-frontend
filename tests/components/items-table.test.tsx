@@ -6,7 +6,18 @@ import { ItemsTable } from '@/components/file-browser/items-table';
 import { ApiError, type TreeItem } from '@/lib/api-client';
 import { renderApp } from './test-utils';
 
-const ALL = ['view', 'preview', 'download', 'rename', 'move', 'copy', 'share', 'manage_access', 'delete', 'create_child'];
+const ALL = [
+  'view',
+  'preview',
+  'download',
+  'rename',
+  'move',
+  'copy',
+  'share',
+  'manage_access',
+  'delete',
+  'create_child',
+];
 
 const item = (over: Partial<TreeItem>): TreeItem => ({
   id: 'i1',
@@ -50,7 +61,10 @@ describe('ItemsTable states', () => {
 
   it('error: friendly message with Retry', async () => {
     const onRetry = vi.fn();
-    table({ error: new ApiError({ status: 500, code: 'internal_error', message: 'x', requestId: 'r1' }), onRetry });
+    table({
+      error: new ApiError({ status: 500, code: 'internal_error', message: 'x', requestId: 'r1' }),
+      onRetry,
+    });
     expect(screen.getByRole('alert')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /Retry/ }));
     expect(onRetry).toHaveBeenCalled();
@@ -66,21 +80,37 @@ describe('ItemsTable states', () => {
       items: [
         item({ id: 'a', name: 'zeta.pdf', status: 'processing' }),
         item({ id: 'b', name: 'virus.pdf', status: 'quarantined' }),
-        item({ id: 'c', kind: 'folder', name: 'Folder A', content_type: null, size_bytes: null, status: null }),
+        item({
+          id: 'c',
+          kind: 'folder',
+          name: 'Folder A',
+          content_type: null,
+          size_bytes: null,
+          status: null,
+        }),
       ],
     });
     const rows = screen.getAllByTestId('item-row');
     expect(rows[0]).toHaveAttribute('data-kind', 'folder');
     expect(within(rows[1]!).getByText('Scanning…')).toBeInTheDocument();
     expect(within(rows[2]!).getByText('Quarantined')).toBeInTheDocument();
-    expect(within(rows[0]!).getByRole('link', { name: 'Folder A' })).toHaveAttribute('href', '/files/c');
-    expect(within(rows[1]!).getByRole('link', { name: 'zeta.pdf' })).toHaveAttribute('href', '/documents/a');
+    expect(within(rows[0]!).getByRole('link', { name: 'Folder A' })).toHaveAttribute(
+      'href',
+      '/files/c',
+    );
+    expect(within(rows[1]!).getByRole('link', { name: 'zeta.pdf' })).toHaveAttribute(
+      'href',
+      '/documents/a',
+    );
   });
 
   it('sortable headers call back and expose aria-sort', async () => {
     const onSortChange = vi.fn();
     table({ items: [item({})], sort: { key: 'name', order: 'asc' }, onSortChange });
-    expect(screen.getByRole('columnheader', { name: /Name/ })).toHaveAttribute('aria-sort', 'ascending');
+    expect(screen.getByRole('columnheader', { name: /Name/ })).toHaveAttribute(
+      'aria-sort',
+      'ascending',
+    );
     await userEvent.click(screen.getByRole('button', { name: /Modified/ }));
     expect(onSortChange).toHaveBeenCalledWith('updated_at');
   });
@@ -103,7 +133,16 @@ describe('row actions menu is permission gated', () => {
 
   it('full permissions: everything enabled', async () => {
     const menu = await openMenu(item({}));
-    for (const n of [/Download/, /Preview/, /Rename/, /^Move…$/, /Copy/, /Share/, /Manage access/, /Move to trash/]) {
+    for (const n of [
+      /Download/,
+      /Preview/,
+      /Rename/,
+      /^Move…$/,
+      /Copy/,
+      /Share/,
+      /Manage access/,
+      /Move to trash/,
+    ]) {
       expect(state(menu, n)).not.toHaveAttribute('data-disabled');
     }
   });
@@ -118,7 +157,8 @@ describe('row actions menu is permission gated', () => {
 
   it('a document that is still scanning cannot be downloaded, previewed or shared', async () => {
     const menu = await openMenu(item({ status: 'processing' }));
-    for (const n of [/Download/, /Preview/, /Share/]) expect(state(menu, n)).toHaveAttribute('data-disabled');
+    for (const n of [/Download/, /Preview/, /Share/])
+      expect(state(menu, n)).toHaveAttribute('data-disabled');
     expect(state(menu, /Rename/)).not.toHaveAttribute('data-disabled');
   });
 

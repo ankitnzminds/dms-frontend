@@ -11,7 +11,11 @@ import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 export function OutcomeBadge({ outcome }: { outcome: AuditEvent['outcome'] }) {
-  return <Badge tone={outcome === 'success' ? 'ok' : outcome === 'denied' ? 'warn' : 'danger'}>{outcome}</Badge>;
+  return (
+    <Badge tone={outcome === 'success' ? 'ok' : outcome === 'denied' ? 'warn' : 'danger'}>
+      {outcome}
+    </Badge>
+  );
 }
 
 function Row({ e }: { e: AuditEvent }) {
@@ -19,7 +23,11 @@ function Row({ e }: { e: AuditEvent }) {
   const hasMeta = e.metadata && Object.keys(e.metadata).length > 0;
   return (
     <>
-      <tr className="border-b border-line align-top last:border-0" data-testid="audit-row" data-action={e.action}>
+      <tr
+        className="border-b border-line align-top last:border-0"
+        data-testid="audit-row"
+        data-action={e.action}
+      >
         <td className="px-3 py-2">
           <button
             type="button"
@@ -33,7 +41,9 @@ function Row({ e }: { e: AuditEvent }) {
         </td>
         <td className="whitespace-nowrap px-3 py-2 text-muted">{formatDateTime(e.created_at)}</td>
         <td className="px-3 py-2 font-mono text-xs font-medium">{e.action}</td>
-        <td className="hidden px-3 py-2 sm:table-cell">{e.actor_email ?? <span className="text-faint">system</span>}</td>
+        <td className="hidden px-3 py-2 sm:table-cell">
+          {e.actor_email ?? <span className="text-faint">system</span>}
+        </td>
         <td className="hidden px-3 py-2 text-muted md:table-cell">{e.resource_type ?? '-'}</td>
         <td className="px-3 py-2">
           <OutcomeBadge outcome={e.outcome} />
@@ -93,12 +103,24 @@ export function AuditTable({
           <caption className="sr-only">Audit events</caption>
           <thead>
             <tr className="border-b border-line text-left text-xs text-muted">
-              <th scope="col" className="w-8 px-3 py-2"><span className="sr-only">Details</span></th>
-              <th scope="col" className="px-3 py-2 font-medium">Time</th>
-              <th scope="col" className="px-3 py-2 font-medium">Action</th>
-              <th scope="col" className="hidden px-3 py-2 font-medium sm:table-cell">Actor</th>
-              <th scope="col" className="hidden px-3 py-2 font-medium md:table-cell">Resource</th>
-              <th scope="col" className="px-3 py-2 font-medium">Outcome</th>
+              <th scope="col" className="w-8 px-3 py-2">
+                <span className="sr-only">Details</span>
+              </th>
+              <th scope="col" className="px-3 py-2 font-medium">
+                Time
+              </th>
+              <th scope="col" className="px-3 py-2 font-medium">
+                Action
+              </th>
+              <th scope="col" className="hidden px-3 py-2 font-medium sm:table-cell">
+                Actor
+              </th>
+              <th scope="col" className="hidden px-3 py-2 font-medium md:table-cell">
+                Resource
+              </th>
+              <th scope="col" className="px-3 py-2 font-medium">
+                Outcome
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -108,7 +130,15 @@ export function AuditTable({
           </tbody>
         </table>
       </div>
-      {!compact && <PaginationBar total={data.total} limit={data.limit} offset={data.offset} count={data.items.length} onOffsetChange={onOffsetChange} />}
+      {!compact && (
+        <PaginationBar
+          total={data.total}
+          limit={data.limit}
+          offset={data.offset}
+          count={data.items.length}
+          onOffsetChange={onOffsetChange}
+        />
+      )}
     </div>
   );
 }

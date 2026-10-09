@@ -5,7 +5,9 @@ import { UploadProvider } from '@/features/upload/upload-manager';
 import type { UploadEngine } from '@/features/upload/upload-engine';
 
 export function renderApp(ui: React.ReactElement, opts: { engine?: UploadEngine } = {}) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } } });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
+  });
   return {
     client,
     ...render(
@@ -18,5 +20,9 @@ export function renderApp(ui: React.ReactElement, opts: { engine?: UploadEngine 
   };
 }
 
-export const apiError = (status: number, code: string, message = code, details: unknown = null) =>
-  ({ error: { code, message, request_id: 'req-test', details } });
+export const apiError = (
+  status: number,
+  code: string,
+  message = code,
+  details: unknown = null,
+) => ({ error: { code, message, request_id: 'req-test', details } });

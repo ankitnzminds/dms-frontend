@@ -24,7 +24,9 @@ export default function TrashPage() {
   const q = useTrash(PAGE, offset);
   const restore = useRestoreItem();
   const [target, setTarget] = useState<TrashItem | null>(null);
-  const [rename, setRename] = useState<{ item: TrashItem; name: string; message: string } | null>(null);
+  const [rename, setRename] = useState<{ item: TrashItem; name: string; message: string } | null>(
+    null,
+  );
   const [blocked, setBlocked] = useState<string | null>(null);
 
   function doRestore(item: TrashItem, newName?: string) {
@@ -40,10 +42,17 @@ export default function TrashPage() {
         onError: (e) => {
           setTarget(null);
           if (isApiError(e) && e.code === 'name_conflict') {
-            setRename({ item, name: newName ?? item.name, message: 'Something with this name already exists in the original location. Choose a new name to restore it.' });
+            setRename({
+              item,
+              name: newName ?? item.name,
+              message:
+                'Something with this name already exists in the original location. Choose a new name to restore it.',
+            });
           } else if (isApiError(e) && e.code === 'parent_deleted') {
             setRename(null);
-            setBlocked(`The folder "${item.name}" used to live in is also in the trash. Restore that folder first.`);
+            setBlocked(
+              `The folder "${item.name}" used to live in is also in the trash. Restore that folder first.`,
+            );
           } else {
             toast.error(friendlyMessage(e));
           }
@@ -54,7 +63,10 @@ export default function TrashPage() {
 
   return (
     <>
-      <PageHeader title="Trash" description="Deleted items can be restored to their original location. Permanent deletion is not available yet." />
+      <PageHeader
+        title="Trash"
+        description="Deleted items can be restored to their original location. Permanent deletion is not available yet."
+      />
       {blocked && (
         <p role="alert" className="mb-3 rounded-md bg-warn-soft px-3 py-2 text-[13px] text-warn">
           {blocked}
@@ -66,12 +78,20 @@ export default function TrashPage() {
         ) : q.isError ? (
           <ErrorState error={q.error} onRetry={() => q.refetch()} />
         ) : q.data.items.length === 0 ? (
-          <EmptyState icon={Trash2} title="Trash is empty" description="Items you delete will wait here until you restore them." />
+          <EmptyState
+            icon={Trash2}
+            title="Trash is empty"
+            description="Items you delete will wait here until you restore them."
+          />
         ) : (
           <>
             <ul className="divide-y divide-line" aria-label="Deleted items">
               {q.data.items.map((t) => (
-                <li key={`${t.kind}-${t.id}`} className="flex items-start gap-3 px-3 py-2.5" data-testid="trash-row">
+                <li
+                  key={`${t.kind}-${t.id}`}
+                  className="flex items-start gap-3 px-3 py-2.5"
+                  data-testid="trash-row"
+                >
                   <ItemIcon kind={t.kind} className="mt-0.5" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-medium">{t.name}</p>
@@ -91,7 +111,13 @@ export default function TrashPage() {
                 </li>
               ))}
             </ul>
-            <PaginationBar total={q.data.total} limit={PAGE} offset={offset} count={q.data.items.length} onOffsetChange={setOffset} />
+            <PaginationBar
+              total={q.data.total}
+              limit={PAGE}
+              offset={offset}
+              count={q.data.items.length}
+              onOffsetChange={setOffset}
+            />
           </>
         )}
       </Panel>
@@ -117,14 +143,25 @@ export default function TrashPage() {
             >
               <DialogBody>
                 <Field id="restore-name" label="New name">
-                  {(p) => <Input {...p} autoFocus value={rename.name} onChange={(e) => setRename({ ...rename, name: e.target.value })} />}
+                  {(p) => (
+                    <Input
+                      {...p}
+                      autoFocus
+                      value={rename.name}
+                      onChange={(e) => setRename({ ...rename, name: e.target.value })}
+                    />
+                  )}
                 </Field>
               </DialogBody>
               <DialogFooter>
                 <Button variant="secondary" onClick={() => setRename(null)}>
                   Cancel
                 </Button>
-                <Button type="submit" variant="primary" disabled={restore.isPending || !rename.name.trim()}>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={restore.isPending || !rename.name.trim()}
+                >
                   Restore with this name
                 </Button>
               </DialogFooter>

@@ -55,7 +55,10 @@ export function createLiveDeps(onDone: (i: UploadItem) => void): UploadDeps {
       }),
     finalize: (id, signal) =>
       call<UploadFinalize>(
-        api.POST('/api/v1/uploads/{session_id}/finalize', { params: { path: { session_id: id } }, signal }),
+        api.POST('/api/v1/uploads/{session_id}/finalize', {
+          params: { path: { session_id: id } },
+          signal,
+        }),
       ),
     cancelSession: async (id) => {
       await api.DELETE('/api/v1/uploads/{session_id}', { params: { path: { session_id: id } } });

@@ -1,6 +1,5 @@
 export type SignInCredentials =
-  | { kind: 'password'; email: string; password: string }
-  | { kind: 'dev'; email: string };
+  { kind: 'password'; email: string; password: string } | { kind: 'dev'; email: string };
 
 /**
  * Pluggable authentication source. The DMS API only ever receives the access token (JWT),

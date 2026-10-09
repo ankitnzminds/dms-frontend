@@ -31,7 +31,11 @@ export default function SharedWithMePage() {
         description="Items others shared with you. Access applies to the item only - the folders above it are shown as context and stay private unless you are separately given access."
         actions={
           <div className="flex items-center gap-2">
-            <Switch id="show-inactive" checked={inactive} onCheckedChange={(c) => (setInactive(c), setOffset(0))} />
+            <Switch
+              id="show-inactive"
+              checked={inactive}
+              onCheckedChange={(c) => (setInactive(c), setOffset(0))}
+            />
             <Label htmlFor="show-inactive" className="font-normal">
               Show expired &amp; revoked
             </Label>
@@ -46,7 +50,9 @@ export default function SharedWithMePage() {
         ) : q.data.items.length === 0 ? (
           <EmptyState
             icon={Share2}
-            title={inactive ? 'Nothing has been shared with you' : 'Nothing is shared with you right now'}
+            title={
+              inactive ? 'Nothing has been shared with you' : 'Nothing is shared with you right now'
+            }
             description="When a colleague shares a file or folder with you, it appears here."
           />
         ) : (
@@ -56,11 +62,21 @@ export default function SharedWithMePage() {
                 <caption className="sr-only">Items shared with you</caption>
                 <thead>
                   <tr className="border-b border-line text-left text-xs text-muted">
-                    <th scope="col" className="px-3 py-2 font-medium">Name and location</th>
-                    <th scope="col" className="hidden px-3 py-2 font-medium lg:table-cell">Shared by</th>
-                    <th scope="col" className="hidden px-3 py-2 font-medium md:table-cell">Permissions</th>
-                    <th scope="col" className="px-3 py-2 font-medium">Status</th>
-                    <th scope="col" className="px-3 py-2 text-right font-medium">Actions</th>
+                    <th scope="col" className="px-3 py-2 font-medium">
+                      Name and location
+                    </th>
+                    <th scope="col" className="hidden px-3 py-2 font-medium lg:table-cell">
+                      Shared by
+                    </th>
+                    <th scope="col" className="hidden px-3 py-2 font-medium md:table-cell">
+                      Permissions
+                    </th>
+                    <th scope="col" className="px-3 py-2 font-medium">
+                      Status
+                    </th>
+                    <th scope="col" className="px-3 py-2 text-right font-medium">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -69,13 +85,23 @@ export default function SharedWithMePage() {
                       key={s.share_id}
                       share={s}
                       onPreview={setPreview}
-                      onDownload={(sh) => downloadDocument(sh.resource_id).catch((e) => toast.error(friendlyMessage(e)))}
+                      onDownload={(sh) =>
+                        downloadDocument(sh.resource_id).catch((e) =>
+                          toast.error(friendlyMessage(e)),
+                        )
+                      }
                     />
                   ))}
                 </tbody>
               </table>
             </div>
-            <PaginationBar total={q.data.total} limit={PAGE} offset={offset} count={q.data.items.length} onOffsetChange={setOffset} />
+            <PaginationBar
+              total={q.data.total}
+              limit={PAGE}
+              offset={offset}
+              count={q.data.items.length}
+              onOffsetChange={setOffset}
+            />
           </>
         )}
       </Panel>

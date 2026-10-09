@@ -61,10 +61,18 @@ export function SearchView() {
         title={q ? `Results for “${q}”` : 'Search'}
         description="Search only returns items you are allowed to see."
       />
-      <form className="mb-3 flex flex-wrap items-end gap-3" onSubmit={(e) => e.preventDefault()} aria-label="Search filters">
+      <form
+        className="mb-3 flex flex-wrap items-end gap-3"
+        onSubmit={(e) => e.preventDefault()}
+        aria-label="Search filters"
+      >
         <div className="grid gap-1">
           <Label htmlFor="f-kind">Show</Label>
-          <Select id="f-kind" value={kind} onChange={(e) => (setKind(e.target.value as typeof kind), setOffset(0))}>
+          <Select
+            id="f-kind"
+            value={kind}
+            onChange={(e) => (setKind(e.target.value as typeof kind), setOffset(0))}
+          >
             <option value="">Files and folders</option>
             <option value="document">Files only</option>
             <option value="folder">Folders only</option>
@@ -72,7 +80,12 @@ export function SearchView() {
         </div>
         <div className="grid gap-1">
           <Label htmlFor="f-type">File type</Label>
-          <Select id="f-type" value={type} disabled={kind === 'folder'} onChange={(e) => (setType(e.target.value), setOffset(0))}>
+          <Select
+            id="f-type"
+            value={type}
+            disabled={kind === 'folder'}
+            onChange={(e) => (setType(e.target.value), setOffset(0))}
+          >
             {TYPES.map(([v, l]) => (
               <option key={v} value={v}>
                 {l}
@@ -82,11 +95,23 @@ export function SearchView() {
         </div>
         <div className="grid gap-1">
           <Label htmlFor="f-after">Modified after</Label>
-          <Input id="f-after" type="date" value={after} max={before || undefined} onChange={(e) => (setAfter(e.target.value), setOffset(0))} />
+          <Input
+            id="f-after"
+            type="date"
+            value={after}
+            max={before || undefined}
+            onChange={(e) => (setAfter(e.target.value), setOffset(0))}
+          />
         </div>
         <div className="grid gap-1">
           <Label htmlFor="f-before">Modified before</Label>
-          <Input id="f-before" type="date" value={before} min={after || undefined} onChange={(e) => (setBefore(e.target.value), setOffset(0))} />
+          <Input
+            id="f-before"
+            type="date"
+            value={before}
+            min={after || undefined}
+            onChange={(e) => (setBefore(e.target.value), setOffset(0))}
+          />
         </div>
         <Button variant="ghost" onClick={reset}>
           Reset filters
@@ -94,18 +119,30 @@ export function SearchView() {
       </form>
       <Panel>
         {!q.trim() ? (
-          <EmptyState icon={SearchX} title="Type in the search box" description="Search by file or folder name from the bar at the top." />
+          <EmptyState
+            icon={SearchX}
+            title="Type in the search box"
+            description="Search by file or folder name from the bar at the top."
+          />
         ) : res.isPending ? (
           <SkeletonRows rows={5} label="Searching" />
         ) : res.isError ? (
           <ErrorState error={res.error} onRetry={() => res.refetch()} />
         ) : res.data.items.length === 0 ? (
-          <EmptyState icon={SearchX} title="No matches" description="Try a different word or loosen the filters." />
+          <EmptyState
+            icon={SearchX}
+            title="No matches"
+            description="Try a different word or loosen the filters."
+          />
         ) : (
           <>
             <ul className="divide-y divide-line" aria-label="Search results" aria-live="polite">
               {res.data.items.map((r) => (
-                <li key={r.id} className="flex items-start gap-3 px-3 py-2.5" data-testid="search-result">
+                <li
+                  key={r.id}
+                  className="flex items-start gap-3 px-3 py-2.5"
+                  data-testid="search-result"
+                >
                   <ItemIcon kind={r.kind} contentType={r.content_type} className="mt-0.5" />
                   <div className="min-w-0 flex-1">
                     <p className="flex flex-wrap items-center gap-2">
@@ -117,7 +154,9 @@ export function SearchView() {
                       </Link>
                       <StatusChip status={r.status} />
                     </p>
-                    {r.breadcrumb.length > 0 && <PathTrail segments={r.breadcrumb} size="sm" className="mt-0.5" />}
+                    {r.breadcrumb.length > 0 && (
+                      <PathTrail segments={r.breadcrumb} size="sm" className="mt-0.5" />
+                    )}
                   </div>
                   <div className="hidden text-right text-xs text-muted sm:block">
                     <p>{r.kind === 'document' ? formatBytes(r.size_bytes) : 'Folder'}</p>
@@ -126,7 +165,13 @@ export function SearchView() {
                 </li>
               ))}
             </ul>
-            <PaginationBar total={res.data.total} limit={PAGE} offset={offset} count={res.data.items.length} onOffsetChange={setOffset} />
+            <PaginationBar
+              total={res.data.total}
+              limit={PAGE}
+              offset={offset}
+              count={res.data.items.length}
+              onOffsetChange={setOffset}
+            />
           </>
         )}
       </Panel>

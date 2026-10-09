@@ -15,10 +15,10 @@ export class DevAuthProvider implements AuthProvider {
   constructor(
     private readonly apiBaseUrl: string,
     private readonly fetchImpl: typeof fetch = (...a) => fetch(...a),
-    private readonly storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> | null = typeof window !==
-    'undefined'
-      ? window.sessionStorage
-      : null,
+    private readonly storage: Pick<
+      Storage,
+      'getItem' | 'setItem' | 'removeItem'
+    > | null = typeof window !== 'undefined' ? window.sessionStorage : null,
     isProduction: boolean = process.env.NODE_ENV === 'production',
   ) {
     if (isProduction) throw new Error('DevAuthProvider cannot be used in a production build.');

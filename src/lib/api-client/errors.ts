@@ -79,7 +79,12 @@ export async function apiErrorFromResponse(res: Response): Promise<ApiError> {
   const detail = (body as { detail?: unknown } | null)?.detail; // FastAPI default shape fallback
   return new ApiError({
     status: res.status,
-    code: typeof err?.code === 'string' ? err.code : res.status === 422 ? 'validation_error' : `http_${res.status}`,
+    code:
+      typeof err?.code === 'string'
+        ? err.code
+        : res.status === 422
+          ? 'validation_error'
+          : `http_${res.status}`,
     message:
       typeof err?.message === 'string'
         ? err.message
@@ -87,7 +92,8 @@ export async function apiErrorFromResponse(res: Response): Promise<ApiError> {
           ? detail
           : res.statusText || `Request failed (${res.status})`,
     requestId:
-      (typeof err?.request_id === 'string' ? err.request_id : null) ?? res.headers.get('x-request-id'),
+      (typeof err?.request_id === 'string' ? err.request_id : null) ??
+      res.headers.get('x-request-id'),
     details: err?.details ?? (Array.isArray(detail) ? detail : null),
     retryAfterSeconds: parseRetryAfter(res.headers.get('retry-after')),
   });
@@ -109,7 +115,8 @@ const FRIENDLY: Record<string, string> = {
   rate_limited: 'Too many requests. Please wait a moment and try again.',
   validation_error: 'Some of the information you entered is not valid.',
   network_error: 'Cannot reach the server. Check your connection and try again.',
-  parent_deleted: 'The original folder is in the trash. Restore it first, or choose another location.',
+  parent_deleted:
+    'The original folder is in the trash. Restore it first, or choose another location.',
   checksum_mismatch: 'The uploaded file did not match its checksum. Try uploading it again.',
   size_mismatch: 'The uploaded size did not match the declared size. Try uploading it again.',
   last_owner: 'An organization must keep at least one owner.',
@@ -139,5 +146,8 @@ export function friendlyMessage(e: unknown, fallback = 'Something went wrong.'):
       : FRIENDLY.rate_limited;
   }
   if (e.status === 404) return FRIENDLY.not_found;
+  // Business-rule validation errors (e.g. "Shares may last at most 365 days.") carry a specific server message.
+  if (e.code === 'validation_error' && e.message && !/validation failed/i.test(e.message))
+    return e.message;
   return FRIENDLY[e.code] ?? (e.message || fallback);
 }

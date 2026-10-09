@@ -25,7 +25,12 @@ export function OrgSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="secondary" size="sm" className="max-w-44" aria-label={`Organization: ${current.organization_name}. Switch organization`}>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="max-w-44"
+          aria-label={`Organization: ${current.organization_name}. Switch organization`}
+        >
           <Building2 />
           <span className="truncate">{current.organization_name}</span>
         </Button>

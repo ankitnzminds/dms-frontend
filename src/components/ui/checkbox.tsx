@@ -15,7 +15,11 @@ export function Checkbox({ className, ...p }: React.ComponentPropsWithoutRef<typ
       {...p}
     >
       <C.Indicator>
-        {p.checked === 'indeterminate' ? <Minus className="size-3" /> : <Check className="size-3" />}
+        {p.checked === 'indeterminate' ? (
+          <Minus className="size-3" />
+        ) : (
+          <Check className="size-3" />
+        )}
       </C.Indicator>
     </C.Root>
   );

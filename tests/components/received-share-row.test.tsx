@@ -39,9 +39,13 @@ describe('ReceivedShareRow', () => {
     renderRow(base);
     const row = screen.getByTestId('received-share-row');
     expect(row).toHaveAttribute('data-status', 'active');
-    expect(within(row).getByRole('link', { name: 'Q3 contract.pdf' })).toHaveAttribute('href', '/documents/doc-1');
+    expect(within(row).getByRole('link', { name: 'Q3 contract.pdf' })).toHaveAttribute(
+      'href',
+      '/documents/doc-1',
+    );
     expect(within(row).getByRole('link', { name: /Open/ })).toBeInTheDocument();
-    for (const chip of ['View', 'Preview', 'Download']) expect(within(row).getByText(chip)).toBeInTheDocument();
+    for (const chip of ['View', 'Preview', 'Download'])
+      expect(within(row).getByText(chip)).toBeInTheDocument();
     expect(within(row).getByText(/Expires in 7 days/)).toBeInTheDocument();
     expect(within(row).getByText('Active')).toBeInTheDocument();
     // root is navigable -> link; "Legal" is not -> text only
@@ -57,7 +61,13 @@ describe('ReceivedShareRow', () => {
   });
 
   it('expired: explicit state, not openable, no links at all', () => {
-    renderRow({ ...base, status: 'expired', actions: [], breadcrumb: [], expires_at: new Date(Date.now() - 86400000).toISOString() });
+    renderRow({
+      ...base,
+      status: 'expired',
+      actions: [],
+      breadcrumb: [],
+      expires_at: new Date(Date.now() - 86400000).toISOString(),
+    });
     const row = screen.getByTestId('received-share-row');
     expect(within(row).getByText('Expired', { selector: 'span' })).toBeInTheDocument();
     expect(within(row).queryAllByRole('link')).toHaveLength(0);

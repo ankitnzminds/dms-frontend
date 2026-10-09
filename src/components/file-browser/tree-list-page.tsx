@@ -24,7 +24,10 @@ export function TreeListPage({
   icon: LucideIcon;
   emptyTitle: string;
   emptyDescription: string;
-  useData: (limit: number, offset: number) => {
+  useData: (
+    limit: number,
+    offset: number,
+  ) => {
     data: Page<TreeItem> | undefined;
     isPending: boolean;
     error: unknown;
@@ -43,7 +46,9 @@ export function TreeListPage({
           isLoading={q.isPending}
           error={q.error}
           onRetry={() => q.refetch()}
-          page={q.data && { total: q.data.total, limit: PAGE_SIZE, offset, onOffsetChange: setOffset }}
+          page={
+            q.data && { total: q.data.total, limit: PAGE_SIZE, offset, onOffsetChange: setOffset }
+          }
           emptyState={<EmptyState icon={icon} title={emptyTitle} description={emptyDescription} />}
         />
       </Panel>

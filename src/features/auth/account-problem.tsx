@@ -40,7 +40,10 @@ export function AccountProblem({ error }: { error: unknown }) {
   };
   return (
     <main className="grid min-h-dvh place-items-center p-6">
-      <div role="alert" className="w-full max-w-md rounded-lg border border-line bg-surface p-6 text-center shadow-pop">
+      <div
+        role="alert"
+        className="w-full max-w-md rounded-lg border border-line bg-surface p-6 text-center shadow-pop"
+      >
         <div className="mx-auto mb-3 grid size-10 place-items-center rounded-lg bg-warn-soft text-warn">
           <AlertCircle className="size-5" />
         </div>

@@ -29,7 +29,8 @@ export interface Availability {
 }
 
 const PREVIEWABLE = /^(application\/pdf|image\/(png|jpeg|gif|webp)|text\/.+)$/i;
-export const isPreviewableType = (ct: string | null | undefined) => !!ct && PREVIEWABLE.test(ct.split(';')[0]!.trim());
+export const isPreviewableType = (ct: string | null | undefined) =>
+  !!ct && PREVIEWABLE.test(ct.split(';')[0]!.trim());
 
 const NO = (reason: string): Availability => ({ enabled: false, reason });
 const YES: Availability = { enabled: true };
@@ -74,7 +75,11 @@ export function itemAvailability(item: ActionItem): Record<ItemAction, Availabil
           : NO(notReady)
         : NO('You do not have permission to copy this file.'),
     star: isDoc ? YES : NO('Only files can be starred.'),
-    share: can(p, 'share') ? (ready ? YES : NO(notReady)) : NO('You do not have permission to share this.'),
+    share: can(p, 'share')
+      ? ready
+        ? YES
+        : NO(notReady)
+      : NO('You do not have permission to share this.'),
     access: can(p, 'manage_access') ? YES : NO('You need the manage access permission.'),
     delete: can(p, 'delete') ? YES : NO('You do not have permission to delete this.'),
   };

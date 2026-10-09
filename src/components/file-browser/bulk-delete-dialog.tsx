@@ -16,7 +16,7 @@ type Result = { item: BulkItem; ok: boolean; message?: string };
 
 /** Confirms, then deletes one by one (no bulk endpoint) and reports a per-item result. */
 export function BulkDeleteDialog({
-  items,
+  items: liveItems,
   open,
   onOpenChange,
   onFinished,
@@ -29,11 +29,16 @@ export function BulkDeleteDialog({
   const del = useDeleteItem();
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState<Result[] | null>(null);
+  // The selection shrinks as the list refetches after each delete, so freeze it for the run.
+  const [frozen, setFrozen] = useState<BulkItem[] | null>(null);
+  const items = frozen ?? liveItems;
 
   async function run() {
+    const batch = liveItems;
+    setFrozen(batch);
     setRunning(true);
     const out: Result[] = [];
-    for (const item of items) {
+    for (const item of batch) {
       try {
         await del.mutateAsync({ kind: item.kind, id: item.id });
         out.push({ item, ok: true });
@@ -50,10 +55,21 @@ export function BulkDeleteDialog({
   const okCount = results?.filter((r) => r.ok).length ?? 0;
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !running && (onOpenChange(o), !o && setResults(null))}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => !running && (onOpenChange(o), !o && (setResults(null), setFrozen(null)))}
+    >
       <DialogContent
-        title={done ? 'Delete complete' : `Move ${items.length} item${items.length === 1 ? '' : 's'} to trash?`}
-        description={done ? undefined : 'Items can be restored from Trash. Folders take everything inside them.'}
+        title={
+          done
+            ? 'Delete complete'
+            : `Move ${items.length} item${items.length === 1 ? '' : 's'} to trash?`
+        }
+        description={
+          done
+            ? undefined
+            : 'Items can be restored from Trash. Folders take everything inside them.'
+        }
       >
         <DialogBody>
           {results ? (
@@ -91,7 +107,10 @@ export function BulkDeleteDialog({
         </DialogBody>
         <DialogFooter>
           {done ? (
-            <Button variant="primary" onClick={() => (onOpenChange(false), setResults(null))}>
+            <Button
+              variant="primary"
+              onClick={() => (onOpenChange(false), setResults(null), setFrozen(null))}
+            >
               Close
             </Button>
           ) : (

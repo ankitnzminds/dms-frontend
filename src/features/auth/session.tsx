@@ -10,7 +10,12 @@ import {
   setActiveOrganizationId,
   useActiveOrganizationId,
 } from '@/features/organizations/org-store';
-import { getAuthConfigError, getAuthProvider, type AuthProvider, type SignInCredentials } from './providers';
+import {
+  getAuthConfigError,
+  getAuthProvider,
+  type AuthProvider,
+  type SignInCredentials,
+} from './providers';
 
 type Status = 'loading' | 'signedOut' | 'signedIn';
 
@@ -85,7 +90,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ status: provider ? status : ('signedOut' as Status), provider, configError, signIn, signOut }),
+    () => ({
+      status: provider ? status : ('signedOut' as Status),
+      provider,
+      configError,
+      signIn,
+      signOut,
+    }),
     [status, provider, configError, signIn, signOut],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

@@ -40,11 +40,17 @@ export function useFolder(id: string | undefined) {
     queryKey: ['folder', id],
     enabled: !!id,
     queryFn: ({ signal }) =>
-      call<Folder>(api.GET('/api/v1/folders/{folder_id}', { params: { path: { folder_id: id! } }, signal })),
+      call<Folder>(
+        api.GET('/api/v1/folders/{folder_id}', { params: { path: { folder_id: id! } }, signal }),
+      ),
   });
 }
 
-export function useChildren(id: string | undefined, p: ChildrenParams, opts?: { enabled?: boolean }) {
+export function useChildren(
+  id: string | undefined,
+  p: ChildrenParams,
+  opts?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ['children', id, p],
     enabled: !!id && (opts?.enabled ?? true),
@@ -67,7 +73,10 @@ export function useDocument(id: string | undefined) {
     enabled: !!id,
     queryFn: ({ signal }) =>
       call<Document>(
-        api.GET('/api/v1/documents/{document_id}', { params: { path: { document_id: id! } }, signal }),
+        api.GET('/api/v1/documents/{document_id}', {
+          params: { path: { document_id: id! } },
+          signal,
+        }),
       ),
     refetchInterval: (q) => (q.state.data?.status === 'processing' ? 2500 : false),
   });
@@ -94,7 +103,9 @@ export function useRecent(limit = 20, offset = 0) {
     queryKey: ['recent', limit, offset],
     placeholderData: keepPreviousData,
     queryFn: ({ signal }) =>
-      call<Page<TreeItem>>(api.GET('/api/v1/recent', { params: { query: { limit, offset } }, signal })),
+      call<Page<TreeItem>>(
+        api.GET('/api/v1/recent', { params: { query: { limit, offset } }, signal }),
+      ),
     refetchInterval: (q) => (hasProcessing(q.state.data?.items) ? 2500 : false),
   });
 }
@@ -104,7 +115,9 @@ export function useStarred(limit = 50, offset = 0) {
     queryKey: ['starred', limit, offset],
     placeholderData: keepPreviousData,
     queryFn: ({ signal }) =>
-      call<Page<TreeItem>>(api.GET('/api/v1/starred', { params: { query: { limit, offset } }, signal })),
+      call<Page<TreeItem>>(
+        api.GET('/api/v1/starred', { params: { query: { limit, offset } }, signal }),
+      ),
   });
 }
 
@@ -113,7 +126,9 @@ export function useTrash(limit = 50, offset = 0) {
     queryKey: ['trash', limit, offset],
     placeholderData: keepPreviousData,
     queryFn: ({ signal }) =>
-      call<Page<TrashItem>>(api.GET('/api/v1/trash', { params: { query: { limit, offset } }, signal })),
+      call<Page<TrashItem>>(
+        api.GET('/api/v1/trash', { params: { query: { limit, offset } }, signal }),
+      ),
   });
 }
 
@@ -144,7 +159,16 @@ export function useSearch(p: SearchParams) {
 export function useInvalidateFiles() {
   const qc = useQueryClient();
   return () => {
-    for (const k of ['children', 'folder', 'document', 'recent', 'starred', 'trash', 'search', 'usage'])
+    for (const k of [
+      'children',
+      'folder',
+      'document',
+      'recent',
+      'starred',
+      'trash',
+      'search',
+      'usage',
+    ])
       void qc.invalidateQueries({ queryKey: [k] });
   };
 }
@@ -199,15 +223,14 @@ export function useUpdateItem() {
 export function useUpdateDocumentMeta() {
   const inv = useInvalidateFiles();
   return useMutation({
-    mutationFn: (v: {
-      id: string;
-      classification?: string;
-      expectedRowVersion?: number | null;
-    }) =>
+    mutationFn: (v: { id: string; classification?: string; expectedRowVersion?: number | null }) =>
       call<Document>(
         api.PATCH('/api/v1/documents/{document_id}', {
           params: { path: { document_id: v.id } },
-          body: { classification: v.classification, expected_row_version: v.expectedRowVersion ?? undefined },
+          body: {
+            classification: v.classification,
+            expected_row_version: v.expectedRowVersion ?? undefined,
+          },
         }),
       ),
     onSuccess: inv,
@@ -220,7 +243,10 @@ export function useDeleteItem() {
     mutationFn: async (v: { kind: 'folder' | 'document'; id: string }) => {
       if (v.kind === 'folder')
         await api.DELETE('/api/v1/folders/{folder_id}', { params: { path: { folder_id: v.id } } });
-      else await api.DELETE('/api/v1/documents/{document_id}', { params: { path: { document_id: v.id } } });
+      else
+        await api.DELETE('/api/v1/documents/{document_id}', {
+          params: { path: { document_id: v.id } },
+        });
     },
     onSuccess: inv,
   });
@@ -267,8 +293,14 @@ export function useToggleStar() {
   const inv = useInvalidateFiles();
   return useMutation({
     mutationFn: async (v: { id: string; starred: boolean }) => {
-      if (v.starred) await api.PUT('/api/v1/documents/{document_id}/star', { params: { path: { document_id: v.id } } });
-      else await api.DELETE('/api/v1/documents/{document_id}/star', { params: { path: { document_id: v.id } } });
+      if (v.starred)
+        await api.PUT('/api/v1/documents/{document_id}/star', {
+          params: { path: { document_id: v.id } },
+        });
+      else
+        await api.DELETE('/api/v1/documents/{document_id}/star', {
+          params: { path: { document_id: v.id } },
+        });
     },
     onSuccess: inv,
   });

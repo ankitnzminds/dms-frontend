@@ -29,10 +29,18 @@ export function PaginationBar({
         {from}-{offset + count} of {total}
       </p>
       <div className="flex gap-1">
-        <Button size="sm" disabled={offset === 0} onClick={() => onOffsetChange(Math.max(0, offset - limit))}>
+        <Button
+          size="sm"
+          disabled={offset === 0}
+          onClick={() => onOffsetChange(Math.max(0, offset - limit))}
+        >
           <ChevronLeft /> Previous
         </Button>
-        <Button size="sm" disabled={offset + limit >= total} onClick={() => onOffsetChange(offset + limit)}>
+        <Button
+          size="sm"
+          disabled={offset + limit >= total}
+          onClick={() => onOffsetChange(offset + limit)}
+        >
           Next <ChevronRight />
         </Button>
       </div>
