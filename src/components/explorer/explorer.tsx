@@ -10,7 +10,6 @@ import { NewFolderDialog } from '@/components/file-browser/name-dialogs';
 import { ItemActionsProvider, useItemActions } from '@/components/file-browser/item-actions';
 import { ProtectionBadges } from '@/components/file-browser/protection-badges';
 import { VersionsPanel } from '@/components/file-browser/versions-panel';
-import { PageHeader } from '@/components/layout/page-header';
 import { PathTrail } from '@/components/navigation/path-trail';
 import { Dialog, DialogBody, DialogContent } from '@/components/ui/dialog';
 import { SkeletonRows } from '@/components/ui/skeleton';
@@ -47,7 +46,7 @@ import {
   DropdownTrigger,
 } from './menu-render';
 import { PropertiesPanel } from './properties-panel';
-import { ExplorerToolbar, type ToolbarState } from './toolbar';
+import { ExplorerHeader, type ToolbarState } from './toolbar';
 import { ItemsView } from './views';
 
 const PAGE_SIZE = 100;
@@ -466,22 +465,18 @@ function ExplorerBody({ folderId }: { folderId: string }) {
 
   return (
     <>
-      <PageHeader
-        title={
-          <span className="flex flex-wrap items-center gap-2">
-            {f?.name ?? 'Loading…'} <ProtectionBadges protection={protection.data} />
-          </span>
-        }
+      <ExplorerHeader
+        title={f?.name ?? 'Loading…'}
+        badges={<ProtectionBadges protection={protection.data} />}
         trail={f && f.breadcrumb.length > 0 ? <PathTrail segments={f.breadcrumb} /> : undefined}
-        description={f?.is_root ? 'Your organization’s canonical folder tree.' : undefined}
-      />
-      <ExplorerToolbar
+        itemCount={children.data ? children.data.total : null}
         st={tb}
         prefs={prefs}
         onPrefs={update}
         onAsk={chat.enabled ? () => chat.open({ folderId, label: f?.name }) : undefined}
         propertiesOpen={propsOpen}
         selectionCount={selItems.length}
+        hasClipboard={!!clipboard}
         onSearch={(q) => router.push(`/search?q=${encodeURIComponent(q)}&folder=${folderId}`)}
         onAction={(a) => {
           setMenuCtx({ target: 'background', items: [] });
@@ -490,6 +485,7 @@ function ExplorerBody({ folderId }: { folderId: string }) {
           if (a === 'upload-files') return pickers.pickFiles(folderId);
           if (a === 'upload-folder') return pickers.pickFolder(folderId);
           if (a === 'new-folder') return setNewFolderIn(folderId);
+          if (a === 'clear-selection') return sel.clear();
           if (
             a === 'delete' ||
             a === 'cut' ||
@@ -512,7 +508,7 @@ function ExplorerBody({ folderId }: { folderId: string }) {
               role="application"
               aria-label="File manager"
               aria-describedby="explorer-help"
-              className="min-h-[55dvh] rounded-lg border border-line bg-surface outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+              className="min-h-[calc(100dvh-13rem)] rounded-lg border border-line bg-surface outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
               onKeyDown={onKeyDown}
               onContextMenuCapture={onContextMenuCapture}
               onClick={(e) => {
@@ -525,7 +521,7 @@ function ExplorerBody({ folderId }: { folderId: string }) {
                 Control C, X and V to copy, cut and paste, Alt Enter for properties, and the Context
                 Menu key for actions.
               </p>
-              <DropZone folderId={folderId} enabled={canCreate} className="min-h-[55dvh]">
+              <DropZone folderId={folderId} enabled={canCreate} className="min-h-[calc(100dvh-13rem)]">
                 {folder.isPending || children.isPending ? (
                   <SkeletonRows rows={7} label="Loading files" />
                 ) : children.isError ? (

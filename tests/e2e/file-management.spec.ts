@@ -38,14 +38,16 @@ test.describe.serial('file management as alice', () => {
     await createFolderViaUi(page, work);
 
     // duplicate name -> inline error, dialog stays open
-    await page.getByRole('button', { name: 'New folder' }).click();
+    await page.getByTestId('tb-upload').click();
+    await page.getByRole('menuitem', { name: 'New folder' }).click();
     await page.getByLabel('Folder name').fill(work);
     await page.getByRole('button', { name: 'Create folder' }).click();
     await expect(page.getByText(/already exists here/)).toBeVisible();
     await page.keyboard.press('Escape');
 
     // empty-name validation (client side)
-    await page.getByRole('button', { name: 'New folder' }).click();
+    await page.getByTestId('tb-upload').click();
+    await page.getByRole('menuitem', { name: 'New folder' }).click();
     await page.getByRole('button', { name: 'Create folder' }).click();
     await expect(page.getByText('Enter a name')).toBeVisible();
     await page.keyboard.press('Escape');

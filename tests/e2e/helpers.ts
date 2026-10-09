@@ -24,7 +24,8 @@ export async function devToken(
 }
 
 export async function createFolderViaUi(page: Page, name: string) {
-  await page.getByRole('button', { name: 'New folder' }).click();
+  await page.getByTestId('tb-upload').click();
+  await page.getByRole('menuitem', { name: 'New folder' }).click();
   await page.getByLabel('Folder name').fill(name);
   await page.getByRole('button', { name: 'Create folder' }).click();
   await expect(rowOf(page, name)).toBeVisible();

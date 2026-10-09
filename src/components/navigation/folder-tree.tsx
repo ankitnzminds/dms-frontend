@@ -4,12 +4,17 @@ import { ChevronRight, Folder, Star } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { ContextMenuRoot, ContextMenuTrigger } from '@/components/explorer/menu-render';
 import { useExplorerOps } from '@/components/explorer/ops';
+import { NewFolderDialog } from '@/components/file-browser/name-dialogs';
+import { ItemActionsProvider } from '@/components/file-browser/item-actions';
+import { TreeNodeMenu } from '@/components/navigation/tree-node-menu';
 import { useUploadPickers } from '@/components/upload/pickers';
 import { isCopyDrop, readDragPayload } from '@/features/explorer/dnd';
 import { useFavorites, useFolderChildren } from '@/features/explorer/hooks';
 import { useRootFolder } from '@/features/files/hooks';
 import { dragHasFiles, INTERNAL_DND } from '@/features/upload/read-entries';
+import type { TreeItem } from '@/lib/api-client';
 import { can } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 
@@ -44,55 +49,56 @@ function useFolderDrop(target: { id: string; name: string; canCreate: boolean })
   };
 }
 
-function Node({
-  id,
-  name,
-  depth,
-  canCreate,
-}: {
-  id: string;
-  name: string;
-  depth: number;
-  canCreate: boolean;
-}) {
+function Node({ item, parentId, depth }: { item: TreeItem; parentId: string; depth: number }) {
+  const { id, name } = item;
+  const canCreate = can(item.permissions, 'create_child');
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [newFolder, setNewFolder] = useState(false);
   const kids = useFolderChildren(id, open);
   const drop = useFolderDrop({ id, name, canCreate });
   const active = pathname === `/files/${id}`;
   return (
     <li role="treeitem" aria-expanded={open} aria-selected={active}>
-      <div
-        className={cn(
-          'flex items-center rounded-md text-[13px] text-muted hover:bg-surface-2',
-          active && 'bg-accent-soft font-medium text-accent-soft-fg',
-          drop.over && 'ring-2 ring-accent',
-        )}
-        style={{ paddingLeft: depth * 12 }}
-        {...drop.handlers}
-        data-testid="tree-node"
-        data-folder-id={id}
-      >
-        <button
-          type="button"
-          aria-label={`${open ? 'Collapse' : 'Expand'} ${name}`}
-          className="grid size-6 place-items-center rounded-sm hover:text-text"
-          onClick={() => setOpen((o) => !o)}
-        >
-          <ChevronRight
-            className={cn('size-3.5 transition-transform', open && 'rotate-90')}
-            aria-hidden
-          />
-        </button>
-        <Link
-          href={`/files/${id}`}
-          className="flex min-w-0 flex-1 items-center gap-1.5 py-1 pr-2"
-          aria-current={active ? 'page' : undefined}
-        >
-          <Folder className="size-3.5 shrink-0" aria-hidden />
-          <span className="truncate">{name}</span>
-        </Link>
-      </div>
+      <ContextMenuRoot>
+        <ContextMenuTrigger asChild>
+          <div
+            className={cn(
+              'flex items-center rounded-md text-[13px] text-muted hover:bg-surface-2',
+              active && 'bg-accent-soft font-medium text-accent-soft-fg',
+              drop.over && 'ring-2 ring-accent',
+            )}
+            style={{ paddingLeft: depth * 12 }}
+            {...drop.handlers}
+            data-testid="tree-node"
+            data-folder-id={id}
+          >
+            <button
+              type="button"
+              aria-label={`${open ? 'Collapse' : 'Expand'} ${name}`}
+              className="grid size-6 place-items-center rounded-sm hover:text-text"
+              onClick={() => setOpen((o) => !o)}
+            >
+              <ChevronRight
+                className={cn('size-3.5 transition-transform', open && 'rotate-90')}
+                aria-hidden
+              />
+            </button>
+            <Link
+              href={`/files/${id}`}
+              className="flex min-w-0 flex-1 items-center gap-1.5 py-1 pr-2"
+              aria-current={active ? 'page' : undefined}
+            >
+              <Folder className="size-3.5 shrink-0" aria-hidden />
+              <span className="truncate">{name}</span>
+            </Link>
+          </div>
+        </ContextMenuTrigger>
+        <TreeNodeMenu item={item} parentId={parentId} onNewFolder={() => setNewFolder(true)} />
+      </ContextMenuRoot>
+      {newFolder && (
+        <NewFolderDialog parentId={id} open onOpenChange={(o) => !o && setNewFolder(false)} />
+      )}
       {open && (
         <ul role="group">
           {kids.isPending ? (
@@ -111,13 +117,7 @@ function Node({
             </li>
           ) : (
             kids.data?.items.map((c) => (
-              <Node
-                key={c.id}
-                id={c.id}
-                name={c.name}
-                depth={depth + 1}
-                canCreate={can(c.permissions, 'create_child')}
-              />
+              <Node key={c.id} item={c} parentId={id} depth={depth + 1} />
             ))
           )}
         </ul>
@@ -132,21 +132,17 @@ export function FolderTree() {
   const kids = useFolderChildren(root.data?.id, true);
   if (!root.data || !kids.data) return null;
   return (
-    <ul
-      role="tree"
-      aria-label="Folders"
-      className="mt-0.5 ml-1 grid gap-px border-l border-line pl-1"
-    >
-      {kids.data.items.map((c) => (
-        <Node
-          key={c.id}
-          id={c.id}
-          name={c.name}
-          depth={0}
-          canCreate={can(c.permissions, 'create_child')}
-        />
-      ))}
-    </ul>
+    <ItemActionsProvider>
+      <ul
+        role="tree"
+        aria-label="Folders"
+        className="mt-0.5 ml-1 grid gap-px border-l border-line pl-1"
+      >
+        {kids.data.items.map((c) => (
+          <Node key={c.id} item={c} parentId={root.data.id} depth={0} />
+        ))}
+      </ul>
+    </ItemActionsProvider>
   );
 }
 
