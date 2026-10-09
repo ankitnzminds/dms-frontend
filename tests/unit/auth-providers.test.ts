@@ -25,7 +25,7 @@ describe('DevAuthProvider', () => {
     ).toThrow(/production/);
   });
 
-  it('signs in via the dev token endpoint and keeps the token in memory only', async () => {
+  it('signs in with email + password and keeps only the token (never the password)', async () => {
     const fetchImpl = tokenFetch('jwt-alice');
     const storage = memoryStorage();
     const p = new DevAuthProvider('http://x/api/v1', fetchImpl, storage, false);
@@ -33,53 +33,46 @@ describe('DevAuthProvider', () => {
     p.onChange(listener);
 
     expect(await p.getAccessToken()).toBeNull();
-    await p.signIn({ kind: 'dev', email: 'alice@acme.test' });
+    await p.signIn({ email: 'alice@acme.test', password: 'pw-1' });
 
     expect(fetchImpl).toHaveBeenCalledWith(
-      'http://x/api/v1/dev/token',
+      'http://x/api/v1/dev/login',
       expect.objectContaining({ method: 'POST' }),
     );
-    expect(
-      JSON.parse((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![1].body),
-    ).toEqual({ email: 'alice@acme.test' });
     expect(await p.getAccessToken()).toBe('jwt-alice');
     expect(listener).toHaveBeenCalledWith(true);
-    // only the email is stored, never the token
-    expect([...storage.raw.values()]).toEqual(['alice@acme.test']);
+    expect([...storage.raw.values()]).toEqual(['jwt-alice']);
   });
 
-  it('re-mints a token after a reload and on refresh', async () => {
+  it('restores the session after a reload from the stored token, but cannot silently refresh', async () => {
     const storage = memoryStorage();
-    storage.setItem('dms.dev.email', 'bob@acme.test');
-    const p = new DevAuthProvider('http://x/api/v1', tokenFetch('jwt-bob'), storage, false);
+    storage.setItem('dms.dev.token', 'jwt-bob');
+    const p = new DevAuthProvider('http://x/api/v1', tokenFetch('other'), storage, false);
     expect(await p.getAccessToken()).toBe('jwt-bob');
-    expect(await p.refresh()).toBe('jwt-bob');
+    expect(await p.refresh()).toBeNull();
   });
 
-  it('signOut clears state and notifies', async () => {
+  it('signOut clears the token and notifies', async () => {
     const storage = memoryStorage();
     const p = new DevAuthProvider('http://x/api/v1', tokenFetch(), storage, false);
     const listener = vi.fn();
     p.onChange(listener);
-    await p.signIn({ kind: 'dev', email: 'alice@acme.test' });
+    await p.signIn({ email: 'alice@acme.test', password: 'pw' });
     await p.signOut();
     expect(await p.getAccessToken()).toBeNull();
+    expect(storage.raw.size).toBe(0);
     expect(listener).toHaveBeenLastCalledWith(false);
   });
 
-  it('reports a helpful error when the dev endpoint is missing', async () => {
-    const fetchImpl = vi.fn(
-      async () => new Response('{}', { status: 404 }),
-    ) as unknown as typeof fetch;
+  it.each([
+    [401, /Incorrect email or password/],
+    [404, /AUTH_PROVIDER=local/],
+    [429, /Too many attempts/],
+  ])('maps HTTP %s to a clear message', async (status, msg) => {
+    const fetchImpl = vi.fn(async () => new Response('{}', { status })) as unknown as typeof fetch;
     const p = new DevAuthProvider('http://x/api/v1', fetchImpl, memoryStorage(), false);
-    await expect(p.signIn({ kind: 'dev', email: 'a@b.c' })).rejects.toThrow(/AUTH_PROVIDER=local/);
-  });
-
-  it('rejects password credentials', async () => {
-    const p = new DevAuthProvider('http://x/api/v1', tokenFetch(), memoryStorage(), false);
-    await expect(
-      p.signIn({ kind: 'password', email: 'a@b.c', password: 'x' }),
-    ).rejects.toBeInstanceOf(AuthError);
+    await expect(p.signIn({ email: 'a@b.c', password: 'x' })).rejects.toThrow(msg);
+    await expect(p.signIn({ email: 'a@b.c', password: 'x' })).rejects.toBeInstanceOf(AuthError);
   });
 });
 
@@ -131,14 +124,14 @@ describe('SupabaseAuthProvider (mocked client; not tested against a live project
   it('signs in with email and password and maps bad credentials to a friendly error', async () => {
     const m = mockSupabase();
     const p = new SupabaseAuthProvider(m.client);
-    await p.signIn({ kind: 'password', email: 'a@b.c', password: 'pw' });
+    await p.signIn({ email: 'a@b.c', password: 'pw' });
     expect(m.auth.signInWithPassword).toHaveBeenCalledWith({ email: 'a@b.c', password: 'pw' });
 
     m.auth.signInWithPassword.mockResolvedValueOnce({
       data: {},
       error: { message: 'Invalid login credentials', status: 400 },
     } as never);
-    await expect(p.signIn({ kind: 'password', email: 'a@b.c', password: 'bad' })).rejects.toThrow(
+    await expect(p.signIn({ email: 'a@b.c', password: 'bad' })).rejects.toThrow(
       'Incorrect email or password.',
     );
   });

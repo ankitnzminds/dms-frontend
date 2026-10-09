@@ -1,6 +1,6 @@
 'use client';
 
-import { LogOut, Menu, Search } from 'lucide-react';
+import { LogOut, Menu, MonitorOff, Search } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { ThemeToggle } from '@/components/theme';
@@ -91,7 +91,11 @@ function UserMenu() {
             {me?.display_name ?? me?.email}
           </span>
           <span className="truncate font-normal">{me?.email}</span>
-          {me?.role && <span className="font-normal capitalize">Role: {me.role}</span>}
+          {me?.role && (
+            <span className="mt-1 w-fit rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-medium capitalize text-accent-soft-fg" data-testid="role-badge">
+              {me.role}
+            </span>
+          )}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -101,6 +105,14 @@ function UserMenu() {
           }}
         >
           <LogOut /> Sign out
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={async () => {
+            await signOut({ everywhere: true });
+            router.replace('/login?reason=signed_out');
+          }}
+        >
+          <MonitorOff /> Sign out of all devices
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

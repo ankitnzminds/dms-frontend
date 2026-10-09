@@ -1,30 +1,31 @@
 import { AuthError, type AuthProvider, type SignInCredentials } from './types';
 
-const STORAGE_KEY = 'dms.dev.email';
+const STORAGE_KEY = 'dms.dev.token';
+
+type Store = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 /**
- * LOCAL DEVELOPMENT ONLY. Exchanges an email for a token via POST {api}/dev/token.
- * The token is kept in memory only; the email (not a secret) is remembered in sessionStorage so a
- * page reload can transparently mint a new token. Construction is refused in production builds.
+ * LOCAL DEVELOPMENT ONLY. Signs in with email + the shared dev password via POST {api}/dev/login.
+ * The short-lived token lives in sessionStorage (per tab, gone when the tab closes) so a reload keeps the
+ * session; the password is never stored. There is no silent re-mint: an expired or revoked token ends the
+ * session. Construction is refused in production builds.
  */
 export class DevAuthProvider implements AuthProvider {
   readonly id = 'dev';
-  private token: string | null = null;
   private listeners = new Set<(signedIn: boolean) => void>();
 
   constructor(
     private readonly apiBaseUrl: string,
     private readonly fetchImpl: typeof fetch = (...a) => fetch(...a),
-    private readonly storage: Pick<
-      Storage,
-      'getItem' | 'setItem' | 'removeItem'
-    > | null = typeof window !== 'undefined' ? window.sessionStorage : null,
+    private readonly storage: Store | null = typeof window !== 'undefined'
+      ? window.sessionStorage
+      : null,
     isProduction: boolean = process.env.NODE_ENV === 'production',
   ) {
     if (isProduction) throw new Error('DevAuthProvider cannot be used in a production build.');
   }
 
-  private email(): string | null {
+  private read(): string | null {
     try {
       return this.storage?.getItem(STORAGE_KEY) ?? null;
     } catch {
@@ -32,67 +33,53 @@ export class DevAuthProvider implements AuthProvider {
     }
   }
 
-  private async mint(email: string): Promise<string> {
-    let res: Response;
-    try {
-      res = await this.fetchImpl(`${this.apiBaseUrl}/dev/token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-    } catch {
-      throw new AuthError('Cannot reach the API to mint a development token.', 'network_error');
-    }
-    if (!res.ok) {
-      throw new AuthError(
-        res.status === 404
-          ? 'The development token endpoint is not available (is the backend running with AUTH_PROVIDER=local?).'
-          : `Could not sign in as ${email} (HTTP ${res.status}).`,
-        'dev_token_failed',
-      );
-    }
-    const body = (await res.json()) as { access_token?: string };
-    if (!body.access_token) throw new AuthError('Development token response was malformed.');
-    return body.access_token;
-  }
+  private memory: string | null = null;
 
   async getAccessToken(): Promise<string | null> {
-    if (this.token) return this.token;
-    const email = this.email();
-    if (!email) return null;
-    try {
-      this.token = await this.mint(email);
-    } catch {
-      return null;
-    }
-    return this.token;
+    return this.memory ?? this.read();
   }
 
+  /** Dev tokens cannot be refreshed without the password: an expired token ends the session. */
   async refresh(): Promise<string | null> {
-    const email = this.email();
-    if (!email) return null;
-    try {
-      this.token = await this.mint(email);
-      return this.token;
-    } catch {
-      this.token = null;
-      return null;
-    }
+    return null;
   }
 
   async signIn(c: SignInCredentials): Promise<void> {
-    if (c.kind !== 'dev') throw new AuthError('Only development sign-in is available in dev mode.');
-    this.token = await this.mint(c.email);
+    let res: Response;
     try {
-      this.storage?.setItem(STORAGE_KEY, c.email);
+      res = await this.fetchImpl(`${this.apiBaseUrl}/dev/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: c.email, password: c.password }),
+      });
     } catch {
-      /* storage unavailable: session lasts until reload */
+      throw new AuthError('Cannot reach the server. Check your connection and try again.', 'network_error');
+    }
+    if (!res.ok) {
+      if (res.status === 404)
+        throw new AuthError(
+          'Development sign-in is not available (is the backend running with AUTH_PROVIDER=local?).',
+          'dev_login_unavailable',
+        );
+      if (res.status === 401 || res.status === 422)
+        throw new AuthError('Incorrect email or password.', 'invalid_credentials');
+      if (res.status === 429)
+        throw new AuthError('Too many attempts. Wait a moment and try again.', 'rate_limited');
+      throw new AuthError(`Sign-in failed (HTTP ${res.status}).`, 'sign_in_failed');
+    }
+    const body = (await res.json()) as { access_token?: string };
+    if (!body.access_token) throw new AuthError('The sign-in response was malformed.');
+    this.memory = body.access_token;
+    try {
+      this.storage?.setItem(STORAGE_KEY, body.access_token);
+    } catch {
+      /* storage unavailable: the session lasts until reload */
     }
     this.emit(true);
   }
 
   async signOut(): Promise<void> {
-    this.token = null;
+    this.memory = null;
     try {
       this.storage?.removeItem(STORAGE_KEY);
     } catch {

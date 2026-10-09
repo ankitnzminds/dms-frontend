@@ -8,7 +8,8 @@ export type Who = 'Alice' | 'Bob' | 'Carol' | 'Dave';
 
 export async function signInAs(page: Page, who: Who) {
   await page.goto('/login');
-  await page.getByRole('button', { name: new RegExp(`Sign in as ${who}`) }).click();
+  await page.getByRole('button', { name: new RegExp(`^Use ${who}`) }).click();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard/);
   await expect(page.getByRole('heading', { level: 1 })).toContainText(`Welcome, ${who}`);
 }

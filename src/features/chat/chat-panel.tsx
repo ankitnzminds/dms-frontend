@@ -364,6 +364,7 @@ export function ChatPanel({
             content,
             context_document_id: context?.documentId ?? null,
             context_folder_id: context?.folderId ?? null,
+            scope: 'workspace',
           },
         });
         qc.setQueryData(

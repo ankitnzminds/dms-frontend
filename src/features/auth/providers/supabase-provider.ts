@@ -28,7 +28,6 @@ export class SupabaseAuthProvider implements AuthProvider {
   }
 
   async signIn(c: SignInCredentials): Promise<void> {
-    if (c.kind !== 'password') throw new AuthError('Email and password are required.');
     const { error } = await this.client.auth.signInWithPassword({
       email: c.email,
       password: c.password,
