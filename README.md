@@ -10,7 +10,9 @@ through its OpenAPI contract (`openapi/openapi.json`).
 - Files are malware-scanned asynchronously; the UI shows "Scanning…" and never offers download until a
   document is `available`.
 
-Status of every feature (implemented / tested / not available) is in
+Includes search (names + contents), metadata, retention/legal holds, approval workflows, e-signature, directory
+provisioning, reports and notification preferences. Status of every feature (implemented / tested / not
+available) is in
 [`docs/feature-status.md`](docs/feature-status.md).
 
 ## Prerequisites
@@ -91,6 +93,10 @@ npm run lint && npm run typecheck && npm run test
 npm run e2e        # needs the backend dev stack on :8000
 ```
 
+The optional live e-signature spec runs only with `RUN_LIVE_SIGNING=1 npm run e2e -- tests/e2e/signing-live.spec.ts`
+(real hosted provider through the backend; can take ~60 s to wake). Everything else runs offline. The PDF preview
+test uses real Chrome (`npx playwright install chrome`).
+
 The malware scanner in the backend's dev stack flags any upload containing the text
 `DMS-TEST-INFECTED-FILE-SIGNATURE`; the quarantine E2E uses that marker (never the real EICAR string, which
 antivirus software deletes). See [`docs/testing.md`](docs/testing.md).
@@ -115,6 +121,6 @@ never contain secrets.
 | Browser console: CORS error to `localhost:8000`         | App is not on `http://localhost:3000`. Use the proxy, or add the origin to the backend CORS list. |
 | "The development token endpoint is not available"       | Backend not running with `AUTH_PROVIDER=local`, or not started.                                   |
 | Build fails: `NEXT_PUBLIC_AUTH_MODE=dev is not allowed` | Intended. Use `supabase` for production builds.                                                   |
-| PDF preview frame is blank/"sad page"                   | Backend `frame-ancestors` allows only its configured web origin. Use "Open preview in a new tab". |
+| PDF preview frame is blank/"sad page"                   | The backend must list your app origin in its `FRAME_ANCESTORS` setting.                           |
 | Everything 401s after the backend restarts              | Dev tokens are re-minted on reload; sign in again if the user changed.                            |
 | `api:check` fails in CI                                 | Backend contract changed: run `npm run api:sync`, review the diff, commit.                        |

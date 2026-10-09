@@ -1,6 +1,7 @@
 'use client';
 
 import { Bell, CheckCheck } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { NotificationRow } from '@/components/layout/notifications-menu';
@@ -37,6 +38,9 @@ export default function NotificationsPage() {
                 Unread only
               </Label>
             </div>
+            <Button asChild variant="secondary">
+              <Link href="/notifications/preferences">Preferences</Link>
+            </Button>
             <Button
               disabled={!q.data?.unread_count || markAll.isPending}
               onClick={() =>

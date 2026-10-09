@@ -10,7 +10,7 @@ const session = (id = 's1') => ({
   filename: 'a.pdf',
   declared_size: 3,
   content_type: 'application/octet-stream',
-  state: 'initiated',
+  state: 'initiated' as const,
   expires_at: new Date().toISOString(),
   upload_url: `/api/v1/uploads/${id}/content`,
 });

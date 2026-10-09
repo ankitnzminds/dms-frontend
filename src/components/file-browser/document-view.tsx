@@ -1,6 +1,16 @@
 'use client';
 
-import { Download, Share2, ShieldAlert, Upload, Loader2, Undo2 } from 'lucide-react';
+import {
+  ClipboardCheck,
+  Download,
+  FileSignature,
+  Loader2,
+  Share2,
+  ShieldAlert,
+  Undo2,
+  Upload,
+} from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AuditTable } from '@/components/admin/audit-table';
@@ -8,13 +18,13 @@ import { PageHeader, Panel } from '@/components/layout/page-header';
 import { PathTrail } from '@/components/navigation/path-trail';
 import { PreviewPanel } from '@/components/file-preview/preview-panel';
 import { ResourceShares } from '@/components/sharing/resource-shares';
-import { Badge } from '@/components/ui/badge';
+import { RequestSignatureDialog } from '@/components/signatures/request-dialog';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DisabledReason } from '@/components/ui/tooltip';
+import { SubmitApprovalDialog } from '@/components/workflows/submit-approval-dialog';
 import { useAuditEvents } from '@/features/admin/hooks';
 import { useMe } from '@/features/auth/session';
 import {
@@ -22,16 +32,19 @@ import {
   isPreviewableType,
   type ActionItem,
 } from '@/features/files/availability';
-import { useDocument, useRestoreItem, useUpdateDocumentMeta } from '@/features/files/hooks';
+import { useDocument, useRestoreItem } from '@/features/files/hooks';
+import { useProtection } from '@/features/governance/hooks';
+import { useOrganization } from '@/features/sharing/hooks';
+import { signatureUnavailableReason, useSignatureCapabilities } from '@/features/signatures/hooks';
 import { useUploads } from '@/features/upload/upload-manager';
-import { friendlyMessage, isApiError, type Document } from '@/lib/api-client';
-import { formatBytes, formatDateTime } from '@/lib/format';
-import { can, canReadAudit } from '@/lib/permissions';
-import { ItemActionsProvider, ItemMenu, useItemActions } from './item-actions';
+import { friendlyMessage, type Document } from '@/lib/api-client';
+import { can, canReadAudit, isAdminRole } from '@/lib/permissions';
+import { ApprovalsPanel, DetailsCard, ProcessingCard, SignaturesPanel } from './document-panels';
 import { StatusChip } from './file-bits';
+import { ItemActionsProvider, ItemMenu, useItemActions } from './item-actions';
+import { MetadataForm } from './metadata-form';
+import { deleteBlockReason, ProtectionBadges } from './protection-badges';
 import { VersionsPanel } from './versions-panel';
-
-const CLASSIFICATIONS = ['public', 'internal', 'confidential', 'restricted'];
 
 export function docToItem(d: Document): ActionItem {
   return {
@@ -84,84 +97,45 @@ function StatusBanner({ doc }: { doc: Document }) {
   );
 }
 
-function Details({ doc }: { doc: Document }) {
-  const meta = useUpdateDocumentMeta();
-  const v = doc.current_version;
-  const rows: [string, React.ReactNode][] = [
-    ['Name', doc.name],
-    ['Status', <StatusChip key="s" status={doc.status} />],
-    ['Type', v?.content_type ?? '-'],
-    ['Size', formatBytes(v?.size_bytes)],
-    ['Version', `v${doc.latest_version_number}`],
-    ['Created', formatDateTime(doc.created_at)],
-    ['Modified', formatDateTime(doc.updated_at)],
-  ];
-  return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-[13px]">
-      {rows.map(([k, val]) => (
-        <div key={k} className="contents">
-          <dt className="text-muted">{k}</dt>
-          <dd className="min-w-0 break-words">
-            {k === 'Status' && doc.status === 'available' ? (
-              <Badge tone="ok">Available</Badge>
-            ) : (
-              val
-            )}
-          </dd>
-        </div>
-      ))}
-      <dt className="text-muted">Classification</dt>
-      <dd>
-        <DisabledReason
-          reason={
-            can(doc.permissions, 'manage_access')
-              ? null
-              : 'Changing the classification needs the manage access permission.'
-          }
-        >
-          <Select
-            aria-label="Classification"
-            className="h-7 w-40 text-[13px]"
-            value={doc.classification}
-            disabled={!can(doc.permissions, 'manage_access') || meta.isPending}
-            onChange={(e) =>
-              meta.mutate(
-                { id: doc.id, classification: e.target.value, expectedRowVersion: doc.row_version },
-                {
-                  onSuccess: () => toast.success('Classification updated'),
-                  onError: (er) =>
-                    toast.error(
-                      isApiError(er) && er.code === 'stale_version'
-                        ? 'This document changed. Reload and try again.'
-                        : friendlyMessage(er),
-                    ),
-                },
-              )
-            }
-          >
-            {[...new Set([doc.classification, ...CLASSIFICATIONS])].map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </Select>
-        </DisabledReason>
-      </dd>
-    </dl>
-  );
-}
-
 function Toolbar({ doc }: { doc: Document }) {
   const { run } = useItemActions();
   const { engine } = useUploads();
+  const { data: me } = useMe();
+  const org = useOrganization();
+  const caps = useSignatureCapabilities();
+  const protection = useProtection('document', doc.id);
   const input = useRef<HTMLInputElement>(null);
+  const [approval, setApproval] = useState(false);
+  const [signature, setSignature] = useState(false);
   const item = docToItem(doc);
   const av = itemAvailability(item);
+
+  const blocked = ((org.data?.settings as { share_blocked_classifications?: string[] } | undefined)
+    ?.share_blocked_classifications ?? []) as string[];
+  const shareReason = !av.share.enabled
+    ? av.share.reason
+    : blocked.includes(doc.classification)
+      ? `Documents classified "${doc.classification}" cannot be shared.`
+      : null;
   const uploadReason = !can(doc.permissions, 'upload_version')
     ? 'You do not have permission to upload new versions.'
     : doc.status === 'processing'
       ? 'Wait for the current version to finish scanning.'
       : null;
+  const approvalReason =
+    doc.status !== 'available'
+      ? 'Only available documents can be submitted for approval.'
+      : !can(doc.permissions, 'view')
+        ? 'You do not have access to submit this document.'
+        : null;
+  const isPdf = doc.current_version?.content_type === 'application/pdf';
+  const sigReason =
+    doc.status !== 'available'
+      ? 'Only available documents can be sent for signature.'
+      : !isPdf
+        ? 'Only PDF documents can be sent for signature.'
+        : signatureUnavailableReason(caps.data, isAdminRole(me?.role));
+
   return (
     <>
       <input
@@ -186,8 +160,8 @@ function Toolbar({ doc }: { doc: Document }) {
           <Download /> Download
         </Button>
       </DisabledReason>
-      <DisabledReason reason={av.share.enabled ? null : av.share.reason}>
-        <Button disabled={!av.share.enabled} onClick={() => run('share', item)}>
+      <DisabledReason reason={shareReason}>
+        <Button disabled={!!shareReason} onClick={() => run('share', item)}>
           <Share2 /> Share
         </Button>
       </DisabledReason>
@@ -196,7 +170,39 @@ function Toolbar({ doc }: { doc: Document }) {
           <Upload /> Upload new version
         </Button>
       </DisabledReason>
-      <ItemMenu item={item} hide={['download', 'share', 'open']} />
+      <DisabledReason reason={approvalReason}>
+        <Button disabled={!!approvalReason} onClick={() => setApproval(true)}>
+          <ClipboardCheck /> Submit for approval
+        </Button>
+      </DisabledReason>
+      <DisabledReason reason={sigReason}>
+        <Button disabled={!!sigReason} onClick={() => setSignature(true)}>
+          <FileSignature /> Request signature
+        </Button>
+      </DisabledReason>
+      <ItemMenu
+        item={item}
+        hide={['download', 'share', 'open']}
+        overrides={
+          deleteBlockReason(protection.data) ? { delete: deleteBlockReason(protection.data)! } : {}
+        }
+      />
+      {approval && (
+        <SubmitApprovalDialog
+          documentId={doc.id}
+          documentName={doc.name}
+          open
+          onOpenChange={setApproval}
+        />
+      )}
+      {signature && (
+        <RequestSignatureDialog
+          documentId={doc.id}
+          documentName={doc.name}
+          open
+          onOpenChange={setSignature}
+        />
+      )}
     </>
   );
 }
@@ -222,6 +228,8 @@ export function DocumentView({ documentId }: { documentId: string }) {
   const q = useDocument(documentId);
   const { data: me } = useMe();
   const restore = useRestoreItem();
+  const protection = useProtection('document', documentId);
+  const tab = useSearchParams().get('tab') ?? 'overview';
 
   if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
   if (q.isPending)
@@ -242,8 +250,9 @@ export function DocumentView({ documentId }: { documentId: string }) {
     <ItemActionsProvider currentFolderId={doc.folder_id}>
       <PageHeader
         title={
-          <span className="flex items-center gap-2">
+          <span className="flex flex-wrap items-center gap-2">
             <span className="truncate">{doc.name}</span> <StatusChip status={doc.status} />
+            <ProtectionBadges protection={protection.data} />
           </span>
         }
         trail={<PathTrail segments={doc.breadcrumb} />}
@@ -273,16 +282,18 @@ export function DocumentView({ documentId }: { documentId: string }) {
         </div>
       )}
       <StatusBanner doc={doc} />
-      <Tabs defaultValue="overview">
+      <Tabs key={tab} defaultValue={tab}>
         <TabsList aria-label="Document sections">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="versions">Versions</TabsTrigger>
           <TabsTrigger value="sharing">Sharing</TabsTrigger>
+          <TabsTrigger value="approvals">Approvals</TabsTrigger>
+          <TabsTrigger value="signatures">Signatures</TabsTrigger>
           {showActivity && <TabsTrigger value="activity">Activity</TabsTrigger>}
         </TabsList>
         <TabsContent value="overview">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-            <Panel className="min-w-0 p-3">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+            <Panel className="min-w-0 self-start p-3">
               {doc.status === 'available' &&
               v &&
               av.preview.enabled &&
@@ -299,10 +310,20 @@ export function DocumentView({ documentId }: { documentId: string }) {
                 </p>
               )}
             </Panel>
-            <Panel className="h-fit p-4">
-              <h2 className="mb-3 text-sm font-semibold">Details</h2>
-              <Details doc={doc} />
-            </Panel>
+            <div className="grid content-start gap-4">
+              <Panel className="p-4">
+                <h2 className="mb-3 text-sm font-semibold">Details</h2>
+                <DetailsCard doc={doc} />
+              </Panel>
+              <Panel className="p-4">
+                <h2 className="mb-3 text-sm font-semibold">Metadata</h2>
+                <MetadataForm doc={doc} />
+              </Panel>
+              <Panel className="p-4">
+                <h2 className="mb-3 text-sm font-semibold">Processing</h2>
+                <ProcessingCard doc={doc} />
+              </Panel>
+            </div>
           </div>
         </TabsContent>
         <TabsContent value="versions">
@@ -310,6 +331,12 @@ export function DocumentView({ documentId }: { documentId: string }) {
         </TabsContent>
         <TabsContent value="sharing">
           <ResourceShares kind="document" id={doc.id} canShare={can(doc.permissions, 'share')} />
+        </TabsContent>
+        <TabsContent value="approvals">
+          <ApprovalsPanel doc={doc} />
+        </TabsContent>
+        <TabsContent value="signatures">
+          <SignaturesPanel doc={doc} />
         </TabsContent>
         {showActivity && (
           <TabsContent value="activity">

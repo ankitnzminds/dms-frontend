@@ -43,8 +43,38 @@ for (const scheme of ['light', 'dark'] as const) {
     await expect(page.getByTestId('audit-row').first()).toBeVisible();
     await scan(page, 'audit log');
 
-    await page.goto('/workflows');
+    await page.goto('/admin/identity');
     await scan(page, 'not available page');
+
+    for (const [path, ready, label] of [
+      ['/approvals', 'heading:My approvals', 'approvals'],
+      ['/signatures', 'heading:Signatures', 'signatures'],
+      [
+        '/notifications/preferences',
+        'heading:Notification preferences',
+        'notification preferences',
+      ],
+      ['/admin/settings', 'heading:Organization settings', 'settings'],
+      ['/admin/workflows', 'heading:Approval workflows', 'workflow admin'],
+      ['/admin/metadata', 'heading:Metadata fields', 'metadata admin'],
+      ['/admin/governance', 'heading:Governance', 'governance'],
+      ['/admin/directory', 'heading:Directory provisioning', 'directory'],
+      ['/admin/reports', 'heading:Reports', 'reports'],
+      ['/trash', 'heading:Trash', 'trash'],
+      ['/search?q=a', 'heading:Results for', 'search'],
+    ] as const) {
+      await page.goto(path);
+      await expect(page.getByRole('heading', { name: ready.split(':')[1]! }).first()).toBeVisible();
+      await page.waitForLoadState('networkidle');
+      await scan(page, label);
+    }
+
+    // a document page (tabs, metadata, processing cards)
+    await page.goto('/my-files');
+    await page.getByRole('table').getByRole('link').filter({ hasText: /.pdf$/ }).first().click();
+    await expect(page.getByRole('tab', { name: 'Approvals' })).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    await scan(page, 'document page');
     await ctx.close();
   });
 }

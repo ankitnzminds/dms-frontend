@@ -1,11 +1,8 @@
-import { NotAvailable } from '@/components/layout/not-available';
+import type { Metadata } from 'next';
+import { WorkflowsAdminView } from '@/features/workflows/workflows-admin-view';
 
-export default function AdminWorkflowsPage() {
-  return (
-    <NotAvailable
-      title="Workflow administration"
-      summary="Define approval templates and who may start them."
-      planned={['Approval templates', 'Role-based reviewer rules', 'SLA and escalation settings']}
-    />
-  );
+export const metadata: Metadata = { title: 'Workflows' };
+
+export default function Page() {
+  return <WorkflowsAdminView />;
 }

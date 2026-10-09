@@ -12,8 +12,10 @@ import { useAuditEvents } from '@/features/admin/hooks';
 import { useMe } from '@/features/auth/session';
 import { useOrgUsage, useRecent } from '@/features/files/hooks';
 import { useNotifications } from '@/features/notifications/hooks';
+import { useMyTasks } from '@/features/workflows/hooks';
+import { useSignatureRequests } from '@/features/signatures/hooks';
 import { useReceivedShares } from '@/features/sharing/hooks';
-import { formatBytes, formatDate, formatRelative } from '@/lib/format';
+import { fmtCount, formatBytes, formatDate, formatRelative } from '@/lib/format';
 import { isAdminRole } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 
@@ -66,11 +68,11 @@ function StorageMeter({
   );
 }
 
-function Count({ label, value }: { label: string; value: number }) {
+function Count({ label, value }: { label: string; value: number | null | undefined }) {
   return (
     <div>
       <dt className="text-xs text-muted">{label}</dt>
-      <dd className="text-[15px] font-semibold tabular">{value.toLocaleString()}</dd>
+      <dd className="text-[15px] font-semibold tabular">{fmtCount(value)}</dd>
     </div>
   );
 }
@@ -82,6 +84,8 @@ export function DashboardView() {
   const recent = useRecent(6, 0);
   const shared = useReceivedShares({ includeInactive: false, limit: 5, offset: 0 });
   const notes = useNotifications({ limit: 1, unreadOnly: true, poll: true });
+  const tasks = useMyTasks('pending', 1, 0);
+  const toSign = useSignatureRequests('to_sign', 1, 0);
   const audit = useAuditEvents({ limit: 6, offset: 0 }, admin);
 
   return (
@@ -140,6 +144,22 @@ export function DashboardView() {
               )}
             </p>
           )}
+          <ul className="mt-3 grid gap-1 text-[13px]" aria-label="Needs your attention">
+            <li data-testid="attn-approvals">
+              <Link className="text-accent hover:underline" href="/approvals">
+                {tasks.data
+                  ? `${tasks.data.total} approval${tasks.data.total === 1 ? '' : 's'} waiting for you`
+                  : 'Approvals'}
+              </Link>
+            </li>
+            <li data-testid="attn-signatures">
+              <Link className="text-accent hover:underline" href="/signatures">
+                {toSign.data
+                  ? `${toSign.data.total} document${toSign.data.total === 1 ? '' : 's'} to sign`
+                  : 'Signatures'}
+              </Link>
+            </li>
+          </ul>
           {admin && usage.data && (
             <p className="mt-3 flex items-center gap-2 text-[13px]">
               <ShieldAlert

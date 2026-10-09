@@ -3,6 +3,11 @@
 import { SearchX } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
+import { Thumbnail } from '@/components/file-preview/thumbnail';
+import { Snippet } from './snippet';
+import { useMetadataDefinitions } from '@/features/metadata/hooks';
+import { X } from 'lucide-react';
 import { useState } from 'react';
 import { ItemIcon, StatusChip } from '@/components/file-browser/file-bits';
 import { PaginationBar } from '@/components/file-browser/pagination-bar';
@@ -36,9 +41,16 @@ export function SearchView() {
   const [after, setAfter] = useState('');
   const [before, setBefore] = useState('');
   const [offset, setOffset] = useState(0);
+  const [scope, setScope] = useState<'all' | 'name' | 'content'>('all');
+  const defs = useMetadataDefinitions();
+  const [metaKey, setMetaKey] = useState('');
+  const [metaValue, setMetaValue] = useState('');
+  const [metas, setMetas] = useState<string[]>([]);
 
   const res = useSearch({
     q,
+    scope,
+    meta: metas.length ? metas : undefined,
     kind: kind || undefined,
     content_type: type || undefined,
     modified_after: startIso(after),
@@ -53,6 +65,8 @@ export function SearchView() {
     setAfter('');
     setBefore('');
     setOffset(0);
+    setScope('all');
+    setMetas([]);
   };
 
   return (
@@ -66,6 +80,18 @@ export function SearchView() {
         onSubmit={(e) => e.preventDefault()}
         aria-label="Search filters"
       >
+        <div className="grid gap-1">
+          <Label htmlFor="f-scope">Search in</Label>
+          <Select
+            id="f-scope"
+            value={scope}
+            onChange={(e) => (setScope(e.target.value as typeof scope), setOffset(0))}
+          >
+            <option value="all">Names and contents</option>
+            <option value="name">Names only</option>
+            <option value="content">Contents only</option>
+          </Select>
+        </div>
         <div className="grid gap-1">
           <Label htmlFor="f-kind">Show</Label>
           <Select
@@ -116,6 +142,56 @@ export function SearchView() {
         <Button variant="ghost" onClick={reset}>
           Reset filters
         </Button>
+        {(defs.data?.length ?? 0) > 0 && (
+          <fieldset className="flex w-full flex-wrap items-end gap-3">
+            <legend className="mb-1 text-[13px] font-medium">Metadata filter</legend>
+            <div className="grid gap-1">
+              <Label htmlFor="f-mkey">Field</Label>
+              <Select id="f-mkey" value={metaKey} onChange={(e) => setMetaKey(e.target.value)}>
+                <option value="">Choose a field…</option>
+                {defs.data!.map((d) => (
+                  <option key={d.id} value={d.key}>
+                    {d.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="grid gap-1">
+              <Label htmlFor="f-mval">Value</Label>
+              <Input id="f-mval" value={metaValue} onChange={(e) => setMetaValue(e.target.value)} />
+            </div>
+            <Button
+              disabled={!metaKey || !metaValue.trim() || metas.length >= 5}
+              onClick={() => {
+                const f = `${metaKey}:${metaValue.trim()}`;
+                if (!metas.includes(f)) setMetas([...metas, f]);
+                setMetaValue('');
+                setOffset(0);
+              }}
+            >
+              Add filter
+            </Button>
+            {metas.length > 0 && (
+              <ul className="flex flex-wrap gap-1.5" aria-label="Active metadata filters">
+                {metas.map((m) => (
+                  <li
+                    key={m}
+                    className="inline-flex items-center gap-1 rounded-sm bg-accent-soft px-1.5 py-0.5 text-xs text-accent-soft-fg"
+                  >
+                    {m}
+                    <button
+                      type="button"
+                      aria-label={`Remove filter ${m}`}
+                      onClick={() => (setMetas(metas.filter((x) => x !== m)), setOffset(0))}
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </fieldset>
+        )}
       </form>
       <Panel>
         {!q.trim() ? (
@@ -143,7 +219,20 @@ export function SearchView() {
                   className="flex items-start gap-3 px-3 py-2.5"
                   data-testid="search-result"
                 >
-                  <ItemIcon kind={r.kind} contentType={r.content_type} className="mt-0.5" />
+                  {r.kind === 'document' &&
+                  r.content_type?.startsWith('image/') &&
+                  r.status === 'available' ? (
+                    <Thumbnail
+                      documentId={r.id}
+                      name={r.name}
+                      className="mt-0.5 size-10"
+                      fallback={
+                        <ItemIcon kind={r.kind} contentType={r.content_type} className="mt-0.5" />
+                      }
+                    />
+                  ) : (
+                    <ItemIcon kind={r.kind} contentType={r.content_type} className="mt-0.5" />
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="flex flex-wrap items-center gap-2">
                       <Link
@@ -153,7 +242,24 @@ export function SearchView() {
                         {r.name}
                       </Link>
                       <StatusChip status={r.status} />
+                      {r.match && (
+                        <Badge
+                          tone={r.match === 'name' ? 'neutral' : 'accent'}
+                          data-testid="match-badge"
+                        >
+                          {r.match === 'both'
+                            ? 'Name and content'
+                            : r.match === 'content'
+                              ? 'Content match'
+                              : 'Name match'}
+                        </Badge>
+                      )}
                     </p>
+                    {r.snippet && (
+                      <p className="mt-0.5 text-xs text-muted">
+                        <Snippet text={r.snippet} />
+                      </p>
+                    )}
                     {r.breadcrumb.length > 0 && (
                       <PathTrail segments={r.breadcrumb} size="sm" className="mt-0.5" />
                     )}

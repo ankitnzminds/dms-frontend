@@ -13,7 +13,9 @@ import { UploadButton } from '@/components/upload/upload-button';
 import { useChildren, useFolder, type SortKey, type SortOrder } from '@/features/files/hooks';
 import { can } from '@/lib/permissions';
 import { BulkDeleteDialog } from './bulk-delete-dialog';
-import { ItemActionsProvider } from './item-actions';
+import { ItemActionsProvider, ItemMenu } from './item-actions';
+import { deleteBlockReason, ProtectionBadges } from './protection-badges';
+import { useProtection } from '@/features/governance/hooks';
 import { ItemsTable } from './items-table';
 import { NewFolderDialog } from './name-dialogs';
 
@@ -21,6 +23,7 @@ const PAGE_SIZE = 50;
 
 export function FolderView({ folderId }: { folderId: string }) {
   const folder = useFolder(folderId);
+  const protection = useProtection('folder', folderId);
   const [sort, setSort] = useState<{ key: SortKey; order: SortOrder }>({
     key: 'name',
     order: 'asc',
@@ -50,7 +53,11 @@ export function FolderView({ folderId }: { folderId: string }) {
   return (
     <ItemActionsProvider currentFolderId={folderId}>
       <PageHeader
-        title={f?.name ?? 'Loading…'}
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            {f?.name ?? 'Loading…'} <ProtectionBadges protection={protection.data} />
+          </span>
+        }
         trail={f && f.breadcrumb.length > 0 ? <PathTrail segments={f.breadcrumb} /> : undefined}
         description={f?.is_root ? 'Your organization’s canonical folder tree.' : undefined}
         actions={
@@ -62,6 +69,22 @@ export function FolderView({ folderId }: { folderId: string }) {
                 </Button>
               </DisabledReason>
               <UploadButton folderId={folderId} disabledReason={createReason} />
+              {!f.is_root && (
+                <ItemMenu
+                  item={{
+                    kind: 'folder',
+                    id: f.id,
+                    name: f.name,
+                    permissions: f.permissions,
+                  }}
+                  hide={['open', 'preview', 'download', 'copy', 'star']}
+                  overrides={
+                    deleteBlockReason(protection.data)
+                      ? { delete: deleteBlockReason(protection.data)! }
+                      : {}
+                  }
+                />
+              )}
             </>
           )
         }

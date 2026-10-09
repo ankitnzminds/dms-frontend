@@ -6,7 +6,7 @@ import { ItemsTable } from '@/components/file-browser/items-table';
 import { ApiError, type TreeItem } from '@/lib/api-client';
 import { renderApp } from './test-utils';
 
-const ALL = [
+const ALL: TreeItem['permissions'] = [
   'view',
   'preview',
   'download',

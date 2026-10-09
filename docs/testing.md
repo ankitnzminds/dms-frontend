@@ -59,19 +59,52 @@ Specs:
 - `a11y.spec.ts` - axe-core WCAG 2.0/2.1 A+AA on login, dashboard, files, shared-by-me, admin users, audit,
   not-available, in light and dark themes (0 violations).
 
+Phase 2 specs (all offline except the optional live one):
+
+- `governance.spec.ts` - legal hold created and populated through the search picker; document page shows the
+  hold badge and Delete is disabled with the reason; release requires a reason; delete forever is blocked by
+  a legal hold (409) and by a retention policy (409 with the end date) and works once removed; auditors see
+  Governance read-only.
+- `metadata-and-search.spec.ts` - admin creates typed fields (key validation, required), the document form
+  validates and saves, `meta=key:value` search filter, archive; content search finds a word inside an
+  uploaded .txt (waits for text extraction), shows the "Content match" badge and a `<mark>`-highlighted
+  snippet with markup in the file rendered as inert text, `scope=name` excludes it; thumbnails use the
+  thumbnail download variant.
+- `approvals.spec.ts` - workflow builder (validation, member-lookup reviewer, rule, due days), alice submits a
+  document, bob (second browser context) sees the task (links only to the document, never a folder),
+  receives a notification linking to /approvals, approves; alice sees the outcome; delegation to carol,
+  rejection, resubmit; plain members can use the member lookup in the share dialog and see the share policy
+  hints.
+- `directory-and-reports.spec.ts` - static directory source: secret-reference validation, invalid then valid
+  snapshot upload, dry-run sync polled to completion (and verified to change nothing), delete; notification
+  preferences persist; audit CSV export downloads a real file and is itself audited; reports page (admin and
+  auditor, not member); dashboard hides admin-only counters from members.
+- `pdf-preview.spec.ts` - uses real Chrome (`channel: 'chrome'`; the bundled headless shell has no PDF
+  viewer): the inline PDF preview is framed by the app, the framed response is 200 application/pdf with no
+  `X-Frame-Options` and no CSP framing error. A screenshot showed the PDF rendered inside the iframe.
+- `signing-live.spec.ts` - **optional, skipped unless `RUN_LIVE_SIGNING=1`**. Uses the real signing provider
+  wired into the backend dev stack (a hosted Documenso on a free instance that can take ~60 s to wake). Steps:
+  admin enables e-signatures in Settings; alice requests a signature from bob on a PDF; bob signs inside the
+  full-screen overlay; "I've finished signing" refreshes status until `completed`; the signed artifact links
+  to a new document version; cleanup turns e-signatures off again. No provider URL or token exists in this
+  repo. When run on 2026-10-09 it passed (3/3, ~40 s).
+
+Unit/component additions: snippet rendering safety (HTML payloads stay inert), signing-link secrecy (never
+rendered as text, not in storage, query cache, mutation cache or console), metadata form logic and component,
+directory snapshot validation and secret-reference rules, workflow builder logic, purge error mapping, null
+admin counters, notification deep links by type, member picker, preferences, read-only governance for auditors,
+reports helpers.
+
 ## Not covered / limits
 
 - Supabase mode is not exercised against a live project.
-- PDF rendering inside the preview `<iframe>` was not verified in-app: the backend's `frame-ancestors`
-  allows only `http://localhost:3000`, which could not be used (port occupied by another app). Chrome does
-  render the same inline URL when opened top-level.
-- Only Chromium is run. No visual-regression or screen-reader testing; axe is automated only.
+- The signing round trip depends on a hosted provider and therefore only runs when explicitly enabled.
+- Only Chromium (plus real Chrome for the PDF test) is run. No visual-regression or screen-reader testing; axe
+  is automated only.
 - Multi-organization switching and pending-invitation acceptance are implemented but not E2E-tested (the
   seed data has a single organization).
+- Non-dry-run directory syncs, Entra/LDAP sources (forms validated, never connected), and the e-mail channel of
+  notification preferences (the backend reports `email_available: false`) are not exercised.
 
-Additional spec: `access-and-conflicts.spec.ts` - Manage access (broad-grant acknowledgement, grant,
-revoke), `stale_version` on rename -> Reload -> success (the entity is changed through the API while the
-dialog is open), and the share dialog's `unknown_recipient` explanation.
-
-Run history for this document (Windows 11, Node 24, backend dev stack): `npm run test` 94 passed;
-`npm run e2e` 22 passed (19 earlier suites + 3 in this spec).
+Run history (Windows 11, Node 24, backend dev stack): `npm run test` 129 passed (17 files);
+`npm run e2e` 40 passed, 3 skipped (the optional live spec).

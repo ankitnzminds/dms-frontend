@@ -1,5 +1,6 @@
 'use client';
 
+import { MemberPicker } from '@/features/members/member-picker';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Info, Loader2, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -118,6 +119,12 @@ export function ShareDialog({ kind, id, name, permissions, open, onOpenChange }:
         },
         onError: (e) => {
           if (isApiError(e)) {
+            if (e.code === 'policy_blocked') {
+              setServerError(
+                'Your organization does not allow sharing items with this classification (for example restricted documents).',
+              );
+              return;
+            }
             if (e.code === 'unknown_recipient') {
               setServerError(
                 `${e.message} Only active members of this organization can receive shares - sharing outside the organization is not enabled.`,
@@ -232,6 +239,17 @@ export function ShareDialog({ kind, id, name, permissions, open, onOpenChange }:
                   'Press Enter after each address. Only members of this organization can be added.'}
               </p>
             </div>
+
+            <MemberPicker
+              label="Find a colleague"
+              inputId="share-lookup"
+              excludeIds={[]}
+              onSelect={(u) => {
+                if (!u.email) return;
+                const email = u.email.toLowerCase();
+                if (!v.emails.includes(email)) form.setValue('emails', [...v.emails, email]);
+              }}
+            />
 
             <fieldset className="grid gap-1.5">
               <legend className="text-[13px] font-medium">Groups</legend>

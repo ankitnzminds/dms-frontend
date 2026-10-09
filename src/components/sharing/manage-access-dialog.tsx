@@ -19,12 +19,12 @@ import {
   useRevokeGrant,
   type ResourceKind,
 } from '@/features/sharing/hooks';
-import { useAdminMembers } from '@/features/admin/hooks';
-import { friendlyMessage, type PermissionGrant } from '@/lib/api-client';
+import { MemberPicker } from '@/features/members/member-picker';
+import { friendlyMessage, type ActionName, type PermissionGrant } from '@/lib/api-client';
 import { formatDate } from '@/lib/format';
 import { actionLabel, isAdminRole } from '@/lib/permissions';
 
-const GRANTABLE = [
+const GRANTABLE: ActionName[] = [
   'view',
   'preview',
   'download',
@@ -63,13 +63,12 @@ export function ManageAccessDialog({
   const add = useAddGrant(kind, id);
   const revoke = useRevokeGrant(kind, id);
   const { data: me } = useMe();
-  const admin = isAdminRole(me?.role);
   const groups = useGroups();
-  const members = useAdminMembers({ q: '', limit: 100, offset: 0 }, open && admin);
+  const [pickedUser, setPickedUser] = useState<{ id: string; label: string } | null>(null);
 
   const [subjectType, setSubjectType] = useState<'group' | 'user' | 'organization'>('group');
   const [subjectId, setSubjectId] = useState('');
-  const [actions, setActions] = useState<string[]>(['view', 'preview']);
+  const [actions, setActions] = useState<ActionName[]>(['view', 'preview']);
   const [inherit, setInherit] = useState(true);
   const [days, setDays] = useState('none');
   const [ack, setAck] = useState(false);
@@ -163,6 +162,7 @@ export function ManageAccessDialog({
                   onSuccess: () => {
                     toast.success('Access granted');
                     setSubjectId('');
+                    setPickedUser(null);
                     setAck(false);
                   },
                   onError: (er) => setError(friendlyMessage(er)),
@@ -180,39 +180,47 @@ export function ManageAccessDialog({
                   onChange={(e) => {
                     setSubjectType(e.target.value as typeof subjectType);
                     setSubjectId('');
+                    setPickedUser(null);
                     setAck(false);
                   }}
                 >
                   <option value="group">A group</option>
-                  <option value="user" disabled={!admin}>
-                    A person{admin ? '' : ' (administrators only - use Share to add by email)'}
-                  </option>
+                  <option value="user">A person</option>
                   <option value="organization">Everyone in the organization</option>
                 </Select>
               </div>
-              {needsSubject && (
+              {subjectType === 'group' && (
                 <div className="grid gap-1">
-                  <Label htmlFor="acl-subject">
-                    {subjectType === 'group' ? 'Group' : 'Member'}
-                  </Label>
+                  <Label htmlFor="acl-subject">Group</Label>
                   <Select
                     id="acl-subject"
                     value={subjectId}
                     onChange={(e) => setSubjectId(e.target.value)}
                   >
                     <option value="">Select…</option>
-                    {subjectType === 'group'
-                      ? groups.data?.items.map((g) => (
-                          <option key={g.id} value={g.id}>
-                            {g.name}
-                          </option>
-                        ))
-                      : members.data?.items.map((m) => (
-                          <option key={m.user_id} value={m.user_id}>
-                            {m.display_name ?? m.email} ({m.email})
-                          </option>
-                        ))}
+                    {groups.data?.items.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
+                      </option>
+                    ))}
                   </Select>
+                </div>
+              )}
+              {subjectType === 'user' && (
+                <div className="grid gap-1">
+                  <MemberPicker
+                    label="Member"
+                    inputId="acl-member"
+                    onSelect={(u) => {
+                      setSubjectId(u.id);
+                      setPickedUser({ id: u.id, label: u.display_name ?? u.email ?? u.id });
+                    }}
+                  />
+                  {pickedUser && (
+                    <p className="text-xs text-muted" data-testid="acl-picked">
+                      Selected: <strong>{pickedUser.label}</strong>
+                    </p>
+                  )}
                 </div>
               )}
             </div>

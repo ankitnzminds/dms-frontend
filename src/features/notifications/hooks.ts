@@ -38,3 +38,24 @@ export function useMarkAllRead() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
 }
+
+export type NotificationPreference =
+  import('@/lib/api-client').Schemas['NotificationPreferenceModel'];
+type PrefsOut = import('@/lib/api-client').Schemas['NotificationPreferencesOut'];
+
+export function useNotificationPreferences() {
+  return useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: ({ signal }) =>
+      call<PrefsOut>(api.GET('/api/v1/notification-preferences', { signal })),
+  });
+}
+
+export function useSaveNotificationPreferences() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (prefs: NotificationPreference[]) =>
+      call<PrefsOut>(api.PUT('/api/v1/notification-preferences', { body: prefs })),
+    onSuccess: (data) => qc.setQueryData(['notification-preferences'], data),
+  });
+}

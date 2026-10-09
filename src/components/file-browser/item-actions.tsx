@@ -214,7 +214,16 @@ const MENU: {
 ];
 
 /** Row actions menu. Every entry is enabled/disabled strictly from the item's `permissions`. */
-export function ItemMenu({ item, hide = [] }: { item: ActionItem; hide?: ItemAction[] }) {
+export function ItemMenu({
+  item,
+  hide = [],
+  overrides = {},
+}: {
+  item: ActionItem;
+  hide?: ItemAction[];
+  /** Extra reasons that disable an action (e.g. legal hold blocks delete). */
+  overrides?: Partial<Record<ItemAction, string>>;
+}) {
   const { run } = useItemActions();
   const av = itemAvailability(item);
   const entries = MENU.filter((m) => !hide.includes(m.action));
@@ -227,7 +236,9 @@ export function ItemMenu({ item, hide = [] }: { item: ActionItem; hide?: ItemAct
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
         {entries.map((m, i) => {
-          const a = av[m.action];
+          const a = overrides[m.action]
+            ? { enabled: false, reason: overrides[m.action] }
+            : av[m.action];
           const Icon = m.action === 'star' && item.starred ? StarOff : m.icon;
           return (
             <span key={m.action}>

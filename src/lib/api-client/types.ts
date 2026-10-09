@@ -7,6 +7,7 @@ export type { paths, components };
 export type Schemas = components['schemas'];
 
 export type Me = Schemas['MeOut'];
+export type UserRef = Schemas['UserRef'];
 export type Membership = Schemas['MembershipOut'];
 export type Role = NonNullable<Me['role']>;
 export type Organization = Schemas['OrganizationOut'];
@@ -33,6 +34,14 @@ export type QuarantineItem = Schemas['QuarantineItem'];
 export type UploadSession = Schemas['UploadSessionOut'];
 export type UploadFinalize = Schemas['UploadFinalizeOut'];
 export type DocumentStatus = Document['status'];
+export type ActionName = Document['permissions'][number];
+export type Classification = Document['classification'];
+export const CLASSIFICATIONS: Classification[] = [
+  'public',
+  'internal',
+  'confidential',
+  'restricted',
+];
 
 export interface Page<T> {
   items: T[];

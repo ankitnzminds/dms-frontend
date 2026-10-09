@@ -95,13 +95,7 @@ test.describe('admin area', () => {
     await page.goto('/admin/storage');
     await expect(page.locator('#main').getByText('Not available yet')).toBeVisible();
     await expect(page.getByText('Quota', { exact: true })).toBeVisible();
-    for (const path of [
-      '/admin/identity',
-      '/admin/workflows',
-      '/admin/governance',
-      '/workflows',
-      '/signatures',
-    ]) {
+    for (const path of ['/admin/identity']) {
       await page.goto(path);
       await expect(page.locator('#main').getByText('Not available yet').first()).toBeVisible();
       await expect(page.getByRole('main').getByRole('button')).toHaveCount(0);

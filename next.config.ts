@@ -23,6 +23,11 @@ const proxyTarget = process.env.API_PROXY_TARGET?.replace(/[/]+$/, '');
 // Download/preview links returned by the API are absolute URLs on the real backend origin.
 const backendOrigin = proxyTarget ? new URL(proxyTarget).origin : apiOrigin;
 
+// Where the e-signature provider's signing page may be framed from (the provider URL is issued by the backend
+// at runtime and is deliberately not hard-coded here). Default: any https origin; narrow it per deployment,
+// e.g. SIGNING_FRAME_SRC="https://sign.example.com".
+const signingFrameSrc = process.env.SIGNING_FRAME_SRC ?? 'https:';
+
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isProd ? '' : " 'unsafe-eval'"}`,
@@ -30,7 +35,7 @@ const csp = [
   `img-src 'self' data: blob: ${apiOrigin} ${backendOrigin}`,
   "font-src 'self' data:",
   `connect-src 'self' ${apiOrigin} ${supabaseOrigin}${isProd ? '' : ' ws:'}`.trim(),
-  `frame-src ${apiOrigin} ${backendOrigin}`,
+  `frame-src ${apiOrigin} ${backendOrigin} ${signingFrameSrc}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

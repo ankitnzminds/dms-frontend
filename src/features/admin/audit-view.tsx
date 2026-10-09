@@ -6,8 +6,9 @@ import { AuditTable } from '@/components/admin/audit-table';
 import { PageHeader, Panel } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
-import type { AuditEvent } from '@/lib/api-client';
-import { useAuditEvents, type AuditFilters } from './hooks';
+import { toast } from 'sonner';
+import { friendlyMessage } from '@/lib/api-client';
+import { exportAuditCsv, useAuditEvents, type AuditFilters } from './hooks';
 
 const PAGE = 25;
 type Draft = {
@@ -29,38 +30,6 @@ const EMPTY: Draft = {
   until: '',
 };
 
-const csvCell = (v: unknown) => {
-  const s = v === null || v === undefined ? '' : typeof v === 'string' ? v : JSON.stringify(v);
-  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
-
-/** Client-side CSV of exactly the rows currently loaded (one page). */
-export function auditToCsv(items: AuditEvent[]): string {
-  const head = [
-    'time',
-    'action',
-    'outcome',
-    'actor_email',
-    'actor_user_id',
-    'resource_type',
-    'resource_id',
-    'request_id',
-    'metadata',
-  ];
-  const rows = items.map((e) => [
-    e.created_at,
-    e.action,
-    e.outcome,
-    e.actor_email,
-    e.actor_user_id,
-    e.resource_type,
-    e.resource_id,
-    e.request_id,
-    e.metadata,
-  ]);
-  return [head, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n');
-}
-
 export function AuditView() {
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [applied, setApplied] = useState<Draft>(EMPTY);
@@ -81,15 +50,26 @@ export function AuditView() {
   const set = (k: keyof Draft) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setDraft((d) => ({ ...d, [k]: e.target.value }));
 
-  function exportCsv() {
-    if (!q.data) return;
-    const blob = new Blob([auditToCsv(q.data.items)], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `audit-events-${offset + 1}-${offset + q.data.items.length}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const [exporting, setExporting] = useState(false);
+  async function exportCsv() {
+    setExporting(true);
+    try {
+      const { limit: _l, offset: _o, ...f } = filters;
+      void _l;
+      void _o;
+      const blob = await exportAuditCsv(f);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'audit-events.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Audit export downloaded (this export is itself audited)');
+    } catch (e) {
+      toast.error(friendlyMessage(e));
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -98,8 +78,8 @@ export function AuditView() {
         title="Audit log"
         description="Security-relevant events in this organization. Events cannot be edited."
         actions={
-          <Button onClick={exportCsv} disabled={!q.data || q.data.items.length === 0}>
-            <Download /> Export this page (CSV)
+          <Button onClick={exportCsv} disabled={exporting || !q.data || q.data.items.length === 0}>
+            <Download /> Export CSV (all matching)
           </Button>
         }
       />

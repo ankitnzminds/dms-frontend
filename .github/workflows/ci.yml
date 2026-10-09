@@ -68,7 +68,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium chrome # chrome: real PDF viewer for pdf-preview.spec
+      # The backend must allow framing from http://localhost:3100 (FRAME_ANCESTORS) for pdf-preview.spec.
       - name: Run Playwright (starts `next dev` on :3100 with a same-origin proxy to the backend)
         run: npm run e2e
         env:

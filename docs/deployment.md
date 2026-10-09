@@ -41,7 +41,12 @@ include the API origin for previews; `object-src 'none'`; `frame-ancestors 'none
 ## Backend requirements for a real deployment
 
 - CORS must allow the frontend origin, and the API's inline-preview CSP `frame-ancestors` must include it
-  (otherwise the PDF iframe is blocked; the "open in new tab" link still works).
+  (otherwise the PDF iframe is blocked; the "open in new tab" link still works). The backend now takes this
+  from its `FRAME_ANCESTORS` setting; verified in-app for `http://localhost:3100`.
+- The e-signature provider's signing page is framed in a full-screen overlay. The provider URL is issued by the
+  backend at runtime and is not hard-coded here, so `frame-src` also allows the origins in `SIGNING_FRAME_SRC`
+  (server env read by `next.config.ts`; default `https:`). Narrow it per deployment, e.g.
+  `SIGNING_FRAME_SRC=https://sign.example.com`.
 - The access token must be a JWT the backend trusts (Supabase JWT in production).
 
 ## Optional same-origin proxy

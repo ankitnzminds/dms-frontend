@@ -1,15 +1,8 @@
-import { NotAvailable } from '@/components/layout/not-available';
+import type { Metadata } from 'next';
+import { SignaturesView } from '@/features/signatures/signatures-view';
+
+export const metadata: Metadata = { title: 'Signatures' };
 
 export default function SignaturesPage() {
-  return (
-    <NotAvailable
-      title="E-signatures"
-      summary="Collect legally binding signatures on documents without leaving the system."
-      planned={[
-        'Signature requests with signing order',
-        'Signed copies stored as immutable versions',
-        'Signing certificates and audit trail',
-      ]}
-    />
-  );
+  return <SignaturesView />;
 }

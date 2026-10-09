@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { auditToCsv } from '@/features/admin/audit-view';
 import { itemAvailability } from '@/features/files/availability';
 import { notificationHref } from '@/features/notifications/links';
 import {
@@ -153,28 +152,5 @@ describe('helpers', () => {
       '/files/abc',
     );
     expect(notificationHref({ type: 'x', resource_type: null, resource_id: null })).toBeNull();
-  });
-
-  it('exports the loaded audit page as valid CSV', () => {
-    const csv = auditToCsv([
-      {
-        id: '1',
-        created_at: '2026-01-01T00:00:00Z',
-        action: 'share.created',
-        outcome: 'success',
-        actor_email: 'a@b.c',
-        actor_user_id: 'u',
-        resource_type: 'document',
-        resource_id: 'r',
-        request_id: 'q',
-        metadata: { note: 'has, comma and "quote"' },
-      },
-    ]);
-    const lines = csv.split('\r\n');
-    expect(lines[0]).toBe(
-      'time,action,outcome,actor_email,actor_user_id,resource_type,resource_id,request_id,metadata',
-    );
-    expect(lines[1]).toContain('share.created');
-    expect(lines[1]).toContain('"{""note"":""has, comma and \\""quote\\""""}"');
   });
 });

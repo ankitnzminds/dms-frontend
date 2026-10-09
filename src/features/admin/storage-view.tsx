@@ -5,7 +5,7 @@ import { PageHeader, Panel } from '@/components/layout/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { useOrgUsage } from '@/features/files/hooks';
-import { formatBytes } from '@/lib/format';
+import { fmtCount, formatBytes } from '@/lib/format';
 
 export function StorageView() {
   const u = useOrgUsage();
@@ -36,10 +36,10 @@ export function StorageView() {
                         Math.max(0, u.data.quota_bytes - u.data.used_bytes - u.data.reserved_bytes),
                       ),
                 ],
-                ['Documents', u.data.documents.toLocaleString()],
-                ['Versions', u.data.versions.toLocaleString()],
-                ['Folders', u.data.folders.toLocaleString()],
-                ['Waiting for scan', u.data.pending_scans.toLocaleString()],
+                ['Documents', fmtCount(u.data.documents)],
+                ['Versions', fmtCount(u.data.versions)],
+                ['Folders', fmtCount(u.data.folders)],
+                ['Waiting for scan', fmtCount(u.data.pending_scans)],
               ].map(([k, v]) => (
                 <div key={k}>
                   <dt className="text-xs text-muted">{k}</dt>

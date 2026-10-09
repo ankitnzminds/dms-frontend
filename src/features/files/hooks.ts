@@ -6,6 +6,7 @@ import {
   call,
   type Document,
   type Folder,
+  type Classification,
   type Page,
   type SearchResult,
   type TrashItem,
@@ -134,6 +135,8 @@ export function useTrash(limit = 50, offset = 0) {
 
 export interface SearchParams {
   q: string;
+  scope?: 'all' | 'name' | 'content';
+  meta?: string[];
   kind?: 'folder' | 'document';
   content_type?: string;
   owner_id?: string;
@@ -223,7 +226,11 @@ export function useUpdateItem() {
 export function useUpdateDocumentMeta() {
   const inv = useInvalidateFiles();
   return useMutation({
-    mutationFn: (v: { id: string; classification?: string; expectedRowVersion?: number | null }) =>
+    mutationFn: (v: {
+      id: string;
+      classification?: Classification;
+      expectedRowVersion?: number | null;
+    }) =>
       call<Document>(
         api.PATCH('/api/v1/documents/{document_id}', {
           params: { path: { document_id: v.id } },
@@ -328,5 +335,23 @@ export function useOrgUsage() {
     queryKey: ['usage'],
     queryFn: ({ signal }) => call(api.GET('/api/v1/organization/usage', { signal })),
     refetchInterval: 15_000,
+  });
+}
+
+export function useProcessing(id: string | undefined, poll = false) {
+  return useQuery({
+    queryKey: ['processing', id],
+    enabled: !!id,
+    queryFn: ({ signal }) =>
+      call<import('@/lib/api-client').Schemas['ProcessingStatusOut']>(
+        api.GET('/api/v1/documents/{document_id}/processing', {
+          params: { path: { document_id: id! } },
+          signal,
+        }),
+      ),
+    refetchInterval: (q) =>
+      poll && q.state.data && ['pending', 'processing'].includes(q.state.data.text_status ?? '')
+        ? 3000
+        : false,
   });
 }

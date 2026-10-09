@@ -54,3 +54,10 @@ Add OIDC/SAML SSO by implementing the interface and selecting it in `providers/i
   `X-Organization-Id`.
 - Roles: owner/admin see the admin portal; auditor sees only the audit log; members see neither. This is
   UI-only - the API enforces authorization.
+
+## SSO
+
+Single sign-on (SAML/OIDC) is a property of the authentication provider (Supabase), not of this app: users sign
+in there and the app only receives a JWT. This app's **Directory provisioning** page (Administration >
+Directory sync) provisions users and groups into the organization from a static snapshot, Microsoft Entra ID or
+LDAP; secrets are referenced as `env:DMS_DIR_<NAME>` server environment variables and are never entered in the UI.

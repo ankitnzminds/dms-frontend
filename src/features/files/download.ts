@@ -8,12 +8,20 @@ export interface DownloadLink {
 /** Always requests a FRESH short-lived URL; never cache or store the result. */
 export function requestDownloadUrl(
   documentId: string,
-  opts: { versionNumber?: number | null; inline?: boolean } = {},
+  opts: {
+    versionNumber?: number | null;
+    inline?: boolean;
+    variant?: 'original' | 'thumbnail';
+  } = {},
 ) {
   return call<DownloadLink>(
     api.POST('/api/v1/documents/{document_id}/download-url', {
       params: { path: { document_id: documentId } },
-      body: { version_number: opts.versionNumber ?? null, inline: opts.inline ?? false },
+      body: {
+        version_number: opts.versionNumber ?? null,
+        inline: opts.inline ?? false,
+        variant: opts.variant ?? 'original',
+      },
     }),
   );
 }

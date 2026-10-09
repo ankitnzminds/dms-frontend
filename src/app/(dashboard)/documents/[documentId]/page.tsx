@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { DocumentView } from '@/components/file-browser/document-view';
 
 export default async function DocumentPage({
@@ -6,5 +7,9 @@ export default async function DocumentPage({
   params: Promise<{ documentId: string }>;
 }) {
   const { documentId } = await params;
-  return <DocumentView documentId={documentId} />;
+  return (
+    <Suspense>
+      <DocumentView documentId={documentId} />
+    </Suspense>
+  );
 }

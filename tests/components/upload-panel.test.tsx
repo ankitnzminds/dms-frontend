@@ -13,7 +13,7 @@ const session = {
   filename: 'a.pdf',
   declared_size: 3,
   content_type: 'x',
-  state: 'initiated',
+  state: 'initiated' as const,
   expires_at: '2026-01-01T00:00:00Z',
   upload_url: '/api/v1/uploads/s1/content',
 };

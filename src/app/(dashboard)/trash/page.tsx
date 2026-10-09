@@ -1,6 +1,6 @@
 'use client';
 
-import { Trash2, Undo2 } from 'lucide-react';
+import { Flame, Trash2, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ItemIcon } from '@/components/file-browser/file-bits';
@@ -14,6 +14,7 @@ import { Field, Input } from '@/components/ui/input';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { useRestoreItem, useTrash } from '@/features/files/hooks';
+import { purgeErrorMessage, usePurge } from '@/features/governance/hooks';
 import { friendlyMessage, isApiError, type TrashItem } from '@/lib/api-client';
 import { formatBytes, formatDateTime } from '@/lib/format';
 
@@ -28,6 +29,9 @@ export default function TrashPage() {
     null,
   );
   const [blocked, setBlocked] = useState<string | null>(null);
+  const purge = usePurge();
+  const [purgeTarget, setPurgeTarget] = useState<TrashItem | null>(null);
+  const [purgeError, setPurgeError] = useState<string | null>(null);
 
   function doRestore(item: TrashItem, newName?: string) {
     restore.mutate(
@@ -65,7 +69,7 @@ export default function TrashPage() {
     <>
       <PageHeader
         title="Trash"
-        description="Deleted items can be restored to their original location. Permanent deletion is not available yet."
+        description="Deleted items can be restored to their original location. Deleting forever removes an item for good, unless a legal hold or retention policy protects it."
       />
       {blocked && (
         <p role="alert" className="mb-3 rounded-md bg-warn-soft px-3 py-2 text-[13px] text-warn">
@@ -108,6 +112,17 @@ export default function TrashPage() {
                   <Button size="sm" onClick={() => setTarget(t)}>
                     <Undo2 /> Restore
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="danger-ghost"
+                    aria-label={`Delete ${t.name} forever`}
+                    onClick={() => {
+                      setPurgeError(null);
+                      setPurgeTarget(t);
+                    }}
+                  >
+                    <Flame /> Delete forever
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -121,6 +136,44 @@ export default function TrashPage() {
           </>
         )}
       </Panel>
+
+      <ConfirmDialog
+        open={!!purgeTarget}
+        onOpenChange={(o) => !o && setPurgeTarget(null)}
+        title={`Delete "${purgeTarget?.name}" forever?`}
+        description={
+          <>
+            This permanently removes{' '}
+            {purgeTarget?.kind === 'folder'
+              ? 'the folder and everything inside it'
+              : 'the file and all of its versions'}
+            . <strong>It cannot be undone.</strong>
+            {purgeError && (
+              <span
+                role="alert"
+                className="mt-2 block rounded-md bg-danger-soft px-2 py-1.5 text-danger"
+              >
+                {purgeError}
+              </span>
+            )}
+          </>
+        }
+        confirmLabel="Delete forever"
+        destructive
+        pending={purge.isPending}
+        onConfirm={() =>
+          purge.mutate(
+            { kind: purgeTarget!.kind, id: purgeTarget!.id },
+            {
+              onSuccess: () => {
+                toast.success(`Deleted "${purgeTarget!.name}" forever`);
+                setPurgeTarget(null);
+              },
+              onError: (e) => setPurgeError(purgeErrorMessage(e) ?? friendlyMessage(e)),
+            },
+          )
+        }
+      />
 
       <ConfirmDialog
         open={!!target}

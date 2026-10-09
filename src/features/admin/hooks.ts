@@ -209,3 +209,14 @@ export function useUpdateOrganization() {
     [['organization'], ['me']],
   );
 }
+
+/** Server-side CSV of every event matching the filters (GET /admin/audit-events/export). The export is itself audited. */
+export async function exportAuditCsv(
+  f: Omit<AuditFilters, 'limit' | 'offset' | 'resource_id'>,
+): Promise<Blob> {
+  const r = await api.GET('/api/v1/admin/audit-events/export', {
+    params: { query: f },
+    parseAs: 'blob',
+  });
+  return r.data as Blob;
+}

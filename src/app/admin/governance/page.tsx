@@ -1,16 +1,8 @@
-import { NotAvailable } from '@/components/layout/not-available';
+import type { Metadata } from 'next';
+import { GovernanceView } from '@/features/governance/governance-view';
 
-export default function GovernancePage() {
-  return (
-    <NotAvailable
-      title="Governance & compliance"
-      summary="Policy controls for how long documents are kept and how sensitive data is protected."
-      planned={[
-        'Retention schedules and legal holds',
-        'Data loss prevention rules',
-        'Classification policy administration',
-        'External and link sharing controls',
-      ]}
-    />
-  );
+export const metadata: Metadata = { title: 'Governance' };
+
+export default function Page() {
+  return <GovernanceView />;
 }

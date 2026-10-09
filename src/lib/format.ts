@@ -54,3 +54,8 @@ export function titleCase(s: string): string {
   const t = s.replace(/[_-]+/g, ' ');
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
+
+/** Counters that the API nulls out for non-admins render as a dash. */
+export function fmtCount(n: number | null | undefined): string {
+  return n === null || n === undefined ? '-' : n.toLocaleString();
+}

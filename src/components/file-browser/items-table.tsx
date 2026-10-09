@@ -18,6 +18,7 @@ import type { SortKey, SortOrder } from '@/features/files/hooks';
 import type { TreeItem } from '@/lib/api-client';
 import { formatBytes, formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { Thumbnail } from '@/components/file-preview/thumbnail';
 import { ItemIcon, StatusChip } from './file-bits';
 import { ItemMenu } from './item-actions';
 import { PaginationBar } from './pagination-bar';
@@ -130,7 +131,22 @@ export function ItemsTable({
           const href = t.kind === 'folder' ? `/files/${t.id}` : `/documents/${t.id}`;
           return (
             <div className="flex min-w-0 items-center gap-2.5">
-              <ItemIcon kind={t.kind} contentType={t.content_type} teamFolder={t.is_team_folder} />
+              {t.kind === 'document' &&
+              t.status === 'available' &&
+              t.content_type?.startsWith('image/') ? (
+                <Thumbnail
+                  documentId={t.id}
+                  name={t.name}
+                  className="size-6 shrink-0"
+                  fallback={<ItemIcon kind={t.kind} contentType={t.content_type} />}
+                />
+              ) : (
+                <ItemIcon
+                  kind={t.kind}
+                  contentType={t.content_type}
+                  teamFolder={t.is_team_folder}
+                />
+              )}
               <Link
                 href={href}
                 className="truncate font-medium hover:text-accent hover:underline"

@@ -31,3 +31,53 @@ export async function createFolderViaUi(page: Page, name: string) {
 
 export const pdfBytes = (marker: string) =>
   Buffer.from(`%PDF-1.4\n% ${marker}\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n`);
+
+type Req = import('@playwright/test').APIRequestContext;
+
+export async function apiAs(request: Req, email: string) {
+  const token = await devToken(request, email);
+  const headers = { Authorization: `Bearer ${token}` };
+  return {
+    headers,
+    async root(): Promise<string> {
+      return (await (await request.get(`${API}/folders/root`, { headers })).json()).id;
+    },
+    async uploadDoc(
+      folderId: string,
+      name: string,
+      mimeType: string,
+      buffer: Buffer,
+    ): Promise<string> {
+      const init = await request.post(`${API}/folders/${folderId}/uploads`, {
+        headers: { ...headers, 'Idempotency-Key': crypto.randomUUID() },
+        data: { filename: name, content_type: mimeType, size_bytes: buffer.length },
+      });
+      expect(init.ok()).toBeTruthy();
+      const s = await init.json();
+      const put = await request.put(`${API.replace('/api/v1', '')}${s.upload_url}`, {
+        headers: { ...headers, 'Content-Type': 'application/octet-stream' },
+        data: buffer,
+      });
+      expect(put.ok()).toBeTruthy();
+      const fin = await request.post(`${API}/uploads/${s.id}/finalize`, { headers });
+      expect(fin.ok()).toBeTruthy();
+      const id = (await fin.json()).document_id as string;
+      await expect
+        .poll(
+          async () =>
+            (await (await request.get(`${API}/documents/${id}`, { headers })).json()).status,
+          {
+            timeout: 60_000,
+          },
+        )
+        .toBe('available');
+      return id;
+    },
+    async post(path: string, data: unknown) {
+      return request.post(`${API}${path}`, { headers, data });
+    },
+    async get(path: string) {
+      return request.get(`${API}${path}`, { headers });
+    },
+  };
+}

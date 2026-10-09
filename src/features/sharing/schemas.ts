@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { ShareCreate } from '@/lib/api-client';
+import type { ActionName, ShareCreate } from '@/lib/api-client';
 
 export const PRESETS = {
   viewer: { label: 'Viewer', hint: 'Can view and preview', actions: ['view', 'preview'] },
@@ -13,7 +13,7 @@ export const PRESETS = {
     hint: 'Can also edit details, rename and upload new versions',
     actions: ['view', 'preview', 'download', 'edit_metadata', 'rename', 'upload_version'],
   },
-  custom: { label: 'Custom', hint: 'Pick individual permissions', actions: [] as string[] },
+  custom: { label: 'Custom', hint: 'Pick individual permissions', actions: [] as ActionName[] },
 } as const;
 export type PresetKey = keyof typeof PRESETS;
 
@@ -69,8 +69,9 @@ export function endOfLocalDay(yyyyMmDd: string): Date {
   return new Date(y!, (m ?? 1) - 1, d ?? 1, 23, 59, 59);
 }
 
-export function actionsFor(v: Pick<ShareFormValues, 'preset' | 'customActions'>): string[] {
-  const base = v.preset === 'custom' ? v.customActions : [...PRESETS[v.preset].actions];
+export function actionsFor(v: Pick<ShareFormValues, 'preset' | 'customActions'>): ActionName[] {
+  const base: ActionName[] =
+    v.preset === 'custom' ? (v.customActions as ActionName[]) : [...PRESETS[v.preset].actions];
   // view is required for any access to be meaningful
   return base.length && !base.includes('view') ? ['view', ...base] : base;
 }
