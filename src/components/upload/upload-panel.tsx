@@ -4,7 +4,7 @@ import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Loader2, RotateCcw, 
 import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { friendlyMessage, ApiError } from '@/lib/api-client';
+import { api, call, friendlyMessage, ApiError, type Document } from '@/lib/api-client';
 import { formatBytes } from '@/lib/format';
 import { useUploads } from '@/features/upload/upload-manager';
 import type { UploadItem } from '@/features/upload/upload-engine';
@@ -36,6 +36,38 @@ export function uploadErrorText(err: NonNullable<UploadItem['error']>) {
     default:
       return friendlyMessage(e);
   }
+}
+
+/** stale_version: reload the document, then retry against its latest version number. */
+function StaleRetry({ item }: { item: UploadItem }) {
+  const { engine } = useUploads();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  return (
+    <span className="mt-1 block">
+      <Button
+        size="sm"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          setErr(null);
+          try {
+            const d = await call<Document>(
+              api.GET('/api/v1/documents/{document_id}', { params: { path: { document_id: item.documentId! } } }),
+            );
+            engine.retry(item.id, undefined, d.latest_version_number);
+          } catch (e) {
+            setErr(friendlyMessage(e));
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        Reload and retry
+      </Button>
+      {err && <span className="ml-2 text-danger">{err}</span>}
+    </span>
+  );
 }
 
 export function UploadRow({ item }: { item: UploadItem }) {
@@ -82,6 +114,7 @@ export function UploadRow({ item }: { item: UploadItem }) {
               {item.error.requestId && (
                 <span className="ml-1 text-faint">(ref {item.error.requestId.slice(0, 8)})</span>
               )}
+              {item.error.code === 'stale_version' && item.documentId && <StaleRetry item={item} />}
               {item.error.code === 'name_conflict' && (
                 <RenameRetry
                   initial={item.name}
@@ -104,7 +137,7 @@ export function UploadRow({ item }: { item: UploadItem }) {
           )}
           {(item.status === 'error' || item.status === 'cancelled') && (
             <>
-              {item.error?.code !== 'name_conflict' && (
+              {item.error?.code !== 'name_conflict' && item.error?.code !== 'stale_version' && (
                 <Button size="icon-sm" variant="ghost" aria-label={`Retry upload of ${item.name}`} onClick={() => engine.retry(item.id)}>
                   <RotateCcw />
                 </Button>

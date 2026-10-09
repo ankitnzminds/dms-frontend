@@ -31,7 +31,7 @@ export function DialogContent({
         className={cn(
           side === 'left'
             ? 'animate-slide-in fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] border-r border-line bg-surface shadow-pop'
-            : 'animate-pop fixed left-1/2 top-1/2 z-50 flex max-h-[88vh] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg border border-line bg-surface shadow-pop',
+            : 'animate-pop fixed left-1/2 top-1/2 z-50 flex max-h-[88vh] w-[calc(100vw-2rem)] [&>form]:flex [&>form]:min-h-0 [&>form]:flex-1 [&>form]:flex-col max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg border border-line bg-surface shadow-pop',
           className,
         )}
         {...props}
@@ -61,7 +61,7 @@ export function DialogContent({
 }
 
 export function DialogBody({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('scroll-thin overflow-y-auto px-5 py-4', className)} {...p} />;
+  return <div className={cn('scroll-thin min-h-0 flex-1 overflow-y-auto px-5 py-4', className)} {...p} />;
 }
 
 export function DialogFooter({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) {

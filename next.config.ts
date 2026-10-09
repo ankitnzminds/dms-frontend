@@ -17,14 +17,20 @@ const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL
   ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
   : '';
 
+// Optional same-origin proxy (server-side env, never exposed to the browser). Handy when the API does not
+// CORS-allow the origin the app runs on (e.g. another app already owns :3000), and for single-origin deployments.
+const proxyTarget = process.env.API_PROXY_TARGET?.replace(/[/]+$/, '');
+// Download/preview links returned by the API are absolute URLs on the real backend origin.
+const backendOrigin = proxyTarget ? new URL(proxyTarget).origin : apiOrigin;
+
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isProd ? '' : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${apiOrigin}`,
+  `img-src 'self' data: blob: ${apiOrigin} ${backendOrigin}`,
   "font-src 'self' data:",
   `connect-src 'self' ${apiOrigin} ${supabaseOrigin}${isProd ? '' : ' ws:'}`.trim(),
-  `frame-src ${apiOrigin}`,
+  `frame-src ${apiOrigin} ${backendOrigin}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -35,6 +41,9 @@ const config: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
   reactStrictMode: true,
+  async rewrites() {
+    return proxyTarget ? [{ source: '/api/v1/:path*', destination: `${proxyTarget}/api/v1/:path*` }] : [];
+  },
   async headers() {
     return [
       {

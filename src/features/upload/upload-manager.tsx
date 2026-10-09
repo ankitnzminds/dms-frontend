@@ -69,10 +69,18 @@ interface Ctx {
 }
 const UploadCtx = createContext<Ctx | null>(null);
 
-export function UploadProvider({ children }: { children: React.ReactNode }) {
+export function UploadProvider({
+  children,
+  engine: injected,
+}: {
+  children: React.ReactNode;
+  /** Tests inject an engine with fake dependencies. */
+  engine?: UploadEngine;
+}) {
   const qc = useQueryClient();
   const engine = useMemo(
     () =>
+      injected ??
       new UploadEngine(
         createLiveDeps((item) => {
           void qc.invalidateQueries({ queryKey: ['children'] });
@@ -84,7 +92,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
           }
         }),
       ),
-    [qc],
+    [qc, injected],
   );
   const items = useSyncExternalStore(engine.subscribe, engine.getSnapshot, engine.getSnapshot);
   const value = useMemo(() => ({ items, engine }), [items, engine]);
