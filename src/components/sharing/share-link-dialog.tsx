@@ -380,7 +380,7 @@ function Matrix({
       </p>
     );
   return (
-    <div className="overflow-x-auto rounded-md border border-line">
+    <div className="overflow-x-auto rounded-md border border-line" tabIndex={0}>
       <table className="w-full min-w-[34rem] border-collapse text-[13px]">
         <caption className="sr-only">{label}</caption>
         <thead>

@@ -245,23 +245,31 @@ function Row({ t, p }: { t: TreeItem; p: ViewProps }) {
 
 export function DetailsView(p: ViewProps) {
   const col = (c: ColumnId) => p.columns.includes(c);
+  const sortAttr = (key: SortKey) =>
+    p.sort === key ? (p.order === 'asc' ? 'ascending' : 'descending') : 'none';
   const head = (label: string, key: SortKey, show = true, right = false) => {
-    if (!show) return <span className="hidden" />;
+    if (!show) return <span role="columnheader" className="hidden" />;
     const active = p.sort === key;
     const Icon = p.order === 'asc' ? ArrowUp : ArrowDown;
     return (
-      <button
-        type="button"
-        onClick={() => p.onSort(key)}
-        className={cn(
-          'hidden items-center gap-1 rounded-sm px-1 text-left hover:text-text sm:inline-flex',
-          right && 'justify-end',
-        )}
-        aria-label={`Sort by ${label}${active ? `, currently ${p.order === 'asc' ? 'ascending' : 'descending'}` : ''}`}
+      <span
+        role="columnheader"
+        aria-sort={sortAttr(key)}
+        className={cn('hidden sm:block', right && 'text-right')}
       >
-        {label}
-        {active && <Icon className="size-3" aria-hidden />}
-      </button>
+        <button
+          type="button"
+          onClick={() => p.onSort(key)}
+          className={cn(
+            'inline-flex items-center gap-1 rounded-sm px-1 text-left hover:text-text',
+            right && 'justify-end',
+          )}
+          aria-label={`Sort by ${label}${active ? `, currently ${p.order === 'asc' ? 'ascending' : 'descending'}` : ''}`}
+        >
+          {label}
+          {active && <Icon className="size-3" aria-hidden />}
+        </button>
+      </span>
     );
   };
   return (
@@ -275,20 +283,22 @@ export function DetailsView(p: ViewProps) {
         role="row"
         className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-line px-3 py-1.5 text-xs font-medium text-muted sm:grid-cols-[minmax(0,1fr)_7rem_9rem_9rem_6rem]"
       >
-        <button
-          type="button"
-          onClick={() => p.onSort('name')}
-          className="inline-flex items-center gap-1 rounded-sm px-1 text-left hover:text-text"
-          aria-label={`Sort by Name${p.sort === 'name' ? `, currently ${p.order === 'asc' ? 'ascending' : 'descending'}` : ''}`}
-        >
-          Name{' '}
-          {p.sort === 'name' &&
-            (p.order === 'asc' ? (
-              <ArrowUp className="size-3" aria-hidden />
-            ) : (
-              <ArrowDown className="size-3" aria-hidden />
-            ))}
-        </button>
+        <span role="columnheader" aria-sort={sortAttr('name')}>
+          <button
+            type="button"
+            onClick={() => p.onSort('name')}
+            className="inline-flex items-center gap-1 rounded-sm px-1 text-left hover:text-text"
+            aria-label={`Sort by Name${p.sort === 'name' ? `, currently ${p.order === 'asc' ? 'ascending' : 'descending'}` : ''}`}
+          >
+            Name{' '}
+            {p.sort === 'name' &&
+              (p.order === 'asc' ? (
+                <ArrowUp className="size-3" aria-hidden />
+              ) : (
+                <ArrowDown className="size-3" aria-hidden />
+              ))}
+          </button>
+        </span>
         {head('Type', 'type', col('type'))}
         {head('Modified', 'updated_at', col('modified'))}
         {head('Modified by', 'modified_by', col('modified_by'))}

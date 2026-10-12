@@ -167,7 +167,7 @@ export function PolicyListView() {
           />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0}>
               <table className="w-full min-w-[56rem] text-[13px]">
                 <caption className="sr-only">Policies</caption>
                 <thead>

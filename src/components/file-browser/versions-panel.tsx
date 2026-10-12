@@ -42,7 +42,7 @@ export function VersionsPanel({
   const versions = [...q.data].sort((a, b) => b.version_number - a.version_number);
   return (
     <>
-      <div className="overflow-x-auto rounded-lg border border-line bg-surface">
+      <div className="overflow-x-auto rounded-lg border border-line bg-surface" tabIndex={0}>
         <table className="w-full min-w-[40rem] border-collapse text-[13px]">
           <caption className="sr-only">Versions of this document, newest first</caption>
           <thead>

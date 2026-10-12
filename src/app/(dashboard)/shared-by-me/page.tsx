@@ -159,7 +159,7 @@ export default function SharedByMePage() {
           />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0}>
               <table className="w-full table-fixed border-collapse text-[13px]">
                 <caption className="sr-only">Shares you created</caption>
                 <colgroup>

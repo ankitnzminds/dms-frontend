@@ -62,7 +62,7 @@ function RoleSwitch({ role, onChange }: { role: Role; onChange: (r: Role) => voi
             'flex h-[3.1em] items-center justify-center gap-[0.55em] border text-[1.05em] font-medium transition-colors focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-[#155EEF]',
             r === 'user' ? 'rounded-l-[0.75em]' : 'rounded-r-[0.75em]',
             role === r
-              ? 'z-[1] border-[#155EEF] bg-[#155EEF]/10 text-[#155EEF]'
+              ? 'z-[1] border-[#155EEF] bg-[#155EEF]/10 text-[#155EEF] dark:bg-[#155EEF]/25 dark:text-[#b4c9ff]'
               : 'border-line bg-surface-2 text-muted hover:text-text',
           )}
         >

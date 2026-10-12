@@ -109,7 +109,7 @@ export default function SharedWithMePage() {
           />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0}>
               <table className="w-full table-fixed border-collapse text-[13px]">
                 <caption className="sr-only">Items shared with you</caption>
                 <colgroup>

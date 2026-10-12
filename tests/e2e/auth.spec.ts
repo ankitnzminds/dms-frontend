@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { signInAs } from './helpers';
+import { fillCredentials, signInAs } from './helpers';
 
 async function openAccountMenu(page: Page) {
   await page.getByRole('button', { name: 'Account menu' }).click();
@@ -15,7 +15,9 @@ test.describe('login, session lifecycle and authorization', () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test('validation: empty and malformed input is explained before any request', async ({ page }) => {
+  test('validation: empty and malformed input is explained before any request', async ({
+    page,
+  }) => {
     await page.goto('/login');
     await page.getByRole('button', { name: 'Sign in as User', exact: true }).click();
     await expect(page.getByText('Enter your email')).toBeVisible();
@@ -29,7 +31,7 @@ test.describe('login, session lifecycle and authorization', () => {
   }) => {
     await page.goto('/trash');
     await expect(page).toHaveURL(/\/login\?next=%2Ftrash/);
-    await page.getByRole('button', { name: /^Use Alice/ }).click();
+    await fillCredentials(page, 'Alice');
     await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'password');
     await page.getByRole('button', { name: 'Show password' }).click();
     await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'text');
@@ -51,7 +53,9 @@ test.describe('login, session lifecycle and authorization', () => {
     // a fresh navigation to a protected page is refused too
     await page.goto('/my-files');
     await expect(page).toHaveURL(/\/login/);
-    const stored = await page.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage }));
+    const stored = await page.evaluate(() =>
+      JSON.stringify({ ...localStorage, ...sessionStorage }),
+    );
     expect(stored).not.toMatch(/eyJ/); // no JWT left behind
   });
 
@@ -77,7 +81,9 @@ test.describe('login, session lifecycle and authorization', () => {
     await ctx2.close();
   });
 
-  test('a member never gets the admin area (and no admin entry in the navigation)', async ({ page }) => {
+  test('a member never gets the admin area (and no admin entry in the navigation)', async ({
+    page,
+  }) => {
     await signInAs(page, 'Bob');
     await expect(page.getByRole('link', { name: 'Administration' })).toHaveCount(0);
     await page.goto('/admin/users');

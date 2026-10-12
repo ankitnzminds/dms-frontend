@@ -57,7 +57,7 @@ describe('StartWorkflowDialog', () => {
     renderApp(
       <StartWorkflowDialog type="document" id="d1" name="deal.pdf" open onOpenChange={() => {}} />,
     );
-    const group = await screen.findByRole('radiogroup', { name: 'Workflows' });
+    const group = await screen.findByRole('group', { name: 'Workflows' });
     expect(within(group).getByText('Attach the signed copy first')).toBeInTheDocument();
     expect(within(group).getByText('Admins')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Start$/ })).toBeDisabled(); // nothing chosen yet
@@ -74,7 +74,7 @@ describe('StartWorkflowDialog', () => {
       <StartWorkflowDialog type="folder" id="f1" name="Inbox" open onOpenChange={() => {}} />,
     );
     const radio = await screen.findByRole('radio', { name: /Contract review/ });
-    expect(radio).toHaveAttribute('aria-checked', 'true');
+    expect(radio).toBeChecked();
     expect(screen.getByRole('button', { name: /^Start$/ })).toBeEnabled();
   });
 

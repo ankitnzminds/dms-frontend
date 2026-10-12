@@ -182,7 +182,7 @@ function IdentityBar() {
           <Settings className="size-4" aria-hidden />
         </Link>
         <div className="ml-2 flex items-center gap-2">
-          <span className="grid size-8 place-items-center rounded-full bg-[#2f6bff] text-xs font-semibold">
+          <span className="grid size-8 place-items-center rounded-full bg-[#1d4fd8] text-xs font-semibold">
             {initials || '?'}
           </span>
           <span className="hidden min-w-0 sm:block">
@@ -432,7 +432,7 @@ function Recent({
       ) : rows.length === 0 ? (
         <p className="py-6 text-center text-[13px] text-muted">No recent activity.</p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0}>
           <table className="w-full min-w-[36rem] text-[13px]">
             <caption className="sr-only">Recent storage activity</caption>
             <thead>
@@ -493,7 +493,7 @@ function RecentFiles({ q, className }: { q: ReturnType<typeof useRecent>; classN
       ) : rows.length === 0 ? (
         <p className="py-6 text-center text-[13px] text-muted">No recent files.</p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0}>
           <table className="w-full min-w-[22rem] text-[13px]">
             <caption className="sr-only">Recent files</caption>
             <thead>

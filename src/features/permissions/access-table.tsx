@@ -16,7 +16,7 @@ export function AccessTable({
   caption: string;
 }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" tabIndex={0}>
       <table className="w-full min-w-[52rem] text-[13px]">
         <caption className="sr-only">{caption}</caption>
         <thead>

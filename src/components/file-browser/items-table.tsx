@@ -219,7 +219,7 @@ export function ItemsTable({
 
   return (
     <div>
-      <div className={fit ? undefined : 'overflow-x-auto'}>
+      <div className={fit ? undefined : 'overflow-x-auto'} tabIndex={fit ? undefined : 0}>
         <table className="w-full table-fixed border-collapse text-[13px]">
           <caption className="sr-only">{caption}</caption>
           <thead>

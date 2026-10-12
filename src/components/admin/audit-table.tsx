@@ -105,7 +105,7 @@ export function AuditTable({
   if (data.items.length === 0) return <EmptyState title="No events" description={emptyText} />;
   return (
     <div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" tabIndex={0}>
         <table className="w-full border-collapse text-[13px]">
           <caption className="sr-only">Audit events</caption>
           <thead>

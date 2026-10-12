@@ -37,6 +37,7 @@ test.describe.serial('metadata fields and search', () => {
     await expect(page.getByTestId('meta-def-row').filter({ hasText: AMOUNT })).toBeVisible();
 
     await page.goto(`/documents/${docId}`);
+    await page.getByRole('tab', { name: 'Metadata' }).click(); // the form has its own tab
     const form = page.getByRole('form', { name: 'Custom metadata' });
     await expect(form.getByLabel(/Case reference/)).toBeVisible();
     await form.getByRole('button', { name: 'Save metadata' }).click();
@@ -105,6 +106,7 @@ test.describe('content search', () => {
 
     await signInAs(page, 'Alice');
     await page.goto(`/documents/${docId}`);
+    await page.getByRole('tab', { name: 'Details' }).click(); // processing details have their own tab
     await expect(page.getByTestId('text-status')).toHaveText('extracted');
 
     await page.goto(`/search?q=${word}`);
@@ -150,6 +152,7 @@ test('image thumbnails come from a fresh thumbnail URL', async ({ page, request 
   await expect(hit.getByRole('img', { name: `Thumbnail of ${name}` })).toBeVisible();
   expect(thumbCalls.length).toBeGreaterThan(0);
   await page.goto(`/documents/${id}`);
+  await page.getByRole('tab', { name: 'Details' }).click();
   await expect(page.getByTestId('processing-card')).toContainText('Ready');
   await expect(
     page.getByTestId('processing-card').getByRole('img', { name: `Thumbnail of ${name}` }),

@@ -184,10 +184,13 @@ export function useRuns(id: string | undefined, offset = 0) {
 }
 
 export function useRun(id: string | undefined) {
-  return useQuery({
+  return useQuery<Run>({
     queryKey: [...KEY, 'run', id],
     enabled: !!id,
-    refetchInterval: 4_000,
+    refetchInterval: (q) =>
+      q.state.data && ['succeeded', 'failed', 'cancelled', 'skipped'].includes(q.state.data.status)
+        ? false
+        : 4_000,
     queryFn: ({ signal }) =>
       call<Run>(
         api.GET('/api/v1/admin/automation-runs/{run_id}', {

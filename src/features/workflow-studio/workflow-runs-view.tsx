@@ -82,7 +82,10 @@ export function WorkflowRunsView() {
           <>
             <ul aria-label="Workflow runs">
               {q.data.items.map((r) => {
-                const ctx = r.trigger_context as { resource?: { name?: string }; event?: string };
+                const ctx = (r.trigger_context ?? {}) as {
+                  resource?: { name?: string };
+                  event?: string;
+                };
                 const isOpen = open === r.id;
                 return (
                   <li
@@ -103,7 +106,7 @@ export function WorkflowRunsView() {
                         )}
                         aria-hidden
                       />
-                      <Badge tone={RUN_TONE[r.status]}>{r.status}</Badge>
+                      <Badge tone={RUN_TONE[r.status] ?? 'neutral'}>{r.status}</Badge>
                       <span className="font-medium">{r.automation_name ?? 'Workflow'}</span>
                       <span className="truncate text-xs text-muted">
                         {ctx.resource?.name ?? titleCase(ctx.event ?? 'run')}

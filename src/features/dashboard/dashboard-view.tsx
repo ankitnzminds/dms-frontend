@@ -160,7 +160,7 @@ export function DashboardView() {
         data-testid="dashboard-hero"
       >
         <div className="flex min-w-0 items-center gap-4">
-          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[#2f6bff] text-base font-semibold">
+          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[#1d4fd8] text-base font-semibold">
             {initials}
           </span>
           <div className="min-w-0">
@@ -349,7 +349,7 @@ export function DashboardView() {
               className="py-8"
             />
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0}>
               <table className="w-full min-w-[26rem] text-[13px]">
                 <caption className="sr-only">Recently opened</caption>
                 <thead>
@@ -500,7 +500,7 @@ export function DashboardView() {
             ) : audit.data.items.length === 0 ? (
               <EmptyState title="No activity yet" className="py-8" />
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto" tabIndex={0}>
                 <table className="w-full min-w-[34rem] text-[13px]">
                   <caption className="sr-only">Recent activity</caption>
                   <thead>

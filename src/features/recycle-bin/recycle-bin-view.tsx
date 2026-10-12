@@ -220,7 +220,7 @@ export function RecycleBinView() {
           />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0}>
               <table className="w-full min-w-[60rem] text-[13px]">
                 <caption className="sr-only">Deleted files and folders</caption>
                 <thead>

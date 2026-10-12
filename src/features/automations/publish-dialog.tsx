@@ -12,7 +12,16 @@ import { friendlyMessage, isApiError } from '@/lib/api-client';
 import { usePublish, type Automation } from './api';
 
 /** Publishing is explicit: show what will run, who it runs as, and gate high-risk steps. */
-export function PublishDialog({
+export function PublishDialog(props: {
+  automation: Automation | null;
+  onClose: () => void;
+  onPublished?: (a: Automation) => void;
+}) {
+  // remounted per workflow and on close, so a ticked confirmation or old errors never carry over
+  return <PublishDialogInner key={props.automation?.id ?? 'closed'} {...props} />;
+}
+
+function PublishDialogInner({
   automation,
   onClose,
   onPublished,

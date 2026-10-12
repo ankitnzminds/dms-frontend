@@ -13,7 +13,12 @@ export function FolderWorkflowButton({ folderId, name }: { folderId: string; nam
   if ((q.data?.length ?? 0) === 0) return null;
   return (
     <>
-      <Button variant="secondary" onClick={() => setOpen(true)} data-testid="tb-start-workflow">
+      <Button
+        variant="secondary"
+        onClick={() => setOpen(true)}
+        data-testid="tb-start-workflow"
+        aria-label="Start workflow"
+      >
         <Workflow /> <span className="hidden sm:inline">Start workflow</span>
       </Button>
       {open && (

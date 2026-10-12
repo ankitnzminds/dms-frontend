@@ -39,7 +39,15 @@ export function scopeSummary(a: Pick<Automation, 'trigger'>): string {
   return `${where}${ext}`;
 }
 
-function Form({ automation, onClose }: { automation: Automation; onClose: () => void }) {
+function Form({
+  automation,
+  onClose,
+  onSaved,
+}: {
+  automation: Automation;
+  onClose: () => void;
+  onSaved?: (a: Automation) => void;
+}) {
   const update = useUpdateAutomation();
   const [mode, setMode] = useState<'additive' | 'exclusive'>(automation.binding_mode);
   const [priority, setPriority] = useState(String(automation.priority));
@@ -48,9 +56,10 @@ function Form({ automation, onClose }: { automation: Automation; onClose: () => 
 
   function save() {
     update.mutate(
-      { id: automation.id, body: { binding_mode: mode, priority: n } },
+      { id: automation.id, body: { binding_mode: mode, priority: n, allow_invalid: true } },
       {
-        onSuccess: () => {
+        onSuccess: (a) => {
+          onSaved?.(a);
           toast.success('Binding saved');
           onClose();
         },
@@ -129,9 +138,11 @@ function Form({ automation, onClose }: { automation: Automation; onClose: () => 
 export function BindingsDialog({
   automation,
   onClose,
+  onSaved,
 }: {
   automation: Automation | null;
   onClose: () => void;
+  onSaved?: (a: Automation) => void;
 }) {
   return (
     <Dialog open={!!automation} onOpenChange={(o) => !o && onClose()}>
@@ -145,6 +156,7 @@ export function BindingsDialog({
             key={`${automation.id}:${automation.row_version}`}
             automation={automation}
             onClose={onClose}
+            onSaved={onSaved}
           />
         )}
       </DialogContent>

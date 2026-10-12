@@ -307,7 +307,7 @@ function Security({ kind, id, canManage }: { kind: ResourceKind; id: string; can
         {empty}
       </p>
     ) : (
-      <div className="overflow-x-auto rounded-md border border-line">
+      <div className="overflow-x-auto rounded-md border border-line" tabIndex={0}>
         <table className="w-full min-w-[30rem] border-collapse text-[13px]">
           <caption className="sr-only">Direct permissions</caption>
           <thead>
@@ -375,7 +375,7 @@ function Security({ kind, id, canManage }: { kind: ResourceKind; id: string; can
     rows.length === 0 ? (
       <p className="text-xs text-muted">Nothing is inherited here.</p>
     ) : (
-      <div className="overflow-x-auto rounded-md border border-line">
+      <div className="overflow-x-auto rounded-md border border-line" tabIndex={0}>
         <table className="w-full min-w-[30rem] border-collapse text-[13px]">
           <caption className="sr-only">Inherited permissions</caption>
           <thead>
@@ -544,7 +544,7 @@ function CheckAccessTab({ kind, id }: { kind: ResourceKind; id: string }) {
             <strong>{r.user_email}</strong>{' '}
             {r.account_state === 'inactive' ? <Badge tone="danger">Inactive account</Badge> : null}
           </p>
-          <div className="overflow-x-auto rounded-md border border-line">
+          <div className="overflow-x-auto rounded-md border border-line" tabIndex={0}>
             <table className="w-full min-w-[26rem] border-collapse">
               <caption className="sr-only">Effective permissions</caption>
               <thead>

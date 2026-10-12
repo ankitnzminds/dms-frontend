@@ -55,7 +55,7 @@ const EXIT_TEXT: Record<string, string> = {
   false: 'No',
 };
 
-export const runStatusLabel = (s: Status) => RUN_LABEL[s];
+export const runStatusLabel = (s: Status) => RUN_LABEL[s] ?? titleCase(s);
 
 /** What a workflow did, step by step, in plain words (no parameters, no raw output). */
 export function StepTimeline({ steps }: { steps: RunSummary['steps'] }) {
@@ -63,7 +63,7 @@ export function StepTimeline({ steps }: { steps: RunSummary['steps'] }) {
   return (
     <ol aria-label="Steps" className="grid gap-0">
       {steps.map((s, i) => {
-        const { icon: Icon, tone, spin } = STEP_ICON[s.status];
+        const { icon: Icon, tone, spin } = STEP_ICON[s.status] ?? STEP_ICON.pending;
         return (
           <li key={i} className="relative flex gap-2.5 pb-3 last:pb-0">
             {i < steps.length - 1 && (
@@ -115,11 +115,11 @@ export function WorkflowRunCard({
       className={cn('rounded-lg border border-line bg-surface p-3', className)}
       data-testid="workflow-run"
       data-status={run.status}
-      aria-label={`${run.automation_name}: ${RUN_LABEL[run.status]}`}
+      aria-label={`${run.automation_name}: ${runStatusLabel(run.status)}`}
     >
       <header className="flex flex-wrap items-center gap-2">
         <h3 className="text-sm font-semibold">{run.automation_name}</h3>
-        <Badge tone={RUN_TONE[run.status]}>{RUN_LABEL[run.status]}</Badge>
+        <Badge tone={RUN_TONE[run.status] ?? 'neutral'}>{runStatusLabel(run.status)}</Badge>
         <span className="text-xs text-muted" title={formatDateTime(run.created_at)}>
           {run.started_by_email ? `started by ${run.started_by_email} · ` : ''}
           {formatRelative(run.created_at)}

@@ -35,7 +35,7 @@ export function QuarantineView() {
           />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0}>
               <table className="w-full min-w-[34rem] border-collapse text-[13px]">
                 <caption className="sr-only">Quarantined files</caption>
                 <thead>

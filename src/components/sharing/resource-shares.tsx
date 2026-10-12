@@ -149,7 +149,7 @@ export function ResourceShares({
   return (
     <div className="rounded-lg border border-line bg-surface">
       {header}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" tabIndex={0}>
         <table className="w-full table-fixed border-collapse text-[13px]">
           <caption className="sr-only">Shares of {name}</caption>
           <colgroup>

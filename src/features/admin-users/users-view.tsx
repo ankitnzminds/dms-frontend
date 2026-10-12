@@ -229,7 +229,7 @@ export function UsersView() {
           />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0}>
               <table className="w-full min-w-[44rem] border-collapse text-[13px]">
                 <caption className="sr-only">Users</caption>
                 <thead>

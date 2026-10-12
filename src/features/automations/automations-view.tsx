@@ -189,7 +189,7 @@ export function AutomationsView() {
           />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0}>
               <table className="w-full min-w-[56rem] border-collapse text-[13px]">
                 <caption className="sr-only">Workflows</caption>
                 <thead>

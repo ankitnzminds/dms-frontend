@@ -376,7 +376,7 @@ function Recent({
       ) : rows.length === 0 ? (
         <p className="py-6 text-center text-[13px] text-muted">No recent uploads or new folders.</p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0}>
           <table className="w-full min-w-[34rem] text-[13px]">
             <caption className="sr-only">Recent storage activity</caption>
             <thead>
@@ -526,7 +526,7 @@ function ByUser({ u, className }: { u: Usage; className?: string }) {
       ) : rows.length === 0 ? (
         <p className="py-6 text-center text-[13px] text-muted">No users yet.</p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0}>
           <table className="w-full min-w-[36rem] text-[13px]">
             <caption className="sr-only">Storage used by each user</caption>
             <thead>

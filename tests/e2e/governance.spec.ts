@@ -34,7 +34,7 @@ test.describe.serial('governance: legal holds, retention, delete forever', () =>
     await page.goto(`/documents/${docId}`);
     await expect(page.getByTestId('protection-badges')).toContainText('Legal hold');
     await page.getByRole('button', { name: `Actions for ${name}` }).click();
-    const del = page.getByRole('menuitem', { name: /Move to Trash/ });
+    const del = page.getByRole('menuitem', { name: /Move to trash/i });
     await expect(del).toHaveAttribute('data-disabled', '');
     await expect(del).toHaveAttribute('title', /legal hold/i);
     await page.keyboard.press('Escape');

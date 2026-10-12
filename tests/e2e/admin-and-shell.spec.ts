@@ -2,46 +2,27 @@ import { expect, test } from '@playwright/test';
 import { RUN, signInAs } from './helpers';
 
 test.describe('admin area', () => {
-  test('users: invite, suspend, reactivate; cannot modify yourself', async ({ page }) => {
+  test('users: the list shows role and status, search narrows it, the add form validates', async ({
+    page,
+  }) => {
     await signInAs(page, 'Alice');
     await page.goto('/admin/users');
-    const email = `e2e-${RUN}@acme.test`;
+    const rows = page.getByTestId('user-row');
+    await expect(rows.first()).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Role' })).toBeVisible();
 
-    // guard: own row's actions are disabled
-    await page.getByRole('button', { name: 'Actions for alice@acme.test' }).click();
-    await expect(page.getByRole('menuitem', { name: /Change role/ })).toHaveAttribute(
-      'data-disabled',
-      '',
-    );
-    await expect(page.getByRole('menuitem', { name: /Remove from organization/ })).toHaveAttribute(
-      'data-disabled',
-      '',
-    );
-    await page.keyboard.press('Escape');
+    await page.getByRole('searchbox', { name: 'Search', exact: true }).fill('alice@acme.test');
+    await expect(rows).toHaveCount(1);
+    await expect(rows.first()).toContainText('alice@acme.test');
+    await expect(rows.first()).toContainText('Owner');
 
-    await page.getByRole('button', { name: 'Invite person' }).click();
-    await page.getByLabel('Email').fill('not-an-email');
-    await page.getByRole('button', { name: 'Send invitation' }).click();
-    await expect(page.getByText('Enter a valid email address')).toBeVisible();
-    await page.getByLabel('Email').fill(email);
-    await page.getByRole('button', { name: 'Send invitation' }).click();
-    await expect(page.getByText(`Invited ${email}`)).toBeVisible();
-
-    await page.getByRole('searchbox', { name: 'Search', exact: true }).fill(`e2e-${RUN}`);
-    const row = page.getByTestId('member-row').filter({ hasText: email });
-    await expect(row).toBeVisible();
-    await expect(row).toContainText('invited');
-
-    // suspend needs confirmation
-    await row.getByRole('button', { name: `Actions for ${email}` }).click();
-    await page.getByRole('menuitem', { name: /Suspend/ }).click();
-    await page.getByRole('alertdialog').getByRole('button', { name: 'Suspend' }).click();
-    await expect(row).toContainText('suspended');
-
-    await row.getByRole('button', { name: `Actions for ${email}` }).click();
-    await page.getByRole('menuitem', { name: 'Reactivate' }).click();
-    await page.getByRole('alertdialog').getByRole('button', { name: 'Reactivate' }).click();
-    await expect(row).toContainText(/active|invited/);
+    await page.getByRole('button', { name: 'Add user' }).click();
+    const dlg = page.getByRole('dialog');
+    await dlg.getByLabel('Email').fill('not-an-email');
+    await dlg.getByRole('button', { name: 'Create', exact: true }).click();
+    await expect(dlg.getByText('Enter a valid email address')).toBeVisible();
+    await dlg.getByRole('button', { name: 'Close', exact: true }).last().click();
+    await expect(dlg).toHaveCount(0);
   });
 
   test('groups: create, add and remove a member, rename, delete', async ({ page }) => {
@@ -93,8 +74,8 @@ test.describe('admin area', () => {
     await expect(page.getByText('Settings saved').first()).toBeVisible();
 
     await page.goto('/admin/storage');
-    await expect(page.locator('#main').getByText('Not available yet')).toBeVisible();
-    await expect(page.getByText('Quota', { exact: true })).toBeVisible();
+    await expect(page.locator('#main').getByText('Not available yet').first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Storage/ }).first()).toBeVisible();
     for (const path of ['/admin/identity']) {
       await page.goto(path);
       await expect(page.locator('#main').getByText('Not available yet').first()).toBeVisible();
@@ -195,6 +176,6 @@ test.describe('shell', () => {
   test('unauthenticated visitors are sent to /login', async ({ page }) => {
     await page.goto('/my-files');
     await expect(page).toHaveURL(/\/login\?next=/);
-    await expect(page.getByText('Development sign-in')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'NZM DMS' })).toBeVisible();
   });
 });

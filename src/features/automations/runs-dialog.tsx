@@ -49,14 +49,14 @@ export function RunDetail({ id }: { id: string }) {
           <li key={n.node_id} className="rounded-md border border-line bg-surface px-2.5 py-1.5">
             <p className="flex flex-wrap items-center gap-2">
               <strong>{n.label}</strong>
-              <Badge tone={RUN_TONE[n.status]}>{n.status}</Badge>
-              {typeof n.output.branch === 'string' && (
+              <Badge tone={RUN_TONE[n.status] ?? 'neutral'}>{n.status}</Badge>
+              {typeof n.output?.branch === 'string' && (
                 <Badge tone="outline">exit: {titleCase(n.output.branch)}</Badge>
               )}
               <span className="text-muted">attempt {n.attempts}</span>
             </p>
             {n.error && <p className="text-danger">{n.error}</p>}
-            {Object.keys(n.output).length > 0 && (
+            {Object.keys(n.output ?? {}).length > 0 && (
               <p className="break-words text-muted">{JSON.stringify(n.output)}</p>
             )}
           </li>
@@ -109,7 +109,16 @@ function RunRow({ run, open, onToggle }: { run: Run; open: boolean; onToggle: ()
 }
 
 /** Run history of one workflow, with node outcomes, retry and cancel. */
-export function RunsDialog({
+export function RunsDialog(props: {
+  automationId: string | null;
+  name: string;
+  onClose: () => void;
+}) {
+  // remounted per workflow, so page 2 of one workflow never carries over to the next
+  return <RunsDialogInner key={props.automationId ?? 'closed'} {...props} />;
+}
+
+function RunsDialogInner({
   automationId,
   name,
   onClose,

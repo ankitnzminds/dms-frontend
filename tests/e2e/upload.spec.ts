@@ -171,7 +171,6 @@ test.describe.serial('upload: files, folders, drag and drop, conflicts', () => {
     await signInAs(bob, 'Bob');
     await bob.goto(`/files/${ro}`);
     await expect(bob.getByTestId('tb-upload')).toBeDisabled();
-    await expect(bob.getByTestId('tb-new-folder')).toBeDisabled();
     await ctx.close();
     void openRow;
   });

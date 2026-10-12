@@ -33,6 +33,7 @@ import {
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { useTheme } from '@/components/theme';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/input';
@@ -86,7 +87,7 @@ const EXIT_LABEL: Record<string, string> = {
 };
 const exitLabel = (b: string) => EXIT_LABEL[b] ?? b;
 
-const edgeId = (e: EdgeDef, i: number) => `${e.from}>${e.to}:${e.branch ?? ''}:${i}`;
+const edgeId = (e: EdgeDef) => `${e.from}>${e.to}:${e.branch ?? ''}`;
 
 // ------------------------------------------------------------------ summaries
 function summarize(type: string, p: Params): string {
@@ -226,6 +227,7 @@ const nodeTypes = { step: StepNode, branch: BranchNode, start: StartNode, end: E
 // ------------------------------------------------------------------ the editor
 function Editor({ automation }: { automation: Automation }) {
   const cat = useCatalogue();
+  const { resolved: resolvedTheme } = useTheme();
   const update = useUpdateAutomation();
   const enable = useSetAutomationEnabled();
   const rf = useReactFlow();
@@ -242,13 +244,19 @@ function Editor({ automation }: { automation: Automation }) {
     }),
     [automation.trigger, automation.graph],
   );
-  const [def, setDef] = useState<Def>(initial);
+  // the definition and its undo/redo stacks live in ONE state object, so every edit (including
+  // several in the same tick, like deleting a node and its edges) composes instead of overwriting
+  const [doc, setDoc] = useState<{ def: Def; past: Def[]; future: Def[] }>({
+    def: initial,
+    past: [],
+    future: [],
+  });
+  const def = doc.def;
+  const historySize = { undo: doc.past.length, redo: doc.future.length };
+  const setDef = (fn: (cur: Def) => Def) => setDoc((d) => ({ ...d, def: fn(d.def) }));
   const [name, setName] = useState(automation.name);
-  const past = useRef<Def[]>([]);
-  const future = useRef<Def[]>([]);
-  const [historySize, setHistorySize] = useState({ undo: 0, redo: 0 });
-  const syncHistory = () =>
-    setHistorySize({ undo: past.current.length, redo: future.current.length });
+  // bumped on every edit: a save that finishes after a newer edit must not call the draft "saved"
+  const revRef = useRef(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [report, setReport] = useState<Report | null>(null);
   const [rowVersion, setRowVersion] = useState(automation.row_version);
@@ -260,34 +268,61 @@ function Editor({ automation }: { automation: Automation }) {
   const [published, setPublished] = useState<Automation>(automation);
   const dirtyRef = useRef(false);
 
-  const commit = useCallback((next: Def, replaceTop = false) => {
-    setDef((cur) => {
-      if (!replaceTop) past.current.push(cur);
-      future.current = [];
-      return next;
-    });
+  const markDirty = useCallback(() => {
+    revRef.current++;
     dirtyRef.current = true;
     setSaveState('dirty');
   }, []);
+  const commit = useCallback(
+    (next: Def | ((cur: Def) => Def), replaceTop = false) => {
+      setDoc((d) => ({
+        def: typeof next === 'function' ? next(d.def) : next,
+        past: replaceTop ? d.past : [...d.past, d.def].slice(-100),
+        future: [],
+      }));
+      markDirty();
+    },
+    [markDirty],
+  );
+  // deleting a step also deletes its connections; the canvas reports them as separate changes in
+  // the same tick, which must be ONE undo step
+  const lastRemoval = useRef(0);
+  const sameGesture = () => {
+    const now = performance.now();
+    const merge = now - lastRemoval.current < 60;
+    lastRemoval.current = now;
+    return merge;
+  };
   const undo = () => {
-    const prev = past.current.pop();
-    if (!prev) return;
-    setDef((cur) => (future.current.push(cur), prev));
-    dirtyRef.current = true;
-    setSaveState('dirty');
-    syncHistory();
+    if (doc.past.length === 0) return;
+    setDoc((d) =>
+      d.past.length === 0
+        ? d
+        : {
+            def: d.past[d.past.length - 1]!,
+            past: d.past.slice(0, -1),
+            future: [...d.future, d.def],
+          },
+    );
+    markDirty();
   };
   const redo = () => {
-    const nxt = future.current.pop();
-    if (!nxt) return;
-    setDef((cur) => (past.current.push(cur), nxt));
-    dirtyRef.current = true;
-    setSaveState('dirty');
-    syncHistory();
+    if (doc.future.length === 0) return;
+    setDoc((d) =>
+      d.future.length === 0
+        ? d
+        : {
+            def: d.future[d.future.length - 1]!,
+            past: [...d.past, d.def],
+            future: d.future.slice(0, -1),
+          },
+    );
+    markDirty();
   };
 
   // ---- autosave (drafts may be unfinished; only publishing needs a valid graph)
   const save = useCallback(async (): Promise<boolean> => {
+    const seen = revRef.current;
     setSaveState('saving');
     try {
       const r = await update.mutateAsync({
@@ -302,9 +337,13 @@ function Editor({ automation }: { automation: Automation }) {
       });
       setRowVersion(r.row_version);
       setPublished(r);
-      dirtyRef.current = false;
-      setSaveState('saved');
       setSaveError(null);
+      if (revRef.current === seen) {
+        dirtyRef.current = false;
+        setSaveState('saved');
+      } else {
+        setSaveState('dirty'); // edited while saving: the next autosave sends the newer draft
+      }
       return true;
     } catch (e) {
       setSaveState('error');
@@ -318,6 +357,19 @@ function Editor({ automation }: { automation: Automation }) {
     const t = setTimeout(() => void save(), 1500);
     return () => clearTimeout(t);
   }, [saveState, save]);
+
+  // leaving the editor (client-side navigation does not fire beforeunload) must not drop an edit
+  // made in the last moment
+  const saveRef = useRef(save);
+  useEffect(() => {
+    saveRef.current = save;
+  });
+  useEffect(
+    () => () => {
+      if (dirtyRef.current) void saveRef.current();
+    },
+    [],
+  );
 
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
@@ -383,11 +435,14 @@ function Editor({ automation }: { automation: Automation }) {
   function removeNode(id: string) {
     const n = def.nodes.find((x) => x.id === id);
     if (!n || n.type === 'start') return;
-    commit({
-      ...def,
-      nodes: def.nodes.filter((x) => x.id !== id),
-      edges: def.edges.filter((e) => e.from !== id && e.to !== id),
-    });
+    commit(
+      (cur) => ({
+        ...cur,
+        nodes: cur.nodes.filter((x) => x.id !== id),
+        edges: cur.edges.filter((e) => e.from !== id && e.to !== id),
+      }),
+      sameGesture(),
+    );
     setSelected(null);
   }
 
@@ -406,7 +461,7 @@ function Editor({ automation }: { automation: Automation }) {
   }
 
   function setParams(id: string, params: Params) {
-    const sameNode = past.current.length > 0;
+    const sameNode = doc.past.length > 0;
     commit(
       { ...def, nodes: def.nodes.map((n) => (n.id === id ? { ...n, params } : n)) },
       sameNode && lastEdited.current === id,
@@ -446,8 +501,8 @@ function Editor({ automation }: { automation: Automation }) {
       deletable: n.type !== 'start',
     };
   });
-  const rfEdges: Edge[] = def.edges.map((e, i) => ({
-    id: edgeId(e, i),
+  const rfEdges: Edge[] = def.edges.map((e) => ({
+    id: edgeId(e),
     source: e.from,
     target: e.to,
     sourceHandle: e.branch ?? undefined,
@@ -471,16 +526,16 @@ function Editor({ automation }: { automation: Automation }) {
           return m ? { ...n, position: m.position } : n;
         }),
       }));
-      if (changes.some((c) => c.type === 'position' && c.dragging === false)) {
-        dirtyRef.current = true;
-        setSaveState('dirty');
-      }
+      if (changes.some((c) => c.type === 'position' && c.dragging === false)) markDirty();
     }
   };
   const onEdgesChange = (changes: EdgeChange[]) => {
     const removed = new Set(changes.filter((c) => c.type === 'remove').map((c) => c.id));
     if (removed.size)
-      commit({ ...def, edges: def.edges.filter((e, i) => !removed.has(edgeId(e, i))) });
+      commit(
+        (cur) => ({ ...cur, edges: cur.edges.filter((e) => !removed.has(edgeId(e))) }),
+        sameGesture(),
+      );
   };
   const onConnect = (c: Connection) =>
     c.source && c.target && connect(c.source, c.target, (c.sourceHandle as Branch) ?? null);
@@ -570,7 +625,7 @@ function Editor({ automation }: { automation: Automation }) {
               enable.mutate(
                 { id: automation.id, enabled: !published.enabled },
                 {
-                  onSuccess: (r) => setPublished(r),
+                  onSuccess: (r) => (setPublished(r), setRowVersion(r.row_version)),
                   onError: (e) => toast.error(friendlyMessage(e)),
                 },
               )
@@ -677,7 +732,7 @@ function Editor({ automation }: { automation: Automation }) {
                 deleteKeyCode={['Backspace', 'Delete']}
                 fitView
                 fitViewOptions={{ maxZoom: 1, padding: 0.2 }}
-                colorMode="system"
+                colorMode={resolvedTheme}
                 minZoom={0.2}
                 proOptions={{ hideAttribution: true }}
               >
@@ -733,7 +788,11 @@ function Editor({ automation }: { automation: Automation }) {
         }}
       />
       <TestDialog automation={test ? published : null} onClose={() => setTest(false)} />
-      <BindingsDialog automation={bindings ? published : null} onClose={() => setBindings(false)} />
+      <BindingsDialog
+        automation={bindings ? published : null}
+        onClose={() => setBindings(false)}
+        onSaved={(a) => (setPublished(a), setRowVersion(a.row_version))}
+      />
     </div>
   );
 }

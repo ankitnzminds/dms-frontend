@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { signInAs } from './helpers';
+import { RUN, apiAs, pdfBytes, signInAs } from './helpers';
 
 /** Automated WCAG 2.x A/AA scan (axe-core). Catches contrast, names, roles; it does not replace manual testing. */
 async function scan(page: Page, label: string) {
@@ -14,12 +14,12 @@ async function scan(page: Page, label: string) {
 }
 
 for (const scheme of ['light', 'dark'] as const) {
-  test(`axe: key screens in ${scheme} theme`, async ({ browser }) => {
+  test(`axe: key screens in ${scheme} theme`, async ({ browser, request }) => {
     const ctx = await browser.newContext({ colorScheme: scheme });
     const page = await ctx.newPage();
 
     await page.goto('/login');
-    await expect(page.getByText('Development sign-in')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'NZM DMS' })).toBeVisible();
     await scan(page, 'login');
 
     await signInAs(page, 'Alice');
@@ -36,7 +36,7 @@ for (const scheme of ['light', 'dark'] as const) {
     await scan(page, 'shared by me');
 
     await page.goto('/admin/users');
-    await expect(page.getByTestId('member-row').first()).toBeVisible();
+    await expect(page.getByTestId('user-row').first()).toBeVisible();
     await scan(page, 'admin users');
 
     await page.goto('/admin/audit');
@@ -69,9 +69,16 @@ for (const scheme of ['light', 'dark'] as const) {
       await scan(page, label);
     }
 
-    // a document page (tabs, metadata, processing cards)
+    // a document page (tabs, metadata, processing cards): make sure there is a PDF to open
+    const alice = await apiAs(request, 'alice@acme.test');
+    await alice.uploadDoc(
+      await alice.root(),
+      `a11y-${scheme}-${RUN}.pdf`,
+      'application/pdf',
+      pdfBytes('a11y'),
+    );
     await page.goto('/my-files');
-    await page.getByTestId('item-row').filter({ hasText: /.pdf$/ }).first().dblclick();
+    await page.getByTestId('item-row').filter({ hasText: /.pdf/ }).first().dblclick();
     await expect(page.getByRole('tab', { name: 'Approvals' })).toBeVisible();
     await page.waitForLoadState('networkidle');
     await scan(page, 'document page');

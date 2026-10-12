@@ -6,9 +6,17 @@ export const RUN = process.env.E2E_RUN_ID ?? Date.now().toString(36);
 
 export type Who = 'Alice' | 'Bob' | 'Carol' | 'Dave';
 
+/** The seeded development accounts share one password (LOCAL_DEV_PASSWORD, "dev-password-123" by default). */
+export async function fillCredentials(page: Page, who: Who) {
+  await page.getByLabel('Email address').fill(`${who.toLowerCase()}@acme.test`);
+  await page
+    .getByLabel('Password', { exact: true })
+    .fill(process.env.E2E_PASSWORD ?? 'dev-password-123');
+}
+
 export async function signInAs(page: Page, who: Who) {
   await page.goto('/login');
-  await page.getByRole('button', { name: new RegExp(`^Use ${who}`) }).click();
+  await fillCredentials(page, who);
   await page.getByRole('button', { name: 'Sign in as User', exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard/);
   await expect(page.getByRole('heading', { level: 1 })).toContainText(`Welcome, ${who}`);
@@ -37,7 +45,8 @@ export const rowOf = (page: Page, name: string) =>
 
 /** Windows-style open: double-click the row. */
 export async function openRow(page: Page, name: string) {
-  await rowOf(page, name).dblclick();
+  // double-click the NAME: the middle of a wide row is where the hover toolbar's menu button sits
+  await rowOf(page, name).getByText(name, { exact: true }).first().dblclick();
 }
 
 export const pdfBytes = (marker: string) =>

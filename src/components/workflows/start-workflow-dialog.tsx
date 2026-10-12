@@ -72,22 +72,27 @@ export function StartWorkflowDialog({
             />
           ) : (
             <>
-              <ul className="grid gap-2" role="radiogroup" aria-label="Workflows">
+              <fieldset className="grid gap-2">
+                <legend className="mb-1 text-[13px] font-medium">Workflows</legend>
                 {options.map((o) => {
                   const on = chosen?.id === o.id;
                   return (
-                    <li key={o.id}>
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={on}
-                        onClick={() => setPicked(o.id)}
-                        className={cn(
-                          'w-full rounded-lg border px-3 py-2 text-left hover:bg-surface-2',
-                          on ? 'border-accent bg-accent-soft/40 ring-1 ring-accent' : 'border-line',
-                        )}
-                      >
-                        <span className="flex items-center gap-2 text-[13px] font-medium">
+                    <label
+                      key={o.id}
+                      className={cn(
+                        'flex cursor-pointer gap-2.5 rounded-lg border px-3 py-2 hover:bg-surface-2',
+                        on ? 'border-accent bg-accent-soft/40 ring-1 ring-accent' : 'border-line',
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="start-workflow"
+                        className="mt-1"
+                        checked={on}
+                        onChange={() => setPicked(o.id)}
+                      />
+                      <span className="min-w-0 text-[13px]">
+                        <span className="flex items-center gap-2 font-medium">
                           {o.name}
                           {o.who_can_start === 'admins' && <Badge tone="outline">Admins</Badge>}
                         </span>
@@ -96,11 +101,14 @@ export function StartWorkflowDialog({
                             {o.instructions || o.description}
                           </span>
                         )}
-                      </button>
-                    </li>
+                      </span>
+                    </label>
                   );
                 })}
-              </ul>
+                {!chosen && (
+                  <p className="text-xs text-muted">Choose the workflow you want to run.</p>
+                )}
+              </fieldset>
               <div className="grid gap-1">
                 <label htmlFor="start-note" className="text-[13px] font-medium">
                   Note <span className="font-normal text-muted">(optional)</span>
