@@ -162,7 +162,8 @@ function SsoButtons({ next }: { next: string | null }) {
       </div>
       {(note || !supported) && (
         <p role="status" className="text-[0.85em] text-muted">
-          {note ?? 'Single sign-on is not set up for this environment. Use your email and password.'}
+          {note ??
+            'Single sign-on is not set up for this environment. Use your email and password.'}
         </p>
       )}
     </div>

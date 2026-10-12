@@ -23,7 +23,7 @@ export const RUN_TONE = {
   pending: 'neutral',
 } as const;
 
-function RunDetail({ id }: { id: string }) {
+export function RunDetail({ id }: { id: string }) {
   const q = useRun(id);
   const retry = useRetryRun();
   const cancel = useCancelRun();
@@ -50,6 +50,9 @@ function RunDetail({ id }: { id: string }) {
             <p className="flex flex-wrap items-center gap-2">
               <strong>{n.label}</strong>
               <Badge tone={RUN_TONE[n.status]}>{n.status}</Badge>
+              {typeof n.output.branch === 'string' && (
+                <Badge tone="outline">exit: {titleCase(n.output.branch)}</Badge>
+              )}
               <span className="text-muted">attempt {n.attempts}</span>
             </p>
             {n.error && <p className="text-danger">{n.error}</p>}

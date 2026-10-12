@@ -1,5 +1,6 @@
 'use client';
 
+import { FolderWorkflowButton } from '@/components/workflows/folder-workflow-button';
 import { useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { FolderOpen } from 'lucide-react';
@@ -456,6 +457,7 @@ function ExplorerBody({ folderId }: { folderId: string }) {
         prefs={prefs}
         onPrefs={update}
         onAsk={chat.enabled ? () => chat.open({ folderId, label: f?.name }) : undefined}
+        extra={<FolderWorkflowButton folderId={folderId} name={f?.name ?? 'this folder'} />}
         propertiesOpen={propsOpen}
         selectionMenu={selItems.length ? menuFor(selItems) : undefined}
         onSelectionMenu={(a) => {

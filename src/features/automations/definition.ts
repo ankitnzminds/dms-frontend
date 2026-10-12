@@ -1,4 +1,4 @@
-import type { GraphDef, NodeDef, Report } from './api';
+import type { EdgeDef, GraphDef, NodeDef, Report } from './api';
 import type { JsonSchema, Params } from './params-form';
 
 /** Starting values for a freshly chosen condition/action: schema defaults, empty arrays for lists. */
@@ -64,7 +64,9 @@ export function generalErrors(report: Report | null, where: string): string[] {
 
 /** Group the palette like the reference: Logic, File & Folder, Actions, Send. */
 export const PALETTE_GROUPS: { title: string; keys: string[] }[] = [
+  { title: 'People', keys: ['human_approval'] },
   { title: 'Logic', keys: ['condition', 'assign_variable'] },
+  { title: 'Access requests', keys: ['grant_access', 'deny_access'] },
   {
     title: 'File & Folder',
     keys: [
@@ -94,4 +96,44 @@ export function nextNodeId(nodes: NodeDef[], type: string): string {
   let n = 1;
   while (nodes.some((x) => x.id === `${base}${n}`)) n++;
   return `${base}${n}`;
+}
+
+/**
+ * Lay the graph out in tidy rows: each step sits one row below its deepest predecessor, steps in the
+ * same row are spread side by side and centred. Unconnected steps go to the bottom.
+ */
+export function layoutGraph(nodes: NodeDef[], edges: EdgeDef[]): NodeDef[] {
+  const start = nodes.find((n) => n.type === 'start');
+  const depth = new Map<string, number>();
+  if (start) {
+    depth.set(start.id, 0);
+    // longest path from Start (the graph has no cycles; the pass count bounds a malformed one)
+    for (let pass = 0; pass < nodes.length; pass++) {
+      let changed = false;
+      for (const e of edges) {
+        const d = depth.get(e.from);
+        if (d !== undefined && (depth.get(e.to) ?? -1) < d + 1) {
+          depth.set(e.to, d + 1);
+          changed = true;
+        }
+      }
+      if (!changed) break;
+    }
+  }
+  const loose = Math.max(0, ...depth.values()) + 1;
+  const rows = new Map<number, string[]>();
+  for (const n of nodes) {
+    const d = depth.get(n.id) ?? loose;
+    rows.set(d, [...(rows.get(d) ?? []), n.id]);
+  }
+  const X_GAP = 250;
+  const Y_GAP = 140;
+  return nodes.map((n) => {
+    const d = depth.get(n.id) ?? loose;
+    const row = rows.get(d)!;
+    return {
+      ...n,
+      position: { x: (row.indexOf(n.id) - (row.length - 1) / 2) * X_GAP, y: d * Y_GAP },
+    };
+  });
 }

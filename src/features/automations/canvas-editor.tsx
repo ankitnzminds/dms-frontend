@@ -21,9 +21,11 @@ import {
   AlertTriangle,
   ArrowLeft,
   Check,
+  LayoutGrid,
   Play,
   Plus,
   Redo2,
+  SlidersHorizontal,
   Trash2,
   Undo2,
   Upload,
@@ -57,10 +59,12 @@ import {
   fieldErrors,
   generalErrors,
   initialParams,
+  layoutGraph,
   nextNodeId,
   PALETTE_GROUPS,
 } from './definition';
 import { ParamsForm, type JsonSchema, type Params } from './params-form';
+import { BindingsDialog } from './bindings-dialog';
 import { PublishDialog } from './publish-dialog';
 import { TestDialog } from './test-dialog';
 
@@ -70,7 +74,17 @@ interface Def {
   edges: EdgeDef[];
 }
 
-type Branch = 'true' | 'false' | null;
+type Branch = string | null;
+
+/** Friendly names for a step's exits (edge labels). */
+const EXIT_LABEL: Record<string, string> = {
+  true: 'true',
+  false: 'false',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  timeout: 'Timed out',
+};
+const exitLabel = (b: string) => EXIT_LABEL[b] ?? b;
 
 const edgeId = (e: EdgeDef, i: number) => `${e.from}>${e.to}:${e.branch ?? ''}:${i}`;
 
@@ -97,6 +111,24 @@ function summarize(type: string, p: Params): string {
       return `${s('subject_type') || '…'}: ${((p.actions as string[]) ?? []).join(', ') || 'no actions'}`;
     case 'release_locks':
       return `Older than ${String(p.older_than_hours ?? 24)} h`;
+    case 'human_approval': {
+      const n = ((p.user_ids as string[]) ?? []).length + ((p.group_ids as string[]) ?? []).length;
+      const mode =
+        s('completion') === 'all'
+          ? 'all must approve'
+          : s('completion') === 'sequence'
+            ? 'in order'
+            : 'first answer';
+      return n
+        ? `${n} asked · ${mode}${p.timeout_days ? ` · ${String(p.timeout_days)} d limit` : ''}`
+        : 'Nobody chosen yet';
+    }
+    case 'grant_access': {
+      const a = (p.actions as string[]) ?? [];
+      return a.length ? `Grants ${a.join(', ')}` : 'Grants what was asked (read-level)';
+    }
+    case 'deny_access':
+      return s('reason') || 'Rejects the request';
     default:
       return '';
   }
@@ -109,6 +141,7 @@ interface NodeData extends Record<string, unknown> {
   nodeType: string;
   risk?: 'low' | 'high' | null;
   problem?: boolean;
+  outputs?: string[];
 }
 
 const ring = (selected?: boolean, problem?: boolean) =>
@@ -138,18 +171,33 @@ function StepNode({ data, selected }: NodeProps<Node<NodeData>>) {
   );
 }
 
-function ConditionNode({ data, selected }: NodeProps<Node<NodeData>>) {
+/** A step with named exits (Condition: true/false, Human approval: approved/rejected/timed out). */
+function BranchNode({ data, selected }: NodeProps<Node<NodeData>>) {
+  const outs = data.outputs ?? [];
   return (
-    <div className={ring(selected, data.problem)}>
+    <div className={cn(ring(selected, data.problem), 'min-w-52')}>
       <Handle type="target" position={Position.Top} />
-      <p className="text-[13px] font-medium">Condition</p>
-      <p className="truncate font-mono text-[11px] text-muted">{data.summary}</p>
-      <div className="mt-1 flex justify-between text-[10px] font-medium uppercase text-muted">
-        <span>true</span>
-        <span>false</span>
+      <p className="flex items-center gap-1.5 text-[13px] font-medium">
+        {data.label}
+        {data.problem && (
+          <AlertTriangle className="size-3.5 text-danger" aria-label="Needs attention" />
+        )}
+      </p>
+      {data.summary && <p className="truncate text-xs text-muted">{data.summary}</p>}
+      <div className="mt-1.5 flex justify-between text-[10px] font-medium uppercase text-muted">
+        {outs.map((o) => (
+          <span key={o}>{exitLabel(o)}</span>
+        ))}
       </div>
-      <Handle id="true" type="source" position={Position.Bottom} style={{ left: '25%' }} />
-      <Handle id="false" type="source" position={Position.Bottom} style={{ left: '75%' }} />
+      {outs.map((o, i) => (
+        <Handle
+          key={o}
+          id={o}
+          type="source"
+          position={Position.Bottom}
+          style={{ left: `${((i + 0.5) / outs.length) * 100}%` }}
+        />
+      ))}
     </div>
   );
 }
@@ -173,7 +221,7 @@ function EndNode({ selected }: NodeProps<Node<NodeData>>) {
   );
 }
 
-const nodeTypes = { step: StepNode, condition: ConditionNode, start: StartNode, end: EndNode };
+const nodeTypes = { step: StepNode, branch: BranchNode, start: StartNode, end: EndNode };
 
 // ------------------------------------------------------------------ the editor
 function Editor({ automation }: { automation: Automation }) {
@@ -208,6 +256,7 @@ function Editor({ automation }: { automation: Automation }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [publish, setPublish] = useState(false);
   const [test, setTest] = useState(false);
+  const [bindings, setBindings] = useState(false);
   const [published, setPublished] = useState<Automation>(automation);
   const dirtyRef = useRef(false);
 
@@ -309,6 +358,11 @@ function Editor({ automation }: { automation: Automation }) {
     setSelected(id);
   }
 
+  function tidy() {
+    commit({ ...def, nodes: layoutGraph(def.nodes, def.edges) });
+    setTimeout(() => void rf.fitView({ maxZoom: 1, padding: 0.2, duration: 200 }), 60);
+  }
+
   function addEnd() {
     if (def.nodes.some((n) => n.type === 'end')) return;
     const last = [...def.nodes].sort((a, b) => (b.position?.y ?? 0) - (a.position?.y ?? 0))[0];
@@ -341,15 +395,14 @@ function Editor({ automation }: { automation: Automation }) {
     if (from === to || def.nodes.find((n) => n.id === to)?.type === 'start') return;
     const source = def.nodes.find((n) => n.id === from);
     if (!source) return;
-    // a step has one outgoing edge; a condition has one per branch: connecting again replaces it
+    // a plain step has one outgoing edge; a branching step has one per exit: connecting again replaces it
+    const exits = entry(source.type)?.outputs ?? [];
+    const branching = exits.length > 0;
+    if (branching && (!branch || !exits.includes(branch))) return;
     const kept = def.edges.filter(
-      (e) =>
-        !(e.from === from && (source.type === 'condition' ? (e.branch ?? null) === branch : true)),
+      (e) => !(e.from === from && (branching ? (e.branch ?? null) === branch : true)),
     );
-    commit({
-      ...def,
-      edges: [...kept, { from, to, branch: source.type === 'condition' ? branch : null }],
-    });
+    commit({ ...def, edges: [...kept, { from, to, branch: branching ? branch : null }] });
   }
 
   function setParams(id: string, params: Params) {
@@ -374,8 +427,8 @@ function Editor({ automation }: { automation: Automation }) {
           ? 'start'
           : n.type === 'end'
             ? 'end'
-            : n.type === 'condition'
-              ? 'condition'
+            : (spec?.outputs?.length ?? 0) > 0
+              ? 'branch'
               : 'step',
       position: { x: n.position?.x ?? 0, y: n.position?.y ?? 0 },
       selected: n.id === selected,
@@ -387,6 +440,7 @@ function Editor({ automation }: { automation: Automation }) {
           : summarize(n.type, n.params as Params),
         nodeType: n.type,
         risk: spec?.risk,
+        outputs: spec?.outputs ?? [],
         problem: problems.has(isTrigger ? 'trigger' : n.id),
       },
       deletable: n.type !== 'start',
@@ -397,7 +451,7 @@ function Editor({ automation }: { automation: Automation }) {
     source: e.from,
     target: e.to,
     sourceHandle: e.branch ?? undefined,
-    label: e.branch ?? undefined,
+    label: e.branch ? exitLabel(e.branch) : undefined,
     animated: false,
   }));
 
@@ -489,6 +543,12 @@ function Editor({ automation }: { automation: Automation }) {
         </Button>
         <Button size="sm" onClick={redo} disabled={historySize.redo === 0} aria-label="Redo">
           <Redo2 />
+        </Button>
+        <Button size="sm" onClick={tidy} title="Arrange the steps neatly">
+          <LayoutGrid /> Tidy
+        </Button>
+        <Button size="sm" onClick={() => setBindings(true)}>
+          <SlidersHorizontal /> Bindings
         </Button>
         <Button size="sm" onClick={() => void check()}>
           <Check /> Check
@@ -673,6 +733,7 @@ function Editor({ automation }: { automation: Automation }) {
         }}
       />
       <TestDialog automation={test ? published : null} onClose={() => setTest(false)} />
+      <BindingsDialog automation={bindings ? published : null} onClose={() => setBindings(false)} />
     </div>
   );
 }
@@ -710,11 +771,23 @@ function NodePanel({
             });
           }}
         >
-          {cat.conditions.map((c) => (
-            <option key={c.key} value={c.key} disabled={!c.supported}>
-              {c.label}
-              {c.supported ? '' : ' (not supported)'}
-            </option>
+          {(
+            [
+              ['A person starts it', ['manual']],
+              ['When something happens', ['event']],
+              ['On a schedule', ['timer', 'scan']],
+            ] as [string, string[]][]
+          ).map(([title, kinds]) => (
+            <optgroup key={title} label={title}>
+              {cat.conditions
+                .filter((c) => kinds.includes(c.kind ?? 'event'))
+                .map((c) => (
+                  <option key={c.key} value={c.key} disabled={!c.supported}>
+                    {c.label}
+                    {c.supported ? '' : ' (not supported)'}
+                  </option>
+                ))}
+            </optgroup>
           ))}
         </Select>
         {cond && (
@@ -773,7 +846,16 @@ function NodePanel({
           High risk: owner confirmation is needed to publish
         </Badge>
       )}
+      {spec.needs_resource === 'access_request' &&
+        cond &&
+        cond.key !== 'access_request_created' && (
+          <p role="alert" className="text-xs text-danger">
+            This step answers an access request, so the workflow must start with “If someone
+            requests access to a file”.
+          </p>
+        )}
       {spec.needs_resource !== 'none' &&
+        spec.needs_resource !== 'access_request' &&
         cond &&
         cond.provides !== 'file' &&
         (spec.needs_resource === 'file' || cond.provides !== 'folder') && (
@@ -880,27 +962,29 @@ function ListEditor({
             </div>
             {n.type !== 'end' && (
               <div className="mt-1.5 flex flex-wrap gap-3 text-xs">
-                {(n.type === 'condition' ? (['true', 'false'] as const) : ([null] as const)).map(
-                  (b) => (
-                    <label key={String(b)} className="flex items-center gap-1.5">
-                      {b ? `If ${b}, go to` : 'Then go to'}
-                      <Select
-                        className="h-7 w-44"
-                        value={targetOf(n.id, b)}
-                        onChange={(e) => setTarget(n.id, b, e.target.value)}
-                      >
-                        <option value="">(stop here)</option>
-                        {def.nodes
-                          .filter((x) => x.id !== n.id && x.type !== 'start')
-                          .map((x) => (
-                            <option key={x.id} value={x.id}>
-                              {label(x)} ({x.id})
-                            </option>
-                          ))}
-                      </Select>
-                    </label>
-                  ),
-                )}
+                {(
+                  ((cat.actions.find((a) => a.key === n.type)?.outputs?.length ?? 0) > 0
+                    ? (cat.actions.find((a) => a.key === n.type)?.outputs ?? [])
+                    : [null]) as (string | null)[]
+                ).map((b) => (
+                  <label key={String(b)} className="flex items-center gap-1.5">
+                    {b ? `${exitLabel(b)}: go to` : 'Then go to'}
+                    <Select
+                      className="h-7 w-44"
+                      value={targetOf(n.id, b)}
+                      onChange={(e) => setTarget(n.id, b, e.target.value)}
+                    >
+                      <option value="">(stop here)</option>
+                      {def.nodes
+                        .filter((x) => x.id !== n.id && x.type !== 'start')
+                        .map((x) => (
+                          <option key={x.id} value={x.id}>
+                            {label(x)} ({x.id})
+                          </option>
+                        ))}
+                    </Select>
+                  </label>
+                ))}
               </div>
             )}
           </li>

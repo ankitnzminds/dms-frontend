@@ -226,6 +226,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/automation-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every workflow run in the organization */
+        get: operations["admin_runs_api_v1_admin_automation_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/automation-runs/{run_id}": {
         parameters: {
             query?: never;
@@ -1639,6 +1656,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/automation-runs/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Workflows I started */
+        get: operations["my_runs_api_v1_automation_runs_mine_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/automation-runs/mine/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One workflow run I started */
+        get: operations["my_run_api_v1_automation_runs_mine__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/automations/startable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Workflows I can start on this item */
+        get: operations["startable_api_v1_automations_startable_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/automations/{automation_id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a workflow on a file or folder */
+        post: operations["start_api_v1_automations__automation_id__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/chat/actions/{action_id}": {
         parameters: {
             query?: never;
@@ -1911,6 +1996,23 @@ export interface paths {
         put?: never;
         /** Summarize the current version (needs PREVIEW) */
         post: operations["summary_api_v1_documents__document_id__ai_summary_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{document_id}/automation-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Workflows that ran on this file */
+        get: operations["document_runs_api_v1_documents__document_id__automation_runs_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4717,6 +4819,12 @@ export interface components {
              */
             allow_invalid: boolean;
             /**
+             * Binding Mode
+             * @default additive
+             * @enum {string}
+             */
+            binding_mode: "additive" | "exclusive";
+            /**
              * Confirm High Risk
              * @default false
              */
@@ -4732,12 +4840,22 @@ export interface components {
             graph: components["schemas"]["GraphDef"];
             /** Name */
             name: string;
+            /**
+             * Priority
+             * @default 0
+             */
+            priority: number;
             trigger: components["schemas"]["TriggerDef"];
         };
         /** AutomationOut */
         AutomationOut: {
             /** Attention Reason */
             attention_reason: string | null;
+            /**
+             * Binding Mode
+             * @enum {string}
+             */
+            binding_mode: "additive" | "exclusive";
             /**
              * Created At
              * Format: date-time
@@ -4778,6 +4896,8 @@ export interface components {
             name: string;
             /** Next Check At */
             next_check_at: string | null;
+            /** Priority */
+            priority: number;
             /** Published Version */
             published_version: number | null;
             /** Row Version */
@@ -4866,6 +4986,8 @@ export interface components {
              * @default false
              */
             allow_invalid: boolean;
+            /** Binding Mode */
+            binding_mode?: ("additive" | "exclusive") | null;
             /** Description */
             description?: string | null;
             /** Expected Row Version */
@@ -4873,6 +4995,8 @@ export interface components {
             graph?: components["schemas"]["GraphDef"] | null;
             /** Name */
             name?: string | null;
+            /** Priority */
+            priority?: number | null;
             trigger?: components["schemas"]["TriggerDef"] | null;
         };
         /** Body_inheritance_preview_api_v1_resources_folder__folder_id__inheritance_preview_post */
@@ -4980,7 +5104,7 @@ export interface components {
             /** Label */
             label: string;
             /** Needs Resource */
-            needs_resource?: ("none" | "file" | "file_or_folder") | null;
+            needs_resource?: ("none" | "file" | "file_or_folder" | "access_request") | null;
             /**
              * Notes
              * @default []
@@ -4988,6 +5112,11 @@ export interface components {
             notes: string[];
             /** Observation */
             observation?: string | null;
+            /**
+             * Outputs
+             * @description Named exits of a branching step (edge labels); empty for a plain step.
+             */
+            outputs?: string[];
             /**
              * Provides
              * @description What a condition hands to the steps (conditions only).
@@ -5619,7 +5748,7 @@ export interface components {
         /** EdgeDef */
         EdgeDef: {
             /** Branch */
-            branch?: ("true" | "false") | null;
+            branch?: string | null;
             /** From */
             from: string;
             /** To */
@@ -7029,6 +7158,20 @@ export interface components {
              */
             total: number;
         };
+        /** Page[RunSummaryOut] */
+        Page_RunSummaryOut_: {
+            /** Items */
+            items: components["schemas"]["RunSummaryOut"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Total
+             * @description Total items visible to the caller (after authorization).
+             */
+            total: number;
+        };
         /** Page[SearchResult] */
         Page_SearchResult_: {
             /** Items */
@@ -8072,6 +8215,64 @@ export interface components {
             /** To Revision */
             to_revision: number;
         };
+        /** RunStepOut */
+        RunStepOut: {
+            /** Branch */
+            branch?: string | null;
+            /** Error */
+            error?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Label */
+            label: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "running" | "waiting" | "succeeded" | "failed" | "skipped";
+        };
+        /**
+         * RunSummaryOut
+         * @description What a person who is not an administrator may see about a run: no parameters, no raw output.
+         */
+        RunSummaryOut: {
+            /** Automation Name */
+            automation_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Error */
+            error: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Note */
+            note?: string | null;
+            /** Resource Id */
+            resource_id: string | null;
+            /** Resource Name */
+            resource_name: string | null;
+            /** Resource Type */
+            resource_type: string | null;
+            /** Started By Email */
+            started_by_email: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "waiting" | "succeeded" | "failed" | "cancelled" | "skipped";
+            /**
+             * Steps
+             * @default []
+             */
+            steps: components["schemas"]["RunStepOut"][];
+        };
         /** SearchResult */
         SearchResult: {
             /** Breadcrumb */
@@ -8565,6 +8766,21 @@ export interface components {
             /** Users */
             users: components["schemas"]["DirectoryUserIn"][];
         };
+        /** StartRequest */
+        StartRequest: {
+            /** Note */
+            note?: string | null;
+            /**
+             * Resource Id
+             * Format: uuid
+             */
+            resource_id: string;
+            /**
+             * Resource Type
+             * @enum {string}
+             */
+            resource_type: "document" | "folder";
+        };
         /** StartRunIn */
         StartRunIn: {
             /**
@@ -8574,6 +8790,38 @@ export interface components {
             definition_id: string;
             /** Note */
             note?: string | null;
+        };
+        /** StartableOut */
+        StartableOut: {
+            /** Description */
+            description: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Instructions */
+            instructions?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Who Can Start
+             * @enum {string}
+             */
+            who_can_start: "editors" | "admins";
+        };
+        /** StartedOut */
+        StartedOut: {
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "waiting" | "succeeded" | "failed" | "cancelled" | "skipped";
         };
         /**
          * StepCondition
@@ -9879,6 +10127,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditPolicyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_runs_api_v1_admin_automation_runs_get: {
+        parameters: {
+            query?: {
+                status?: ("queued" | "running" | "waiting" | "succeeded" | "failed" | "cancelled" | "skipped") | null;
+                automation_id?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                "x-organization-id"?: string | null;
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AutomationRunOut_"];
                 };
             };
             /** @description Validation Error */
@@ -13694,6 +13979,148 @@ export interface operations {
             };
         };
     };
+    my_runs_api_v1_automation_runs_mine_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                "x-organization-id"?: string | null;
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_RunSummaryOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_run_api_v1_automation_runs_mine__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-organization-id"?: string | null;
+                authorization?: string | null;
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunSummaryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    startable_api_v1_automations_startable_get: {
+        parameters: {
+            query: {
+                resource_type: "document" | "folder";
+                resource_id: string;
+            };
+            header?: {
+                "x-organization-id"?: string | null;
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartableOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_api_v1_automations__automation_id__start_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-organization-id"?: string | null;
+                authorization?: string | null;
+            };
+            path: {
+                automation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_action_api_v1_chat_actions__action_id__get: {
         parameters: {
             query?: never;
@@ -14864,6 +15291,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    document_runs_api_v1_documents__document_id__automation_runs_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                "x-organization-id"?: string | null;
+                authorization?: string | null;
+            };
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunSummaryOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -239,6 +239,7 @@ export function ExplorerHeader({
   selectionCount,
   hasClipboard,
   onAsk,
+  extra,
   selectionMenu,
   onSelectionMenu,
 }: {
@@ -259,6 +260,8 @@ export function ExplorerHeader({
   hasClipboard: boolean;
   /** Opens the assistant about this folder (only passed when the assistant is enabled). */
   onAsk?: () => void;
+  /** Extra actions that belong to this folder (for example Start workflow). */
+  extra?: React.ReactNode;
 }) {
   const [q, setQ] = useState('');
   return (
@@ -319,6 +322,7 @@ export function ExplorerHeader({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          {extra}
           {onAsk && (
             <Button
               variant="secondary"

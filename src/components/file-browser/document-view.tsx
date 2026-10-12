@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   Undo2,
   Upload,
+  Workflow,
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useRef, useState } from 'react';
@@ -28,6 +29,9 @@ import { CommentCount, CommentThread } from '@/components/comments/comment-threa
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DisabledReason } from '@/components/ui/tooltip';
 import { SubmitApprovalDialog } from '@/components/workflows/submit-approval-dialog';
+import { DocumentWorkflowsPanel } from '@/components/workflows/document-workflows-panel';
+import { StartWorkflowDialog } from '@/components/workflows/start-workflow-dialog';
+import { useStartable } from '@/features/automations/api';
 import { useAuditEvents } from '@/features/admin/hooks';
 import { useMe } from '@/features/auth/session';
 import {
@@ -125,6 +129,8 @@ function Toolbar({ doc }: { doc: Document }) {
   const lockMut = useLockDocument();
   const lock = props.data?.lock ?? null;
   const [signature, setSignature] = useState(false);
+  const [startWorkflow, setStartWorkflow] = useState(false);
+  const startable = useStartable('document', doc.id);
   const item = docToItem(doc);
   const av = itemAvailability(item);
 
@@ -187,6 +193,11 @@ function Toolbar({ doc }: { doc: Document }) {
           <FileSignature /> Request signature
         </Button>
       </DisabledReason>
+      {(startable.data?.length ?? 0) > 0 && (
+        <Button onClick={() => setStartWorkflow(true)} data-testid="start-workflow">
+          <Workflow /> Start workflow
+        </Button>
+      )}
       {lock ? (
         <DisabledReason
           reason={
@@ -261,6 +272,15 @@ function Toolbar({ doc }: { doc: Document }) {
           documentName={doc.name}
           open
           onOpenChange={setApproval}
+        />
+      )}
+      {startWorkflow && (
+        <StartWorkflowDialog
+          type="document"
+          id={doc.id}
+          name={doc.name}
+          open
+          onOpenChange={setStartWorkflow}
         />
       )}
       {signature && (
@@ -363,6 +383,7 @@ export function DocumentView({ documentId }: { documentId: string }) {
           <TabsTrigger value="sharing">Sharing</TabsTrigger>
           <TabsTrigger value="approvals">Approvals</TabsTrigger>
           <TabsTrigger value="signatures">Signatures</TabsTrigger>
+          <TabsTrigger value="workflows">Workflows</TabsTrigger>
           {showActivity && <TabsTrigger value="activity">Activity</TabsTrigger>}
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="metadata">Metadata</TabsTrigger>
@@ -432,6 +453,9 @@ export function DocumentView({ documentId }: { documentId: string }) {
         </TabsContent>
         <TabsContent value="signatures">
           <SignaturesPanel doc={doc} />
+        </TabsContent>
+        <TabsContent value="workflows">
+          <DocumentWorkflowsPanel documentId={doc.id} name={doc.name} />
         </TabsContent>
         {showActivity && (
           <TabsContent value="activity">

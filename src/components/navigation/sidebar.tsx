@@ -108,7 +108,10 @@ export function SidebarNav({
   }
 
   return (
-    <nav aria-label="Primary" className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 pb-4">
+    <nav
+      aria-label="Primary"
+      className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 pb-4"
+    >
       {sections.map((section, si) => (
         <div key={si} className="mt-4 first:mt-1">
           {section.title && section.collapsible ? (

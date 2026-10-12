@@ -51,6 +51,16 @@ export function PublishDialog({
                   <dd>You ({me.data?.email}). If your access is revoked, its runs stop.</dd>
                 </div>
               </dl>
+              {a.trigger.key.startsWith('manual_') && (
+                <p className="rounded-md bg-info-soft px-3 py-2 text-xs text-info">
+                  People start this workflow themselves
+                  {(a.trigger.params as { who_can_start?: string }).who_can_start === 'admins'
+                    ? ' (administrators only)'
+                    : ' (anyone who can edit the file or folder, inside its scope)'}
+                  . Its steps run with <strong>your</strong> access, not theirs, so only publish
+                  what you are happy for them to trigger.
+                </p>
+              )}
               {a.high_risk && (
                 <div className="grid gap-2 rounded-md border border-warn/40 bg-warn-soft px-3 py-2">
                   <p className="flex items-center gap-2 font-medium text-warn">

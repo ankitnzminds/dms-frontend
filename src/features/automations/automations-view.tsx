@@ -7,6 +7,7 @@ import {
   Pencil,
   Play,
   Plus,
+  SlidersHorizontal,
   Workflow as WorkflowIcon,
   Archive,
   Upload,
@@ -31,7 +32,7 @@ import {
 import { Field, Input } from '@/components/ui/input';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
-import { friendlyMessage } from '@/lib/api-client';
+import { friendlyMessage, isApiError } from '@/lib/api-client';
 import { formatDateTime, formatRelative, titleCase } from '@/lib/format';
 import {
   useArchive,
@@ -41,6 +42,7 @@ import {
   useSetAutomationEnabled,
   type Automation,
 } from './api';
+import { BindingsDialog } from './bindings-dialog';
 import { PublishDialog } from './publish-dialog';
 import { RunsDialog, RUN_TONE } from './runs-dialog';
 import { TestDialog } from './test-dialog';
@@ -86,6 +88,7 @@ export function AutomationsView() {
   const [toArchive, setToArchive] = useState<Automation | null>(null);
   const [toEnable, setToEnable] = useState<Automation | null>(null);
   const [toPublish, setToPublish] = useState<Automation | null>(null);
+  const [bindOf, setBindOf] = useState<Automation | null>(null);
 
   function toggle(a: Automation, enabled: boolean) {
     enable.mutate(
@@ -98,32 +101,46 @@ export function AutomationsView() {
   }
 
   async function newCanvas() {
-    try {
-      const r = await createBlank.mutateAsync({
-        name: `Workflow #${(list.data?.total ?? 0) + 1}`,
-        editor_mode: 'canvas',
-        trigger: { key: 'file_created', params: {} },
-        graph: {
-          nodes: [{ id: 'start', type: 'start', params: {}, position: { x: 0, y: 0 } }],
-          edges: [],
-        },
-        activate: false,
-        confirm_high_risk: false,
-        allow_invalid: true,
-      });
-      router.push(`/admin/automations/${r.id}`);
-    } catch (e) {
-      toast.error(friendlyMessage(e));
+    // names are unique per organization, archived workflows included: try the next number on a clash
+    const first = (list.data?.total ?? 0) + 1;
+    for (let n = first; n < first + 25; n++) {
+      try {
+        const r = await createBlank.mutateAsync({
+          name: `Workflow #${n}`,
+          editor_mode: 'canvas',
+          trigger: { key: 'file_created', params: {} },
+          graph: {
+            nodes: [{ id: 'start', type: 'start', params: {}, position: { x: 0, y: 0 } }],
+            edges: [],
+          },
+          activate: false,
+          confirm_high_risk: false,
+          allow_invalid: true,
+        });
+        router.push(`/admin/automations/${r.id}`);
+        return;
+      } catch (e) {
+        if (!(isApiError(e) && e.code === 'name_conflict')) {
+          toast.error(friendlyMessage(e));
+          return;
+        }
+      }
     }
+    toast.error('Could not find a free workflow name. Rename or archive some workflows.');
   }
 
   return (
     <>
       <PageHeader
         title="Manage Workflows"
-        description="Automations that run when something happens (IF THIS → THEN THAT). They are saved as drafts: nothing runs until you publish and enable it. Approval workflows for people are under Workflows."
+        description="Workflows that run when something happens, on a schedule, or when a person starts one (IF THIS → THEN THAT, with people, approvals and branches). They are saved as drafts: nothing runs until you publish and enable it."
         actions={
           <>
+            <Button asChild variant="ghost">
+              <Link href="/admin/workflow-runs">
+                <History /> Runs
+              </Link>
+            </Button>
             <Button variant="primary" onClick={() => setWizard({ existing: null })}>
               <Plus /> Add Workflow
             </Button>
@@ -215,6 +232,17 @@ export function AutomationsView() {
                           <p className="flex flex-wrap items-center gap-1 text-xs text-muted">
                             <Badge tone={STATE_TONE[a.state]}>{titleCase(a.state)}</Badge>
                             {a.editor_mode === 'canvas' && <Badge tone="outline">Visual</Badge>}
+                            {a.trigger.key.startsWith('manual_') && (
+                              <Badge tone="accent">Started by a person</Badge>
+                            )}
+                            {a.binding_mode === 'exclusive' && (
+                              <Badge
+                                tone="outline"
+                                title="Only the most specific exclusive workflow runs"
+                              >
+                                Exclusive
+                              </Badge>
+                            )}
                             {a.has_unpublished_changes && (
                               <Badge tone="warn">Unpublished changes</Badge>
                             )}
@@ -307,6 +335,9 @@ export function AutomationsView() {
                                 <DropdownMenuItem onSelect={() => setTestOf(a)}>
                                   <Play /> Test (dry run)…
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => setBindOf(a)}>
+                                  <SlidersHorizontal /> Bindings…
+                                </DropdownMenuItem>
                                 {a.editor_mode === 'wizard' && wizardEditable && (
                                   <DropdownMenuItem asChild>
                                     <Link href={`/admin/automations/${a.id}`}>
@@ -361,6 +392,7 @@ export function AutomationsView() {
       />
       <TestDialog automation={testOf} onClose={() => setTestOf(null)} />
       <PublishDialog automation={toPublish} onClose={() => setToPublish(null)} />
+      <BindingsDialog automation={bindOf} onClose={() => setBindOf(null)} />
       <ConfirmDialog
         open={!!toArchive}
         onOpenChange={(o) => !o && setToArchive(null)}

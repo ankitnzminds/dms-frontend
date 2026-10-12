@@ -81,16 +81,31 @@ Compare (inline / side by side), Manage access → Check access and grant impact
 Apply color tag / Download as PDF. Code: `src/features/automations/`,
 `src/components/file-browser/compare-versions.tsx`, `src/components/sharing/access-check.tsx`.
 
+## Workflow studio (admin and everyone)
+
+Backend design and rules: `enterprise-dms-backend/docs/workflows/workflow-studio.md`.
+
+| Area                                                                                                                                                          | Status                                                                            | Where                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------- |
+| Visual editor: branching steps draw one exit per outcome (condition true/false; human approval approved / rejected / timed out), Tidy layout, Bindings dialog | IMPLEMENTED, TESTED (Unit `layoutGraph`; Comp `BindingsDialog`; browser-verified) | `src/features/automations/`             |
+| New triggers: started by a person on a file/folder, access request, file details edited                                                                       | IMPLEMENTED                                                                       | Start node → "A person starts it" group |
+| New steps: Human approval, Grant access, Deny access                                                                                                          | IMPLEMENTED                                                                       | Palette: People, Access requests        |
+| Start workflow on a file (button + Workflows tab) and on a folder (toolbar)                                                                                   | IMPLEMENTED, TESTED (Comp `StartWorkflowDialog`, `FolderWorkflowButton`)          | `src/components/workflows/`             |
+| My Workflows page `/workflows` (live progress, step timeline)                                                                                                 | IMPLEMENTED, TESTED (Comp `MyWorkflowsView`, `WorkflowRunCard`)                   | `src/features/workflow-studio/`         |
+| Admin Workflow runs `/admin/workflow-runs` (all runs, filters, step detail, retry/cancel)                                                                     | IMPLEMENTED, TESTED (Comp `WorkflowRunsView`)                                     | `src/features/workflow-studio/`         |
+
+People who are not administrators only ever see a run's step names and outcomes, never step settings.
+
 ## v3 addendum: hover toolbar, Team Folders, Share Link and Permissions dialogs
 
-| Area | Status |
-| --- | --- |
-| Row hover toolbar (explorer) | Done, same handlers as the context menu |
-| Team Folders page `/team-folders` and sidebar entry | Done; administrators add or remove listed top-level folders |
-| Share Link dialog (options, history, invite, groups, matrix, link on/off/new) | Done |
-| Folder Permissions dialog (Security, inheritance, Check Access) | Done |
-| `/s/[token]` landing page | Done; anonymous view only when the organization allows public links |
-| Sync permission | Stored only, no sync client |
-| Pixel-identical visual parity | Not claimed, no reference screenshots |
+| Area                                                                          | Status                                                              |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Row hover toolbar (explorer)                                                  | Done, same handlers as the context menu                             |
+| Team Folders page `/team-folders` and sidebar entry                           | Done; administrators add or remove listed top-level folders         |
+| Share Link dialog (options, history, invite, groups, matrix, link on/off/new) | Done                                                                |
+| Folder Permissions dialog (Security, inheritance, Check Access)               | Done                                                                |
+| `/s/[token]` landing page                                                     | Done; anonymous view only when the organization allows public links |
+| Sync permission                                                               | Stored only, no sync client                                         |
+| Pixel-identical visual parity                                                 | Not claimed, no reference screenshots                               |
 
 Details and backend mapping: `enterprise-dms-backend/docs/requirements/folder-hover-context-menu-sharing-v3.md`.
