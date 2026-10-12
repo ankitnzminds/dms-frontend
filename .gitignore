@@ -16,3 +16,6 @@ next-env.d.ts
 # logs and local tool output
 *.log
 .playwright-mcp/
+
+# local feature screenshots (not pushed; screenshots already tracked stay tracked)
+docs/screenshots/
