@@ -15,6 +15,29 @@ import type { TreeItem } from '@/lib/api-client';
 import { formatBytes, formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
+const DOT: Record<string, string> = {
+  red: 'bg-red-500',
+  orange: 'bg-orange-500',
+  yellow: 'bg-yellow-400',
+  green: 'bg-green-500',
+  blue: 'bg-blue-500',
+  purple: 'bg-purple-500',
+  pink: 'bg-pink-500',
+  gray: 'bg-gray-400',
+};
+
+/** The item's color tag as a small dot (with a text label for assistive tech). */
+export function ColorDot({ color, className }: { color?: string | null; className?: string }) {
+  if (!color) return null;
+  return (
+    <span
+      className={cn('inline-block size-2.5 shrink-0 rounded-full', DOT[color], className)}
+      role="img"
+      aria-label={`Color tag: ${color}`}
+    />
+  );
+}
+
 export interface ViewProps {
   items: TreeItem[];
   selected: Set<string>;
@@ -32,12 +55,30 @@ export interface ViewProps {
   onDropOnFolder: (folder: TreeItem, e: React.DragEvent) => void;
   /** Per-row "more actions" menu (the touch / pointer alternative to right-click). */
   renderMenu: (item: TreeItem) => React.ReactNode;
+  /** Hover/focus toolbar (Share, Download, Rename, Copy, Move, Delete, Permissions, overflow). */
+  renderHover?: (item: TreeItem, forceVisible: boolean) => React.ReactNode;
 }
 
-const typeLabel = (t: TreeItem) =>
-  t.kind === 'folder'
-    ? 'Folder'
-    : (t.content_type?.split('/')[1]?.split(';')[0]?.toUpperCase() ?? 'File');
+const OFFICE_TYPES: Record<string, string> = {
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PPTX',
+  'application/msword': 'DOC',
+  'application/vnd.ms-excel': 'XLS',
+  'application/vnd.ms-powerpoint': 'PPT',
+  'text/plain': 'TXT',
+};
+
+/** Short, readable type: known MIME types, else the file extension, else the MIME subtype. */
+const typeLabel = (t: TreeItem) => {
+  if (t.kind === 'folder') return 'Folder';
+  const mime = t.content_type?.split(';')[0]?.trim().toLowerCase() ?? '';
+  const known = OFFICE_TYPES[mime];
+  if (known) return known;
+  const ext = t.name.includes('.') ? t.name.split('.').pop()!.toUpperCase() : '';
+  if (ext && ext.length <= 5) return ext;
+  return mime.split('/')[1]?.toUpperCase() ?? 'File';
+};
 
 function LockBadge({ t }: { t: TreeItem }) {
   if (!t.locked) return null;
@@ -47,7 +88,13 @@ function LockBadge({ t }: { t: TreeItem }) {
       data-testid="lock-badge"
     >
       <Lock className="size-3" aria-hidden />
-      {t.locked_by_me ? 'Checked out by you' : 'Checked out'}
+      {t.kind === 'folder'
+        ? t.locked_by_me
+          ? 'Locked by you'
+          : 'Locked'
+        : t.locked_by_me
+          ? 'Checked out by you'
+          : 'Checked out'}
     </span>
   );
 }
@@ -59,6 +106,7 @@ function NameCell({ t, thumb, size = 'sm' }: { t: TreeItem; thumb?: boolean; siz
     <ItemIcon
       kind={t.kind}
       contentType={t.content_type}
+      name={t.name}
       teamFolder={t.is_team_folder}
       className={size === 'lg' ? 'size-10' : undefined}
     />
@@ -111,6 +159,8 @@ function Row({ t, p }: { t: TreeItem; p: ViewProps }) {
   const [over, setOver] = useState(false);
   const sel = p.selected.has(t.id);
   const cut = p.cutIds.has(t.id);
+  // Any selection anywhere in the list hides every row's hover toolbar (actions live in the bar above).
+  const noSelection = p.selected.size === 0;
   const col = (c: ColumnId) => p.columns.includes(c);
   return (
     <div
@@ -123,7 +173,7 @@ function Row({ t, p }: { t: TreeItem; p: ViewProps }) {
       data-selected={sel || undefined}
       data-cut={cut || undefined}
       className={cn(
-        'grid cursor-default select-none items-center gap-3 border-b border-line px-3 text-[13px] last:border-b-0',
+        'group relative grid cursor-default select-none items-center gap-3 border-b border-line px-3 text-[13px] last:border-b-0',
         p.view === 'compact' ? 'py-0.5' : 'py-1.5',
         'grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem_9rem_9rem_6rem]',
         sel ? 'bg-accent-soft shadow-[inset_3px_0_0_var(--accent)]' : 'hover:bg-surface-2',
@@ -135,11 +185,14 @@ function Row({ t, p }: { t: TreeItem; p: ViewProps }) {
       onDoubleClick={() => p.onOpen(t)}
       {...rowHandlers(t, p, setOver)}
     >
-      <div role="gridcell" className="flex min-w-0 items-center gap-2.5">
+      <div role="gridcell" className="@container flex min-w-0 items-center gap-2.5">
         <NameCell t={t} thumb />
         <span className="truncate font-medium" title={t.name}>
           {t.name}
         </span>
+        {/* Hover only: while anything is selected the actions live in the bar above the list. */}
+        {noSelection && p.renderHover?.(t, p.focus === t.id)}
+        <ColorDot color={t.color_tag} />
         {cut && (
           <span className="inline-flex items-center gap-0.5 text-xs text-muted">
             <Scissors className="size-3" aria-hidden /> Cut
@@ -150,7 +203,17 @@ function Row({ t, p }: { t: TreeItem; p: ViewProps }) {
         )}
         <LockBadge t={t} />
         {col('status') && <StatusChip status={t.status} />}
-        <span className="ml-auto">{p.renderMenu(t)}</span>
+        <span
+          className={cn(
+            'ml-auto',
+            p.renderHover &&
+              noSelection &&
+              '@[26rem]:group-focus-within:invisible @[26rem]:group-hover:invisible',
+            p.renderHover && noSelection && p.focus === t.id && '@[26rem]:invisible',
+          )}
+        >
+          {p.renderMenu(t)}
+        </span>
       </div>
       <span
         role="gridcell"
@@ -270,6 +333,7 @@ function Tile({ t, p, large }: { t: TreeItem; p: ViewProps; large: boolean }) {
       <div className="min-w-0">
         <p className="truncate font-medium" title={t.name}>
           {t.name}
+          <ColorDot color={t.color_tag} className="ml-1.5" />
           {t.starred && (
             <Star className="ml-1 inline size-3 fill-warn text-warn" aria-label="In Quick Access" />
           )}

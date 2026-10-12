@@ -238,7 +238,7 @@ export function SettingsView() {
             form={form}
             name="signatures_enabled"
             label="Enable e-signatures"
-            hint="Lets people request signatures on PDF documents."
+            hint="Lets people request signatures on documents. Non-PDF files are signed on a PDF copy."
           />
           <Toggle
             form={form}

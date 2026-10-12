@@ -1,10 +1,11 @@
 'use client';
 
-import { Download, History, Loader2, RotateCcw } from 'lucide-react';
+import { Download, GitCompare, History, Loader2, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CompareVersionsDialog } from './compare-versions';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
@@ -32,6 +33,7 @@ export function VersionsPanel({
   const q = useVersions(documentId);
   const restore = useRestoreVersion(documentId);
   const [target, setTarget] = useState<Version | null>(null);
+  const [compare, setCompare] = useState<{ from?: number; to?: number } | null>(null);
 
   if (q.isPending) return <SkeletonRows rows={3} label="Loading versions" />;
   if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
@@ -103,6 +105,42 @@ export function VersionsPanel({
                   </td>
                   <td className="px-3 py-2 text-right">
                     <span className="inline-flex gap-1">
+                      <DisabledReason
+                        reason={
+                          !can(permissions, 'download')
+                            ? 'Comparing shows content, so it needs permission to download.'
+                            : v.scan_status !== 'clean'
+                              ? 'Only clean versions can be compared.'
+                              : versions.filter((x) => x.scan_status === 'clean').length < 2
+                                ? 'There is only one version.'
+                                : null
+                        }
+                      >
+                        <Button
+                          size="sm"
+                          disabled={
+                            !can(permissions, 'download') ||
+                            v.scan_status !== 'clean' ||
+                            versions.filter((x) => x.scan_status === 'clean').length < 2
+                          }
+                          aria-label={`Compare version ${v.version_number} with another`}
+                          onClick={() => {
+                            const older = versions
+                              .filter(
+                                (x) =>
+                                  x.scan_status === 'clean' && x.version_number < v.version_number,
+                              )
+                              .sort((a, b) => b.version_number - a.version_number)[0];
+                            setCompare(
+                              older
+                                ? { from: older.version_number, to: v.version_number }
+                                : { to: undefined, from: v.version_number },
+                            );
+                          }}
+                        >
+                          <GitCompare /> Compare
+                        </Button>
+                      </DisabledReason>
                       <DisabledReason reason={dlReason}>
                         <Button
                           size="sm"
@@ -135,6 +173,16 @@ export function VersionsPanel({
           </tbody>
         </table>
       </div>
+      {compare && (
+        <CompareVersionsDialog
+          documentId={documentId}
+          versions={versions}
+          open
+          onClose={() => setCompare(null)}
+          initialFrom={compare.from}
+          initialTo={compare.to}
+        />
+      )}
       <ConfirmDialog
         open={!!target}
         onOpenChange={(o) => !o && setTarget(null)}

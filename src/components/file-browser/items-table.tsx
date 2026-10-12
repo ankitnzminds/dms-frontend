@@ -13,25 +13,21 @@ import { useMemo } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
-import type { ActionItem } from '@/features/files/availability';
+import { toActionItem } from '@/features/explorer/resource';
 import type { SortKey, SortOrder } from '@/features/files/hooks';
 import type { TreeItem } from '@/lib/api-client';
 import { formatBytes, formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { Thumbnail } from '@/components/file-preview/thumbnail';
 import { ItemIcon, StatusChip } from './file-bits';
-import { ItemMenu } from './item-actions';
+import {
+  ResourceActionsCell,
+  ResourceHover,
+  ResourceTr,
+} from '@/components/explorer/resource-actions';
 import { PaginationBar } from './pagination-bar';
 
-export const toActionItem = (t: TreeItem): ActionItem => ({
-  kind: t.kind,
-  id: t.id,
-  name: t.name,
-  permissions: t.permissions,
-  starred: t.starred,
-  status: t.status,
-  content_type: t.content_type,
-});
+export { toActionItem };
 
 const col = createColumnHelper<TreeItem>();
 
@@ -47,6 +43,12 @@ export interface ItemsTableProps {
   onSelectionChange?: (s: RowSelectionState) => void;
   page?: { total: number; limit: number; offset: number; onOffsetChange: (o: number) => void };
   caption: string;
+  /** Page-specific extras after the name (badges) and before the Actions button (buttons). */
+  /** Lists that never need a horizontal scrollbar can opt out (the table then fits its container). */
+  fit?: boolean;
+  hideSize?: boolean;
+  nameExtra?: (t: TreeItem) => React.ReactNode;
+  actionsExtra?: (t: TreeItem) => React.ReactNode;
 }
 
 /** Server-sorted, server-paginated list of files/folders (TanStack Table, manual sort + pagination). */
@@ -62,6 +64,10 @@ export function ItemsTable({
   onSelectionChange,
   page,
   caption,
+  nameExtra,
+  actionsExtra,
+  fit,
+  hideSize,
 }: ItemsTableProps) {
   const selectable = !!onSelectionChange;
   // Folders first within the page (stable).
@@ -130,7 +136,7 @@ export function ItemsTable({
           const t = row.original;
           const href = t.kind === 'folder' ? `/files/${t.id}` : `/documents/${t.id}`;
           return (
-            <div className="flex min-w-0 items-center gap-2.5">
+            <div className="@container flex min-w-0 items-center gap-2.5">
               {t.kind === 'document' &&
               t.status === 'available' &&
               t.content_type?.startsWith('image/') ? (
@@ -138,12 +144,13 @@ export function ItemsTable({
                   documentId={t.id}
                   name={t.name}
                   className="size-6 shrink-0"
-                  fallback={<ItemIcon kind={t.kind} contentType={t.content_type} />}
+                  fallback={<ItemIcon kind={t.kind} contentType={t.content_type} name={t.name} />}
                 />
               ) : (
                 <ItemIcon
                   kind={t.kind}
                   contentType={t.content_type}
+                  name={t.name}
                   teamFolder={t.is_team_folder}
                 />
               )}
@@ -154,6 +161,8 @@ export function ItemsTable({
               >
                 {t.name}
               </Link>
+              <ResourceHover />
+              {nameExtra?.(t)}
               {t.starred && (
                 <Star className="size-3 shrink-0 fill-warn text-warn" aria-label="Starred" />
               )}
@@ -162,15 +171,19 @@ export function ItemsTable({
           );
         },
       }),
-      col.accessor('size_bytes', {
-        header: () => sortHeader('Size', 'size'),
-        cell: (c) => (
-          <span className="tabular text-muted">
-            {c.row.original.kind === 'folder' ? '-' : formatBytes(c.getValue())}
-          </span>
-        ),
-        meta: { className: 'hidden sm:table-cell w-28 text-right' },
-      }),
+      ...(hideSize
+        ? []
+        : [
+            col.accessor('size_bytes', {
+              header: () => sortHeader('Size', 'size'),
+              cell: (c) => (
+                <span className="tabular text-muted">
+                  {c.row.original.kind === 'folder' ? '-' : formatBytes(c.getValue())}
+                </span>
+              ),
+              meta: { className: 'hidden sm:table-cell w-28 text-right' },
+            }),
+          ]),
       col.accessor('updated_at', {
         header: () => sortHeader('Modified', 'updated_at'),
         cell: (c) => <span className="text-muted">{formatRelative(c.getValue())}</span>,
@@ -179,11 +192,11 @@ export function ItemsTable({
       col.display({
         id: 'actions',
         header: () => <span className="sr-only">Actions</span>,
-        cell: ({ row }) => <ItemMenu item={toActionItem(row.original)} />,
-        meta: { className: 'w-10 text-right' },
+        cell: () => null,
+        meta: { className: actionsExtra ? 'w-48 text-right' : 'w-10 text-right' },
       }),
     ];
-  }, [selectable, sort, onSortChange]);
+  }, [selectable, sort, onSortChange, nameExtra, actionsExtra, hideSize]);
 
   const table = useReactTable({
     data,
@@ -206,7 +219,7 @@ export function ItemsTable({
 
   return (
     <div>
-      <div className="overflow-x-auto">
+      <div className={fit ? undefined : 'overflow-x-auto'}>
         <table className="w-full table-fixed border-collapse text-[13px]">
           <caption className="sr-only">{caption}</caption>
           <thead>
@@ -238,25 +251,33 @@ export function ItemsTable({
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr
+              <ResourceTr
                 key={row.id}
-                data-testid="item-row"
+                item={row.original}
+                selected={Object.keys(selection ?? {}).length > 0}
                 data-kind={row.original.kind}
                 data-state={row.getIsSelected() ? 'selected' : undefined}
                 className="border-b border-line last:border-b-0 hover:bg-surface-2 data-[state=selected]:bg-accent-soft/60"
               >
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className={cn(
-                      'px-3 py-2 align-middle',
-                      (cell.column.columnDef.meta as { className?: string } | undefined)?.className,
-                    )}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
+                {row.getVisibleCells().map((cell) =>
+                  cell.column.id === 'actions' ? (
+                    <ResourceActionsCell key={cell.id} className="text-right">
+                      {actionsExtra?.(row.original)}
+                    </ResourceActionsCell>
+                  ) : (
+                    <td
+                      key={cell.id}
+                      className={cn(
+                        'px-3 py-2 align-middle',
+                        (cell.column.columnDef.meta as { className?: string } | undefined)
+                          ?.className,
+                      )}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ),
+                )}
+              </ResourceTr>
             ))}
           </tbody>
         </table>

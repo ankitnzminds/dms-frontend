@@ -12,3 +12,7 @@ next-env.d.ts
 .env.*.local
 .DS_Store
 .shots
+
+# logs and local tool output
+*.log
+.playwright-mcp/

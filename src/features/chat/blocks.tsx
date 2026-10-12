@@ -1,16 +1,9 @@
 'use client';
 
-import {
-  AlertTriangle,
-  CheckCircle2,
-  FileText,
-  Folder,
-  Loader2,
-  MinusCircle,
-  XCircle,
-} from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Loader2, MinusCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { ItemIcon } from '@/components/file-browser/file-bits';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDateTime, titleCase } from '@/lib/format';
@@ -65,10 +58,15 @@ function DocumentsBlock({ b }: { b: Obj }) {
       <ul className="grid gap-1.5">
         {items.map((it, i) => {
           const href = hrefFor(it.kind, it.id);
-          const Icon = it.kind === 'folder' ? Folder : FileText;
           return (
             <li key={i} className="flex items-start gap-2">
-              <Icon className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden />
+              <ItemIcon
+                kind={it.kind === 'folder' ? 'folder' : 'document'}
+                name={str(it.name)}
+                contentType={str(it.content_type)}
+                size={16}
+                className="mt-0.5"
+              />
               <span className="min-w-0">
                 {href ? (
                   <Link className="font-medium hover:text-accent hover:underline" href={href}>

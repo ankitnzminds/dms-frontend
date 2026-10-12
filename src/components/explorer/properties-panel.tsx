@@ -60,7 +60,10 @@ export function PropertiesPanel({
             <TabsTrigger value="comments" data-testid="tab-comments">
               Comments
               {count > 0 && (
-                <span className="ml-1.5 rounded-full bg-accent-soft px-1.5 text-[11px] text-accent-soft-fg" data-testid="comment-count">
+                <span
+                  className="ml-1.5 rounded-full bg-accent-soft px-1.5 text-[11px] text-accent-soft-fg"
+                  data-testid="comment-count"
+                >
                   {count}
                 </span>
               )}

@@ -4,6 +4,7 @@ import {
   keepPreviousData,
   useInfiniteQuery,
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
@@ -148,6 +149,22 @@ export function useUserQuota(userId: string | undefined) {
           signal,
         }),
       ),
+  });
+}
+
+/** Quotas of several users at once (same cache entries as useUserQuota). */
+export function useUserQuotas(userIds: string[]) {
+  return useQueries({
+    queries: userIds.map((userId) => ({
+      queryKey: [...KEY, 'quota', userId],
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        call<Schemas['QuotaOut']>(
+          api.GET('/api/v1/admin/users/{user_id}/quota', {
+            params: { path: { user_id: userId } },
+            signal,
+          }),
+        ),
+    })),
   });
 }
 

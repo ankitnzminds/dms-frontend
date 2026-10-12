@@ -20,6 +20,7 @@ import {
   type ResourceKind,
 } from '@/features/sharing/hooks';
 import { MemberPicker } from '@/features/members/member-picker';
+import { AccessCheck, AclImpact } from './access-check';
 import { friendlyMessage, type ActionName, type PermissionGrant } from '@/lib/api-client';
 import { formatDate } from '@/lib/format';
 import { actionLabel, isAdminRole } from '@/lib/permissions';
@@ -281,6 +282,15 @@ export function ManageAccessDialog({
                     : ''}
                   .
                 </p>
+                {isAdminRole(me?.role) && (
+                  <AclImpact
+                    kind={kind}
+                    id={id}
+                    subjectType={subjectType}
+                    subjectId={needsSubject ? subjectId || null : null}
+                    inherit={kind === 'folder' ? inherit : false}
+                  />
+                )}
                 <div className="mt-2 flex items-center gap-2">
                   <Checkbox
                     id="acl-ack"
@@ -305,6 +315,7 @@ export function ManageAccessDialog({
               </Button>
             </div>
           </form>
+          {isAdminRole(me?.role) && <AccessCheck kind={kind} id={id} />}
         </DialogBody>
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)}>

@@ -28,6 +28,8 @@ export interface UploadItem {
   relativeDir?: string[];
   /** Folder-only item: just create the (empty) directory, no file. */
   mkdirOnly?: boolean;
+  /** "create_file" needs the Create File right instead of Upload. */
+  intent?: 'upload' | 'create_file';
   /** Set for "upload new version". */
   documentId?: string;
   expectedLatestVersion?: number;
@@ -131,8 +133,12 @@ export class UploadEngine {
     return id;
   }
 
-  enqueueFiles(files: File[], folderId: string): string[] {
-    const ids = files.map((file) => this.push({ file, name: file.name, folderId }));
+  enqueueFiles(
+    files: File[],
+    folderId: string,
+    intent: 'upload' | 'create_file' = 'upload',
+  ): string[] {
+    const ids = files.map((file) => this.push({ file, name: file.name, folderId, intent }));
     this.commit();
     this.pump();
     return ids;

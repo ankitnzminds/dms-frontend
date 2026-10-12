@@ -87,7 +87,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       onSessionExpired: () => {
         void endSession();
         const here = window.location.pathname + window.location.search;
-        const next = here.startsWith('/login') || here === '/' ? '' : `&next=${encodeURIComponent(here)}`;
+        const next =
+          here.startsWith('/login') || here === '/' ? '' : `&next=${encodeURIComponent(here)}`;
         router.replace(`/login?reason=expired${next}`);
       },
       onRateLimited: (e) => {

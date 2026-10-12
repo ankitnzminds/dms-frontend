@@ -1,14 +1,15 @@
 'use client';
 
-import { Share2 } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Share2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { PaginationBar } from '@/components/file-browser/pagination-bar';
+import { ResourceActionsProvider } from '@/components/explorer/resource-actions';
 import { PageHeader, Panel } from '@/components/layout/page-header';
 import { PreviewPanel } from '@/components/file-preview/preview-panel';
 import { ReceivedShareRow } from '@/components/sharing/received-share-row';
 import { Dialog, DialogBody, DialogContent } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/input';
+import { Input, Label } from '@/components/ui/input';
 import { Switch } from '@/components/ui/checkbox';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
@@ -22,10 +23,30 @@ export default function SharedWithMePage() {
   const [inactive, setInactive] = useState(false);
   const [offset, setOffset] = useState(0);
   const [preview, setPreview] = useState<ReceivedShare | null>(null);
-  const q = useReceivedShares({ includeInactive: inactive, limit: PAGE, offset });
+  const [search, setSearch] = useState('');
+  const term = search.trim().toLowerCase();
+  // No server-side search here: while searching, load up to 200 shares and match them in the page
+  // (item name, who shared it, or where it sits).
+  const q = useReceivedShares({
+    includeInactive: inactive,
+    limit: term ? 200 : PAGE,
+    offset: term ? 0 : offset,
+  });
+  const items = useMemo(() => {
+    const all = q.data?.items ?? [];
+    if (!term) return all;
+    return all.filter((s) =>
+      [
+        s.name,
+        s.shared_by.display_name ?? '',
+        s.shared_by.email ?? '',
+        ...s.breadcrumb.map((b) => b.name ?? ''),
+      ].some((v) => v.toLowerCase().includes(term)),
+    );
+  }, [q.data, term]);
 
   return (
-    <>
+    <ResourceActionsProvider>
       <PageHeader
         title="Shared with me"
         description="Items others shared with you. Access applies to the item only - the folders above it are shown as context and stay private unless you are separately given access."
@@ -42,48 +63,87 @@ export default function SharedWithMePage() {
           </div>
         }
       />
+      <div className="mb-3 flex min-h-11 items-center gap-2 rounded-lg border border-line bg-surface px-2 py-1.5">
+        <div className="relative w-full max-w-md">
+          <Search
+            className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-faint"
+            aria-hidden
+          />
+          <Input
+            type="search"
+            aria-label="Search files and folders"
+            placeholder="Search files and folders"
+            className="pl-8"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            data-testid="shared-with-me-search"
+          />
+        </div>
+        {term && q.data && (
+          <p className="text-xs text-muted" aria-live="polite">
+            {items.length} of {q.data.items.length}
+            {q.data.total > q.data.items.length ? ' (the first 200 shares)' : ''}
+          </p>
+        )}
+      </div>
       <Panel>
         {q.isPending ? (
           <SkeletonRows rows={5} label="Loading shared items" />
         ) : q.isError ? (
           <ErrorState error={q.error} onRetry={() => q.refetch()} />
-        ) : q.data.items.length === 0 ? (
+        ) : items.length === 0 ? (
           <EmptyState
             icon={Share2}
             title={
-              inactive ? 'Nothing has been shared with you' : 'Nothing is shared with you right now'
+              term
+                ? 'No shared items match your search'
+                : inactive
+                  ? 'Nothing has been shared with you'
+                  : 'Nothing is shared with you right now'
             }
-            description="When a colleague shares a file or folder with you, it appears here."
+            description={
+              term
+                ? 'Try another file or folder name, or a person.'
+                : 'When a colleague shares a file or folder with you, it appears here.'
+            }
           />
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[30rem] border-collapse text-[13px]">
+              <table className="w-full table-fixed border-collapse text-[13px]">
                 <caption className="sr-only">Items shared with you</caption>
+                <colgroup>
+                  <col />
+                  <col className="hidden w-[20%] lg:table-column" />
+                  <col className="hidden w-[26%] md:table-column" />
+                  <col className="w-32" />
+                  <col className="w-28" />
+                </colgroup>
                 <thead>
-                  <tr className="border-b border-line text-left text-xs text-muted">
-                    <th scope="col" className="px-3 py-2 font-medium">
+                  <tr className="border-b border-line text-left text-xs font-medium text-muted">
+                    <th scope="col" className="px-4 py-2.5 font-medium">
                       Name and location
                     </th>
-                    <th scope="col" className="hidden px-3 py-2 font-medium lg:table-cell">
+                    <th scope="col" className="hidden px-3 py-2.5 font-medium lg:table-cell">
                       Shared by
                     </th>
-                    <th scope="col" className="hidden px-3 py-2 font-medium md:table-cell">
+                    <th scope="col" className="hidden px-3 py-2.5 font-medium md:table-cell">
                       Permissions
                     </th>
-                    <th scope="col" className="px-3 py-2 font-medium">
+                    <th scope="col" className="px-3 py-2.5 font-medium">
                       Status
                     </th>
-                    <th scope="col" className="px-3 py-2 text-right font-medium">
+                    <th scope="col" className="px-3 py-2.5 text-right font-medium">
                       Actions
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {q.data.items.map((s) => (
+                  {items.map((s) => (
                     <ReceivedShareRow
                       key={s.share_id}
                       share={s}
+                      interactive
                       onPreview={setPreview}
                       onDownload={(sh) =>
                         downloadDocument(sh.resource_id).catch((e) =>
@@ -95,13 +155,15 @@ export default function SharedWithMePage() {
                 </tbody>
               </table>
             </div>
-            <PaginationBar
-              total={q.data.total}
-              limit={PAGE}
-              offset={offset}
-              count={q.data.items.length}
-              onOffsetChange={setOffset}
-            />
+            {!term && (
+              <PaginationBar
+                total={q.data.total}
+                limit={PAGE}
+                offset={offset}
+                count={q.data.items.length}
+                onOffsetChange={setOffset}
+              />
+            )}
           </>
         )}
       </Panel>
@@ -119,6 +181,6 @@ export default function SharedWithMePage() {
           </DialogContent>
         </Dialog>
       )}
-    </>
+    </ResourceActionsProvider>
   );
 }

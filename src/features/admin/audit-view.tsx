@@ -84,7 +84,7 @@ export function AuditView() {
         }
       />
       <form
-        className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+        className="mb-3 grid gap-3 rounded-lg border border-line bg-surface p-3 sm:grid-cols-2 lg:grid-cols-4"
         aria-label="Audit filters"
         onSubmit={(e) => {
           e.preventDefault();

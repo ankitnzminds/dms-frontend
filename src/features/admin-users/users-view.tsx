@@ -248,6 +248,9 @@ export function UsersView() {
                       {...{ sort, descending, onSort }}
                     />
                     <SortHeader field="email" label="Email" {...{ sort, descending, onSort }} />
+                    <th scope="col" className="hidden px-3 py-2 font-medium md:table-cell">
+                      Role
+                    </th>
                     <SortHeader
                       field="last_login_at"
                       label="Last login"
@@ -288,6 +291,9 @@ export function UsersView() {
                             {u.display_name ?? <span className="text-faint">--</span>}
                           </td>
                           <td className="px-3 py-2 text-muted">{u.email}</td>
+                          <td className="hidden px-3 py-2 md:table-cell">
+                            <Badge tone="outline">{titleCase(u.role)}</Badge>
+                          </td>
                           <td className="hidden px-3 py-2 text-muted lg:table-cell">
                             {u.last_login_at ? formatRelative(u.last_login_at) : '--'}
                           </td>
@@ -334,7 +340,7 @@ export function UsersView() {
                         {open && (
                           <tr className="border-b border-line bg-surface-2/40">
                             <td />
-                            <td colSpan={6} className="px-3 py-3">
+                            <td colSpan={8} className="px-3 py-3">
                               <dl className="grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2 lg:grid-cols-3">
                                 <Info label="Role" value={titleCase(u.role)} />
                                 <Info

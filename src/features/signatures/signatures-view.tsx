@@ -22,8 +22,9 @@ export function SignaturesView() {
   const admin = isAdminRole(me?.role);
   const caps = useSignatureCapabilities();
   const [scope, setScope] = useState<'to_sign' | 'mine' | 'all'>('to_sign');
+  const [status, setStatus] = useState<'active' | 'finished' | 'any'>('active');
   const [offset, setOffset] = useState(0);
-  const q = useSignatureRequests(scope, PAGE, offset);
+  const q = useSignatureRequests(scope, PAGE, offset, status);
 
   return (
     <>
@@ -37,7 +38,7 @@ export function SignaturesView() {
             </label>
             <Select
               id="sig-scope"
-              className="w-52"
+              className="w-64"
               value={scope}
               onChange={(e) => (setScope(e.target.value as typeof scope), setOffset(0))}
             >
@@ -45,16 +46,30 @@ export function SignaturesView() {
               <option value="mine">Requests I sent</option>
               {admin && <option value="all">All requests (admin)</option>}
             </Select>
+            <label htmlFor="sig-status" className="text-[13px]">
+              Status
+            </label>
+            <Select
+              id="sig-status"
+              className="w-36"
+              value={status}
+              onChange={(e) => (setStatus(e.target.value as typeof status), setOffset(0))}
+            >
+              <option value="active">Active</option>
+              <option value="finished">History</option>
+              <option value="any">All</option>
+            </Select>
           </div>
         }
       />
-      {caps.data && (!caps.data.available || !caps.data.enabled) && (
-        <p role="status" className="mb-3 rounded-md bg-info-soft px-3 py-2 text-[13px] text-info">
-          {!caps.data.available
-            ? 'No signing provider is configured for this service, so new signature requests cannot be sent.'
-            : 'E-signature is turned off for your organization. Existing requests are still listed.'}
-        </p>
-      )}
+      {caps.data &&
+        ((!caps.data.available && !caps.data.builtin_available) || !caps.data.enabled) && (
+          <p role="status" className="mb-3 rounded-md bg-info-soft px-3 py-2 text-[13px] text-info">
+            {!caps.data.available && !caps.data.builtin_available
+              ? 'No signing provider is configured for this service, so new signature requests cannot be sent.'
+              : 'E-signature is turned off for your organization. Existing requests are still listed.'}
+          </p>
+        )}
       <Panel>
         {q.isPending ? (
           <SkeletonRows rows={4} label="Loading signature requests" />
@@ -64,11 +79,13 @@ export function SignaturesView() {
           <EmptyState
             icon={FileSignature}
             title={
-              scope === 'to_sign'
-                ? 'Nothing is waiting for your signature'
-                : 'No signature requests'
+              status === 'finished'
+                ? 'No finished signature requests'
+                : scope === 'to_sign'
+                  ? 'Nothing is waiting for your signature'
+                  : 'No signature requests'
             }
-            description="Request a signature from a PDF's page."
+            description="To request one, open a document and choose Request signature."
           />
         ) : (
           <>

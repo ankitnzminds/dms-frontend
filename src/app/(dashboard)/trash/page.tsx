@@ -1,6 +1,6 @@
 'use client';
 
-import { Flame, Trash2, Undo2 } from 'lucide-react';
+import { Flame, Search, Trash2, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ItemIcon } from '@/components/file-browser/file-bits';
@@ -13,16 +13,19 @@ import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui
 import { Field, Input } from '@/components/ui/input';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
+import { useMe } from '@/features/auth/session';
 import { useRestoreItem, useTrash } from '@/features/files/hooks';
 import { purgeErrorMessage, usePurge } from '@/features/governance/hooks';
 import { friendlyMessage, isApiError, type TrashItem } from '@/lib/api-client';
 import { formatBytes, formatDateTime } from '@/lib/format';
+import { isAdminRole } from '@/lib/permissions';
 
 const PAGE = 25;
 
 export default function TrashPage() {
   const [offset, setOffset] = useState(0);
-  const q = useTrash(PAGE, offset);
+  const [search, setSearch] = useState('');
+  const q = useTrash(PAGE, offset, search);
   const restore = useRestoreItem();
   const [target, setTarget] = useState<TrashItem | null>(null);
   const [rename, setRename] = useState<{ item: TrashItem; name: string; message: string } | null>(
@@ -30,6 +33,7 @@ export default function TrashPage() {
   );
   const [blocked, setBlocked] = useState<string | null>(null);
   const purge = usePurge();
+  const admin = isAdminRole(useMe().data?.role);
   const [purgeTarget, setPurgeTarget] = useState<TrashItem | null>(null);
   const [purgeError, setPurgeError] = useState<string | null>(null);
 
@@ -76,6 +80,23 @@ export default function TrashPage() {
           {blocked}
         </p>
       )}
+      <div className="relative mb-3 w-full max-w-sm">
+        <Search
+          className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-faint"
+          aria-hidden
+        />
+        <Input
+          type="search"
+          aria-label="Search trash"
+          placeholder="Search trash"
+          className="pl-8"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setOffset(0);
+          }}
+        />
+      </div>
       <Panel>
         {q.isPending ? (
           <SkeletonRows rows={5} label="Loading trash" />
@@ -84,8 +105,12 @@ export default function TrashPage() {
         ) : q.data.items.length === 0 ? (
           <EmptyState
             icon={Trash2}
-            title="Trash is empty"
-            description="Items you delete will wait here until you restore them."
+            title={search.trim() ? 'No deleted items match' : 'Trash is empty'}
+            description={
+              search.trim()
+                ? 'Try a different name.'
+                : 'Items you delete will wait here until you restore them.'
+            }
           />
         ) : (
           <>
@@ -96,7 +121,7 @@ export default function TrashPage() {
                   className="flex items-start gap-3 px-3 py-2.5"
                   data-testid="trash-row"
                 >
-                  <ItemIcon kind={t.kind} className="mt-0.5" />
+                  <ItemIcon kind={t.kind} name={t.name} className="mt-0.5" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-medium">{t.name}</p>
                     <p className="text-xs text-muted">
@@ -143,11 +168,21 @@ export default function TrashPage() {
         title={`Delete "${purgeTarget?.name}" forever?`}
         description={
           <>
-            This permanently removes{' '}
-            {purgeTarget?.kind === 'folder'
-              ? 'the folder and everything inside it'
-              : 'the file and all of its versions'}
-            . <strong>It cannot be undone.</strong>
+            {admin ? (
+              <>
+                This permanently removes{' '}
+                {purgeTarget?.kind === 'folder'
+                  ? 'the folder and everything inside it'
+                  : 'the file and all of its versions'}
+                . <strong>It cannot be undone.</strong>
+              </>
+            ) : (
+              <>
+                This removes {purgeTarget?.kind === 'folder' ? 'the folder' : 'the file'} from your
+                trash for good. For safety, an administrator can still recover it from the Recycle
+                Bin.
+              </>
+            )}
             {purgeError && (
               <span
                 role="alert"
@@ -165,8 +200,12 @@ export default function TrashPage() {
           purge.mutate(
             { kind: purgeTarget!.kind, id: purgeTarget!.id },
             {
-              onSuccess: () => {
-                toast.success(`Deleted "${purgeTarget!.name}" forever`);
+              onSuccess: (r) => {
+                toast.success(
+                  r.retained
+                    ? `Removed "${purgeTarget!.name}" from your trash`
+                    : `Deleted "${purgeTarget!.name}" forever`,
+                );
                 setPurgeTarget(null);
               },
               onError: (e) => setPurgeError(purgeErrorMessage(e) ?? friendlyMessage(e)),

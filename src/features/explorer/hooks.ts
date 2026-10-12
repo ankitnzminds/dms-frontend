@@ -1,7 +1,15 @@
 'use client';
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, call, isApiError, type Page, type Schemas, type TreeItem } from '@/lib/api-client';
+import {
+  api,
+  call,
+  friendlyMessage,
+  isApiError,
+  type Page,
+  type Schemas,
+  type TreeItem,
+} from '@/lib/api-client';
 
 export type ItemRef = Schemas['ItemRef'];
 export type BulkResult = Schemas['BulkResult'];
@@ -121,13 +129,15 @@ export function useLockDocument() {
         await call<LockInfo>(
           api.POST('/api/v1/documents/{document_id}/lock', {
             params: { path: { document_id: v.id } },
-            body: {},
+            body: { no_expiry: false, prevent_download: false },
           }),
         );
       else
-        await api.DELETE('/api/v1/documents/{document_id}/lock', {
-          params: { path: { document_id: v.id } },
-        });
+        await call(
+          api.DELETE('/api/v1/documents/{document_id}/lock', {
+            params: { path: { document_id: v.id } },
+          }),
+        );
     },
     onSuccess: () => {
       inv();
@@ -167,9 +177,98 @@ export function useFolderChildren(folderId: string | undefined, enabled: boolean
 }
 
 export function lockErrorText(e: unknown): string | null {
-  if (isApiError(e) && e.code === 'document_locked')
-    return 'This document is checked out by someone else. Ask them to check it in, or ask an administrator to break the lock.';
+  if (!isApiError(e)) return null;
+  if (e.code === 'document_locked')
+    return 'This document is locked by someone else. Ask them to unlock it, or ask an administrator to break the lock.';
+  if (e.code === 'folder_locked')
+    return 'This folder is locked by someone else. Ask them to unlock it, or ask an administrator to break the lock.';
+  if (e.code === 'download_blocked_by_lock')
+    return 'Downloading is turned off while someone else has this locked.';
+  if (e.code === 'lock_in_the_past') return 'Choose a lock end time in the future.';
+  if (e.code === 'lock_too_long') return 'A lock can last at most one year.';
   return null;
+}
+
+export interface LockOptions {
+  /** ISO time the lock ends; null = never expires. */
+  expiresAt: string | null;
+  preventDownload: boolean;
+}
+export interface LockTarget {
+  kind: 'folder' | 'document';
+  id: string;
+  name: string;
+}
+export interface LockResult {
+  target: LockTarget;
+  ok: boolean;
+  message?: string;
+}
+
+async function lockOne(t: LockTarget, lock: boolean, o?: LockOptions) {
+  const body = {
+    no_expiry: !o?.expiresAt,
+    expires_at: o?.expiresAt ?? null,
+    prevent_download: !!o?.preventDownload,
+  };
+  if (t.kind === 'folder') {
+    if (lock)
+      await call<LockInfo>(
+        api.POST('/api/v1/folders/{folder_id}/lock', {
+          params: { path: { folder_id: t.id } },
+          body,
+        }),
+      );
+    else
+      await call(
+        api.DELETE('/api/v1/folders/{folder_id}/lock', { params: { path: { folder_id: t.id } } }),
+      );
+  } else if (lock) {
+    await call<LockInfo>(
+      api.POST('/api/v1/documents/{document_id}/lock', {
+        params: { path: { document_id: t.id } },
+        body,
+      }),
+    );
+  } else {
+    await call(
+      api.DELETE('/api/v1/documents/{document_id}/lock', {
+        params: { path: { document_id: t.id } },
+      }),
+    );
+  }
+}
+
+/**
+ * Lock or unlock one or many files / folders. Every item is attempted on its own and reported on its own:
+ * the server decides each (permissions, someone else's lock, expiry), nothing is silently skipped.
+ */
+export function useLockItems() {
+  const inv = useInvalidateAll();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: {
+      targets: LockTarget[];
+      lock: boolean;
+      options?: LockOptions;
+    }): Promise<LockResult[]> => {
+      const out: LockResult[] = [];
+      for (const target of v.targets) {
+        try {
+          await lockOne(target, v.lock, v.options);
+          out.push({ target, ok: true });
+        } catch (e) {
+          out.push({ target, ok: false, message: lockErrorText(e) ?? friendlyMessage(e) });
+        }
+      }
+      return out;
+    },
+    onSettled: () => {
+      inv();
+      for (const k of ['properties', 'tree', 'favorites', 'folder', 'document'])
+        void qc.invalidateQueries({ queryKey: [k] });
+    },
+  });
 }
 
 /** Summarise a bulk result for the user. Never silent partial success. */

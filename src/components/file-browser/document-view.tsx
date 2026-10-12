@@ -18,7 +18,6 @@ import { toast } from 'sonner';
 import { AuditTable } from '@/components/admin/audit-table';
 import { PageHeader, Panel } from '@/components/layout/page-header';
 import { PathTrail } from '@/components/navigation/path-trail';
-import { previewKind } from '@/features/preview/kinds';
 import { PreviewPanel } from '@/components/file-preview/preview-panel';
 import { ResourceShares } from '@/components/sharing/resource-shares';
 import { RequestSignatureDialog } from '@/components/signatures/request-dialog';
@@ -46,7 +45,14 @@ import { signatureUnavailableReason, useSignatureCapabilities } from '@/features
 import { useUploads } from '@/features/upload/upload-manager';
 import { friendlyMessage, type Document } from '@/lib/api-client';
 import { can, canReadAudit, isAdminRole } from '@/lib/permissions';
-import { ApprovalsPanel, DetailsCard, ProcessingCard, SignaturesPanel } from './document-panels';
+import {
+  ApprovalsPanel,
+  approvalBlockReason,
+  DetailsCard,
+  ProcessingCard,
+  SignaturesPanel,
+  signatureBlockReason,
+} from './document-panels';
 import { StatusChip } from './file-bits';
 import { ItemActionsProvider, ItemMenu, useItemActions } from './item-actions';
 import { MetadataForm } from './metadata-form';
@@ -134,19 +140,8 @@ function Toolbar({ doc }: { doc: Document }) {
     : doc.status === 'processing'
       ? 'Wait for the current version to finish scanning.'
       : null;
-  const approvalReason =
-    doc.status !== 'available'
-      ? 'Only available documents can be submitted for approval.'
-      : !can(doc.permissions, 'view')
-        ? 'You do not have access to submit this document.'
-        : null;
-  const isPdf = doc.current_version?.content_type === 'application/pdf';
-  const sigReason =
-    doc.status !== 'available'
-      ? 'Only available documents can be sent for signature.'
-      : !isPdf
-        ? 'Only PDF documents can be sent for signature.'
-        : signatureUnavailableReason(caps.data, isAdminRole(me?.role));
+  const approvalReason = approvalBlockReason(doc);
+  const sigReason = signatureBlockReason(doc, caps.data, isAdminRole(me?.role));
 
   return (
     <>
@@ -261,6 +256,7 @@ function Toolbar({ doc }: { doc: Document }) {
       />
       {approval && (
         <SubmitApprovalDialog
+          folderId={doc.folder_id}
           documentId={doc.id}
           documentName={doc.name}
           open
@@ -269,6 +265,8 @@ function Toolbar({ doc }: { doc: Document }) {
       )}
       {signature && (
         <RequestSignatureDialog
+          isPdf={doc.current_version?.content_type === 'application/pdf'}
+          folderId={doc.folder_id}
           documentId={doc.id}
           documentName={doc.name}
           open
@@ -301,6 +299,7 @@ export function DocumentView({ documentId }: { documentId: string }) {
   const { data: me } = useMe();
   const restore = useRestoreItem();
   const protection = useProtection('document', documentId);
+  const org = useOrganization();
   const tab = useSearchParams().get('tab') ?? 'overview';
 
   if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
@@ -317,11 +316,6 @@ export function DocumentView({ documentId }: { documentId: string }) {
   const v = doc.current_version;
   const av = itemAvailability(docToItem(doc));
   const showActivity = canReadAudit(me);
-  // Documents, spreadsheets, slides and PDFs need the full width; images and text sit beside the details.
-  const wideViewer = ['office', 'pdf', 'csv', 'text'].includes(
-    previewKind(v?.content_type, doc.name),
-  );
-
   return (
     <ItemActionsProvider currentFolderId={doc.folder_id}>
       <PageHeader
@@ -370,47 +364,46 @@ export function DocumentView({ documentId }: { documentId: string }) {
           <TabsTrigger value="approvals">Approvals</TabsTrigger>
           <TabsTrigger value="signatures">Signatures</TabsTrigger>
           {showActivity && <TabsTrigger value="activity">Activity</TabsTrigger>}
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="metadata">Metadata</TabsTrigger>
         </TabsList>
         <TabsContent value="overview">
-          <div
-            className={wideViewer ? 'grid gap-4' : 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]'}
-          >
-            <Panel className="min-w-0 self-start p-3">
-              {doc.status === 'available' &&
-              v &&
-              av.preview.enabled &&
-              isPreviewableType(v.content_type, doc.name) ? (
-                <PreviewPanel
-                  documentId={doc.id}
-                  contentType={v.content_type}
-                  name={doc.name}
-                  canDownload={av.download.enabled}
-                />
-              ) : (
-                <p className="px-2 py-10 text-center text-[13px] text-muted">
-                  {av.preview.reason ?? 'Preview is not available for this file.'}
-                </p>
-              )}
+          {/* The preview gets the whole page; Details and Metadata are their own tabs. */}
+          <Panel className="min-w-0 p-3">
+            {doc.status === 'available' &&
+            v &&
+            av.preview.enabled &&
+            isPreviewableType(v.content_type, doc.name) ? (
+              <PreviewPanel
+                documentId={doc.id}
+                contentType={v.content_type}
+                name={doc.name}
+                canDownload={av.download.enabled}
+              />
+            ) : (
+              <p className="px-2 py-10 text-center text-[13px] text-muted">
+                {av.preview.reason ?? 'Preview is not available for this file.'}
+              </p>
+            )}
+          </Panel>
+        </TabsContent>
+        <TabsContent value="details">
+          <div className="grid content-start gap-4 lg:grid-cols-2">
+            <Panel className="p-4">
+              <h2 className="mb-3 text-sm font-semibold">Details</h2>
+              <DetailsCard doc={doc} />
             </Panel>
-            <div
-              className={
-                wideViewer ? 'grid content-start gap-4 lg:grid-cols-2' : 'grid content-start gap-4'
-              }
-            >
-              <Panel className="p-4">
-                <h2 className="mb-3 text-sm font-semibold">Details</h2>
-                <DetailsCard doc={doc} />
-              </Panel>
-              <Panel className="p-4">
-                <h2 className="mb-3 text-sm font-semibold">Metadata</h2>
-                <MetadataForm doc={doc} />
-              </Panel>
-              <Panel className="p-4">
-                <h2 className="mb-3 text-sm font-semibold">Processing</h2>
-                <ProcessingCard doc={doc} />
-              </Panel>
-            </div>
+            <Panel className="p-4">
+              <h2 className="mb-3 text-sm font-semibold">Processing</h2>
+              <ProcessingCard doc={doc} />
+            </Panel>
           </div>
+        </TabsContent>
+        <TabsContent value="metadata">
+          <Panel className="max-w-3xl p-4">
+            <h2 className="mb-3 text-sm font-semibold">Metadata</h2>
+            <MetadataForm doc={doc} />
+          </Panel>
         </TabsContent>
         <TabsContent value="comments">
           <CommentThread target={{ kind: 'document', id: doc.id }} />
@@ -419,7 +412,20 @@ export function DocumentView({ documentId }: { documentId: string }) {
           <VersionsPanel documentId={doc.id} permissions={doc.permissions} />
         </TabsContent>
         <TabsContent value="sharing">
-          <ResourceShares kind="document" id={doc.id} canShare={can(doc.permissions, 'share')} />
+          <ResourceShares
+            kind="document"
+            id={doc.id}
+            name={doc.name}
+            canShare={can(doc.permissions, 'share')}
+            shareBlockedReason={
+              (
+                (org.data?.settings as { share_blocked_classifications?: string[] } | undefined)
+                  ?.share_blocked_classifications ?? []
+              ).includes(doc.classification)
+                ? `Documents classified "${doc.classification}" cannot be shared.`
+                : null
+            }
+          />
         </TabsContent>
         <TabsContent value="approvals">
           <ApprovalsPanel doc={doc} />

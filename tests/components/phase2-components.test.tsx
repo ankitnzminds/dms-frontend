@@ -184,9 +184,9 @@ describe('usage with null admin counters', () => {
       ),
     );
     renderApp(<StorageView />);
-    const docs = (await screen.findByText('Documents')).closest('div')!;
+    const docs = (await screen.findAllByText('Documents'))[0]!.closest('div')!;
     expect(docs).toHaveTextContent('5');
-    expect(screen.getByText('Versions').closest('div')).toHaveTextContent('-');
+    expect(screen.getAllByText('Versions')[0]!.closest('div')).toHaveTextContent('-');
     expect(screen.getByText('Waiting for scan').closest('div')).toHaveTextContent('-');
     expect(screen.queryByText('NaN')).toBeNull();
   });
@@ -224,7 +224,7 @@ describe('Trash: delete forever', () => {
     renderApp(<TrashPage />);
     await userEvent.click(await screen.findByRole('button', { name: 'Delete held.pdf forever' }));
     const dlg = screen.getByRole('alertdialog');
-    expect(dlg).toHaveTextContent('It cannot be undone.');
+    expect(dlg).toHaveTextContent('an administrator can still recover it');
     expect(calls).toBe(0);
     await userEvent.click(within(dlg).getByRole('button', { name: 'Delete forever' }));
     expect(await within(dlg).findByRole('alert')).toHaveTextContent(/legal hold/i);

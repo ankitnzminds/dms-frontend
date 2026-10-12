@@ -7,33 +7,34 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { NewFolderDialog } from '@/components/file-browser/name-dialogs';
-import { ItemActionsProvider, useItemActions } from '@/components/file-browser/item-actions';
+import { ItemActionsProvider } from '@/components/file-browser/item-actions';
 import { ProtectionBadges } from '@/components/file-browser/protection-badges';
-import { VersionsPanel } from '@/components/file-browser/versions-panel';
 import { PathTrail } from '@/components/navigation/path-trail';
-import { Dialog, DialogBody, DialogContent } from '@/components/ui/dialog';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { DropZone } from '@/components/upload/drop-zone';
 import { useUploadPickers } from '@/components/upload/pickers';
-import { downloadDocument } from '@/features/files/download';
 import { useChildren, useFolder } from '@/features/files/hooks';
 import { useProtection } from '@/features/governance/hooks';
 import { clearClipboard, setClipboard, useClipboard } from '@/features/explorer/clipboard';
 import { readDragPayload, writeDragPayload, isCopyDrop } from '@/features/explorer/dnd';
-import { lockErrorText, useLockDocument } from '@/features/explorer/hooks';
-import { buildMenu, type ExplorerAction, type MenuContext } from '@/features/explorer/menu';
+import { HoverToolbar } from './hover-toolbar';
+import { useResourceActions } from './resource-actions';
+import {
+  buildMenu,
+  canLock,
+  canUnlock,
+  type ExplorerAction,
+  type MenuContext,
+} from '@/features/explorer/menu';
 import { useViewPrefs } from '@/features/explorer/prefs';
 import { useSelection } from '@/features/explorer/selection';
 import { dragHasFiles, INTERNAL_DND } from '@/features/upload/read-entries';
 import { useChatLauncher } from '@/features/chat/launcher';
-import { RequestAccessDialog } from '@/features/requests/request-access-dialog';
-import { friendlyMessage, type TreeItem } from '@/lib/api-client';
+import type { TreeItem } from '@/lib/api-client';
 import { can } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
-import { toActionItem } from '@/components/file-browser/items-table';
 import { PaginationBar } from '@/components/file-browser/pagination-bar';
-import { useToggleStar } from '@/features/files/hooks';
 import { useExplorerOps } from './ops';
 import { MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -65,12 +66,10 @@ const isTyping = (t: EventTarget | null) => {
 function ExplorerBody({ folderId }: { folderId: string }) {
   const router = useRouter();
   const qc = useQueryClient();
-  const { run } = useItemActions();
+  const resource = useResourceActions();
   const ops = useExplorerOps();
   const pickers = useUploadPickers();
   const clipboard = useClipboard();
-  const lock = useLockDocument();
-  const star = useToggleStar();
   const chat = useChatLauncher();
   const { setDefaultTarget } = pickers;
   useEffect(() => {
@@ -102,9 +101,9 @@ function ExplorerBody({ folderId }: { folderId: string }) {
 
   const [newFolderIn, setNewFolderIn] = useState<string | null>(null);
   const detailsParam = useSearchParams().get('details');
-  const [propsOpen, setPropsOpen] = useState(detailsParam === 'comments' || detailsParam === 'properties');
-  const [versionsFor, setVersionsFor] = useState<TreeItem | null>(null);
-  const [requestFor, setRequestFor] = useState<TreeItem | null>(null);
+  const [propsOpen, setPropsOpen] = useState(
+    detailsParam === 'comments' || detailsParam === 'properties',
+  );
   const [menuCtx, setMenuCtx] = useState<{ target: MenuContext['target']; items: TreeItem[] }>({
     target: 'background',
     items: [],
@@ -112,7 +111,10 @@ function ExplorerBody({ folderId }: { folderId: string }) {
   const container = useRef<HTMLDivElement>(null);
 
   const f = folder.data;
-  const canCreate = can(f?.permissions, 'create_child');
+  const canFolder = can(f?.permissions, 'create_folder');
+  const canFile = can(f?.permissions, 'create_file');
+  const canUpload = can(f?.permissions, 'upload');
+  const canCreate = canFolder || canFile || canUpload;
   const cutIds = useMemo(
     () =>
       new Set(
@@ -139,18 +141,6 @@ function ExplorerBody({ folderId }: { folderId: string }) {
     (a: ExplorerAction, itemsArg: TreeItem[] = selItems) => {
       const one = itemsArg[0];
       switch (a) {
-        case 'open':
-          if (one) openItem(one);
-          return;
-        case 'open-tab':
-          if (one) openItem(one, true);
-          return;
-        case 'preview':
-          if (one) run('preview', toActionItem(one));
-          return;
-        case 'download':
-          if (one) downloadDocument(one.id).catch((e) => toast.error(friendlyMessage(e)));
-          return;
         case 'cut':
         case 'copy':
           if (itemsArg.length === 0) return;
@@ -167,72 +157,12 @@ function ExplorerBody({ folderId }: { folderId: string }) {
           void ops.paste(t ? { id: t.id, name: t.name } : here);
           return;
         }
-        case 'rename':
-          if (one) run('rename', toActionItem(one));
-          return;
-        case 'share':
-          if (one) run('share', toActionItem(one));
-          return;
-        case 'access':
-          if (one) run('access', toActionItem(one));
-          return;
-        case 'copy-link': {
-          if (!one) return;
-          const href = `${window.location.origin}${one.kind === 'folder' ? `/files/${one.id}` : `/documents/${one.id}`}`;
-          navigator.clipboard
-            ?.writeText(href)
-            .then(() => toast.success('Link copied. It only works for people who have access.'))
-            .catch(() => toast.error('Could not copy the link.'));
-          return;
-        }
-        case 'move-to':
-          if (itemsArg.length) ops.transferTo('move', named(itemsArg), folderId);
-          return;
-        case 'copy-to':
-          if (itemsArg.length) ops.transferTo('copy', named(itemsArg), folderId);
-          return;
         case 'duplicate':
           if (one) void ops.transfer('copy', named([one]), here, { onConflict: 'rename' });
           return;
         case 'properties':
           setPropsOpen(true);
           if (one) sel.setOnly(one.id);
-          return;
-        case 'versions':
-          if (one) setVersionsFor(one);
-          return;
-        case 'lock':
-        case 'unlock':
-          if (one)
-            lock.mutate(
-              { id: one.id, lock: a === 'lock' },
-              {
-                onSuccess: () =>
-                  toast.success(
-                    a === 'lock' ? `Checked out "${one.name}"` : `Checked in "${one.name}"`,
-                  ),
-                onError: (e) => toast.error(lockErrorText(e) ?? friendlyMessage(e)),
-              },
-            );
-          return;
-        case 'favorite':
-        case 'unfavorite':
-          if (one)
-            star.mutate(
-              { id: one.id, starred: a === 'favorite', kind: one.kind },
-              {
-                onSuccess: () =>
-                  toast.success(
-                    a === 'favorite'
-                      ? `Added "${one.name}" to Quick Access`
-                      : `Removed "${one.name}" from Quick Access`,
-                  ),
-                onError: (e) => toast.error(friendlyMessage(e)),
-              },
-            );
-          return;
-        case 'delete':
-          if (itemsArg.length) ops.trash(named(itemsArg));
           return;
         case 'new-folder':
           setNewFolderIn(
@@ -244,8 +174,15 @@ function ExplorerBody({ folderId }: { folderId: string }) {
             one && menuCtx.target === 'item' && one.kind === 'folder' ? one.id : folderId,
           );
           return;
+        case 'create-file':
+          resource.createFileIn(
+            one && menuCtx.target === 'item' && one.kind === 'folder' ? one.id : folderId,
+          );
+          return;
         case 'upload-folder':
-          pickers.pickFolder(folderId);
+          pickers.pickFolder(
+            one && menuCtx.target === 'item' && one.kind === 'folder' ? one.id : folderId,
+          );
           return;
         case 'refresh':
           for (const k of ['children', 'folder', 'tree', 'properties', 'protection'])
@@ -257,9 +194,6 @@ function ExplorerBody({ folderId }: { folderId: string }) {
         case 'clear-selection':
           sel.clear();
           return;
-        case 'request-access':
-          if (one) setRequestFor(one);
-          return;
         default:
           if (a.startsWith('sort:')) {
             const key = a.slice(5) as typeof prefs.sort;
@@ -269,10 +203,11 @@ function ExplorerBody({ folderId }: { folderId: string }) {
                 : { sort: key, order: 'asc' },
             );
           } else if (a.startsWith('view:')) update({ view: a.slice(5) as typeof prefs.view });
+          else resource.act(a, itemsArg, folderId);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selItems, folderId, f?.name, menuCtx, prefs, clipboard, ops, run, sel],
+    [selItems, folderId, f?.name, menuCtx, prefs, clipboard, ops, resource, sel],
   );
 
   /* ------------------------------ keyboard ------------------------------ */
@@ -323,7 +258,7 @@ function ExplorerBody({ folderId }: { folderId: string }) {
       e.preventDefault();
       setMenuCtx({ target: 'background', items: [] });
       void ops.paste(here);
-    } else if (mod && e.shiftKey && k.toLowerCase() === 'n' && canCreate) {
+    } else if (mod && e.shiftKey && k.toLowerCase() === 'n' && canFolder) {
       e.preventDefault();
       setNewFolderIn(folderId);
     } else if (k === 'F5') {
@@ -337,6 +272,37 @@ function ExplorerBody({ folderId }: { folderId: string }) {
       else if (clipboard) clearClipboard();
     }
   };
+
+  const rowMenu = (t: TreeItem) => (
+    <DropdownRoot>
+      <DropdownTrigger asChild>
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          aria-label={`Actions for ${t.name}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            sel.setOnly(t.id);
+            setMenuCtx({ target: 'item', items: [t] });
+          }}
+        >
+          <MoreHorizontal />
+        </Button>
+      </DropdownTrigger>
+      <DropdownMenuEntries
+        entries={buildMenu({
+          target: 'item',
+          items: [t],
+          folderPermissions: f?.permissions ?? [],
+          currentFolderName: f?.name ?? '',
+          clipboard,
+          sort: prefs.sort,
+          view: prefs.view,
+        })}
+        onRun={(a) => act(a, [t])}
+      />
+    </DropdownRoot>
+  );
 
   /* ------------------------------ context menu ------------------------------ */
   const onContextMenuCapture = (e: React.MouseEvent) => {
@@ -395,7 +361,7 @@ function ExplorerBody({ folderId }: { folderId: string }) {
   };
   const onDropOnFolder = (target: TreeItem, e: React.DragEvent) => {
     if (dragHasFiles(e.dataTransfer) && !e.dataTransfer.types.includes(INTERNAL_DND)) {
-      if (!can(target.permissions, 'create_child')) {
+      if (!can(target.permissions, 'upload')) {
         toast.error(`You cannot add items to "${target.name}".`);
         return;
       }
@@ -431,6 +397,9 @@ function ExplorerBody({ folderId }: { folderId: string }) {
   };
   const tb: ToolbarState = {
     canCreate,
+    canFolder,
+    canFile,
+    canUpload,
     hasSelection: selItems.length > 0,
     single,
     createReason: canCreate ? null : 'You cannot add items to this folder.',
@@ -453,6 +422,19 @@ function ExplorerBody({ folderId }: { folderId: string }) {
         : noSel
       : reasonOf('download'),
     del: reasonOf('delete'),
+    lock:
+      selItems.length && selItems.some(canLock)
+        ? null
+        : (reasonOf('lock') ?? 'Nothing selected can be locked.'),
+    unlock:
+      selItems.length && selItems.some(canUnlock)
+        ? null
+        : (reasonOf('unlock') ?? 'Nothing selected is locked by you.'),
+    access: !single
+      ? selItems.length
+        ? 'Manage permissions on one item at a time.'
+        : noSel
+      : reasonOf('access'),
   };
 
   if (folder.isError) return <ErrorState error={folder.error} onRetry={() => folder.refetch()} />;
@@ -475,6 +457,11 @@ function ExplorerBody({ folderId }: { folderId: string }) {
         onPrefs={update}
         onAsk={chat.enabled ? () => chat.open({ folderId, label: f?.name }) : undefined}
         propertiesOpen={propsOpen}
+        selectionMenu={selItems.length ? menuFor(selItems) : undefined}
+        onSelectionMenu={(a) => {
+          setMenuCtx({ target: single ? 'item' : 'selection', items: selItems });
+          act(a, selItems);
+        }}
         selectionCount={selItems.length}
         hasClipboard={!!clipboard}
         onSearch={(q) => router.push(`/search?q=${encodeURIComponent(q)}&folder=${folderId}`)}
@@ -485,6 +472,7 @@ function ExplorerBody({ folderId }: { folderId: string }) {
           if (a === 'upload-files') return pickers.pickFiles(folderId);
           if (a === 'upload-folder') return pickers.pickFolder(folderId);
           if (a === 'new-folder') return setNewFolderIn(folderId);
+          if (a === 'create-file') return resource.createFileIn(folderId);
           if (a === 'clear-selection') return sel.clear();
           if (
             a === 'delete' ||
@@ -492,7 +480,10 @@ function ExplorerBody({ folderId }: { folderId: string }) {
             a === 'copy' ||
             a === 'download' ||
             a === 'rename' ||
-            a === 'share'
+            a === 'share' ||
+            a === 'access' ||
+            a === 'lock' ||
+            a === 'unlock'
           )
             setMenuCtx({ target: single ? 'item' : 'selection', items: selItems });
           act(a);
@@ -508,7 +499,7 @@ function ExplorerBody({ folderId }: { folderId: string }) {
               role="application"
               aria-label="File manager"
               aria-describedby="explorer-help"
-              className="min-h-[calc(100dvh-13rem)] rounded-lg border border-line bg-surface outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+              className="min-h-[calc(100dvh-15.5rem)] rounded-lg border border-line bg-surface outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
               onKeyDown={onKeyDown}
               onContextMenuCapture={onContextMenuCapture}
               onClick={(e) => {
@@ -521,7 +512,11 @@ function ExplorerBody({ folderId }: { folderId: string }) {
                 Control C, X and V to copy, cut and paste, Alt Enter for properties, and the Context
                 Menu key for actions.
               </p>
-              <DropZone folderId={folderId} enabled={canCreate} className="min-h-[calc(100dvh-13rem)]">
+              <DropZone
+                folderId={folderId}
+                enabled={canCreate}
+                className="min-h-[calc(100dvh-15.5rem)]"
+              >
                 {folder.isPending || children.isPending ? (
                   <SkeletonRows rows={7} label="Loading files" />
                 ) : children.isError ? (
@@ -558,35 +553,27 @@ function ExplorerBody({ folderId }: { folderId: string }) {
                       container.current?.focus();
                     }}
                     onOpen={(t) => openItem(t)}
-                    renderMenu={(t) => (
-                      <DropdownRoot>
-                        <DropdownTrigger asChild>
-                          <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            aria-label={`Actions for ${t.name}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              sel.setOnly(t.id);
-                              setMenuCtx({ target: 'item', items: [t] });
-                            }}
-                          >
-                            <MoreHorizontal />
-                          </Button>
-                        </DropdownTrigger>
-                        <DropdownMenuEntries
-                          entries={buildMenu({
-                            target: 'item',
-                            items: [t],
-                            folderPermissions: f?.permissions ?? [],
-                            currentFolderName: f?.name ?? '',
-                            clipboard,
-                            sort: prefs.sort,
-                            view: prefs.view,
-                          })}
-                          onRun={(a) => act(a, [t])}
-                        />
-                      </DropdownRoot>
+                    renderMenu={rowMenu}
+                    renderHover={(t, forceVisible) => (
+                      <HoverToolbar
+                        item={t}
+                        forceVisible={forceVisible}
+                        entries={buildMenu({
+                          target: 'item',
+                          items: [t],
+                          folderPermissions: f?.permissions ?? [],
+                          currentFolderName: f?.name ?? '',
+                          clipboard,
+                          sort: prefs.sort,
+                          view: prefs.view,
+                        })}
+                        onRun={(a, item) => {
+                          sel.setOnly(item.id);
+                          setMenuCtx({ target: 'item', items: [item] });
+                          act(a, [item]);
+                        }}
+                        overflow={rowMenu(t)}
+                      />
                     )}
                     onDragStartItem={onDragStartItem}
                     onDropOnFolder={onDropOnFolder}
@@ -608,7 +595,7 @@ function ExplorerBody({ folderId }: { folderId: string }) {
         </ContextMenuRoot>
 
         {propsOpen && (
-          <div className="lg:sticky lg:top-16 lg:self-start">
+          <div className="lg:sticky lg:top-0 lg:self-start">
             <PropertiesPanel
               target={propsTarget}
               selectionCount={selItems.length}
@@ -626,24 +613,7 @@ function ExplorerBody({ folderId }: { folderId: string }) {
           onOpenChange={(o) => !o && setNewFolderIn(null)}
         />
       )}
-      {versionsFor && (
-        <Dialog open onOpenChange={(o) => !o && setVersionsFor(null)}>
-          <DialogContent title={`Version history: ${versionsFor.name}`} className="max-w-3xl">
-            <DialogBody>
-              <VersionsPanel documentId={versionsFor.id} permissions={versionsFor.permissions} />
-            </DialogBody>
-          </DialogContent>
-        </Dialog>
-      )}
-      {requestFor && (
-        <RequestAccessDialog
-          kind={requestFor.kind}
-          id={requestFor.id}
-          name={requestFor.name}
-          have={requestFor.permissions}
-          onClose={() => setRequestFor(null)}
-        />
-      )}
+      {resource.dialogs}
     </>
   );
 }

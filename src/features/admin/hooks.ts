@@ -183,6 +183,9 @@ export function useAuditEvents(f: AuditFilters, enabled = true) {
     queryKey: ['admin', 'audit', f],
     enabled,
     placeholderData: keepPreviousData,
+    // every read of the audit log is itself audited: do not re-read it on every window focus
+    refetchOnWindowFocus: false,
+    staleTime: 30_000,
     queryFn: ({ signal }) =>
       call<Page<AuditEvent>>(
         api.GET('/api/v1/admin/audit-events', { params: { query: f }, signal }),

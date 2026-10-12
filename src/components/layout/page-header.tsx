@@ -15,7 +15,11 @@ export function PageHeader({
 }) {
   return (
     <header
-      className={cn('mb-4 flex flex-wrap items-start justify-between gap-x-4 gap-y-2', className)}
+      className={cn(
+        // Stays put while the content below scrolls inside <main>.
+        'sticky -top-3 z-20 -mx-3 -mt-3 bg-bg px-3 pt-3 sm:-mx-5 sm:-top-5 sm:-mt-5 sm:px-5 sm:pt-5 mb-4 flex flex-wrap items-start justify-between gap-x-4 gap-y-2 pb-2',
+        className,
+      )}
     >
       <div className="min-w-0">
         {trail && <div className="mb-1">{trail}</div>}

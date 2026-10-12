@@ -18,8 +18,8 @@ import { useRouter } from 'next/navigation';
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { PreviewPanel } from '@/components/file-preview/preview-panel';
-import { ManageAccessDialog } from '@/components/sharing/manage-access-dialog';
-import { ShareDialog } from '@/components/sharing/share-dialog';
+import { FolderPermissionsDialog } from '@/components/sharing/folder-permissions-dialog';
+import { ShareLinkDialog } from '@/components/sharing/share-link-dialog';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogBody, DialogContent } from '@/components/ui/dialog';
@@ -31,7 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { itemAvailability, type ActionItem, type ItemAction } from '@/features/files/availability';
-import { downloadDocument } from '@/features/files/download';
+import { downloadDocument, downloadFolderZip } from '@/features/files/download';
 import { useDeleteItem, useToggleStar } from '@/features/files/hooks';
 import { friendlyMessage } from '@/lib/api-client';
 import { CopyDialog, MoveDialog } from './move-copy-dialog';
@@ -76,7 +76,10 @@ export function ItemActionsProvider({
           } else router.push(`/documents/${item.id}`);
           return;
         case 'download':
-          downloadDocument(item.id).catch((e) => toast.error(friendlyMessage(e)));
+          (item.kind === 'folder'
+            ? downloadFolderZip(item.id, item.name)
+            : downloadDocument(item.id)
+          ).catch((e) => toast.error(friendlyMessage(e)));
           return;
         case 'star':
           star.mutate(
@@ -127,7 +130,7 @@ export function ItemActionsProvider({
         />
       )}
       {it && dlg.kind === 'share' && (
-        <ShareDialog
+        <ShareLinkDialog
           open
           kind={it.kind}
           id={it.id}
@@ -137,7 +140,7 @@ export function ItemActionsProvider({
         />
       )}
       {it && dlg.kind === 'access' && (
-        <ManageAccessDialog
+        <FolderPermissionsDialog
           open
           kind={it.kind}
           id={it.id}

@@ -1,6 +1,6 @@
 'use client';
 
-import { LogOut, Menu, MonitorOff, Search } from 'lucide-react';
+import { History, KeyRound, LogOut, Menu, MonitorOff, Search } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { ThemeToggle } from '@/components/theme';
@@ -16,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useMe, useSession } from '@/features/auth/session';
 import { OrgSwitcher } from '@/features/organizations/org-switcher';
+import { ActivityPanel } from '@/features/activity/activity-panel';
 import { NotificationsMenu } from './notifications-menu';
 
 function GlobalSearch() {
@@ -68,7 +69,7 @@ function GlobalSearch() {
 
 function UserMenu() {
   const { data: me } = useMe();
-  const { signOut } = useSession();
+  const { signOut, provider } = useSession();
   const router = useRouter();
   const initials = (me?.display_name ?? me?.email ?? '?')
     .split(/[\s@.]+/)
@@ -92,12 +93,20 @@ function UserMenu() {
           </span>
           <span className="truncate font-normal">{me?.email}</span>
           {me?.role && (
-            <span className="mt-1 w-fit rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-medium capitalize text-accent-soft-fg" data-testid="role-badge">
+            <span
+              className="mt-1 w-fit rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-medium capitalize text-accent-soft-fg"
+              data-testid="role-badge"
+            >
               {me.role}
             </span>
           )}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {provider?.changePassword && (
+          <DropdownMenuItem onSelect={() => router.push('/account/password')}>
+            <KeyRound /> Change password
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           onSelect={async () => {
             await signOut();
@@ -120,8 +129,9 @@ function UserMenu() {
 }
 
 export function Topbar({ onMenu }: { onMenu: () => void }) {
+  const [activity, setActivity] = useState(false);
   return (
-    <div className="sticky top-0 z-30 flex h-[52px] items-center gap-2 border-b border-line bg-surface/90 px-3 backdrop-blur md:px-5">
+    <div className="z-30 flex h-[52px] shrink-0 items-center gap-2 border-b border-line bg-surface/90 px-3 backdrop-blur md:px-5">
       <Button
         variant="ghost"
         size="icon"
@@ -136,10 +146,21 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
       </Suspense>
       <div className="ml-auto flex items-center gap-1">
         <OrgSwitcher />
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Activity"
+          title="Activity"
+          onClick={() => setActivity(true)}
+          data-testid="activity-button"
+        >
+          <History />
+        </Button>
         <NotificationsMenu />
         <ThemeToggle />
         <UserMenu />
       </div>
+      <ActivityPanel open={activity} onOpenChange={setActivity} />
     </div>
   );
 }

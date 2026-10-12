@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { PageHeader, Panel } from '@/components/layout/page-header';
 import { EmptyState } from '@/components/ui/states';
 import type { Page, TreeItem } from '@/lib/api-client';
-import { ItemActionsProvider } from './item-actions';
+import { ResourceActionsProvider } from '@/components/explorer/resource-actions';
 import { ItemsTable } from './items-table';
 
 const PAGE_SIZE = 25;
@@ -37,7 +37,7 @@ export function TreeListPage({
   const [offset, setOffset] = useState(0);
   const q = useData(PAGE_SIZE, offset);
   return (
-    <ItemActionsProvider>
+    <ResourceActionsProvider>
       <PageHeader title={title} description={description} />
       <Panel>
         <ItemsTable
@@ -52,6 +52,6 @@ export function TreeListPage({
           emptyState={<EmptyState icon={icon} title={emptyTitle} description={emptyDescription} />}
         />
       </Panel>
-    </ItemActionsProvider>
+    </ResourceActionsProvider>
   );
 }

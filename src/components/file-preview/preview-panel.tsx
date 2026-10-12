@@ -1,20 +1,23 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
-import { Download } from 'lucide-react';
+import { Download, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { DocxFallback } from '@/components/preview/docx-fallback';
 import { ImageViewer } from '@/components/preview/image-viewer';
 import { OfficeViewer } from '@/components/preview/office-viewer';
+import { TextEditor } from '@/components/preview/text-editor';
 import { TextViewer } from '@/components/preview/text-viewer';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { downloadDocument, requestDownloadUrl } from '@/features/files/download';
+import { useDocument } from '@/features/files/hooks';
 import { useOfficeStatus } from '@/features/preview/office';
 import { extensionOf, previewKind } from '@/features/preview/kinds';
 import { isApiError } from '@/lib/api-client';
+import { can } from '@/lib/permissions';
 
 // pdf.js touches `document`/`DOMMatrix` at import time and weighs ~1 MB: load it only in the browser, on demand.
 const PdfViewer = dynamic(
@@ -120,6 +123,82 @@ function InlinePreview(props: Props & { kind: 'pdf' | 'image' | 'text' | 'csv' }
 }
 
 /**
+ * Text, Markdown and CSV: the light viewer, plus "Edit" when the office suite can edit this type and the
+ * user may. Editing runs in the office editor; every save is stored as a new version (the previous ones
+ * stay), and "Done editing" returns here showing the newest version.
+ */
+function EditableTextPreview(props: Props & { kind: 'text' | 'csv' }) {
+  const status = useOfficeStatus();
+  const doc = useDocument(props.documentId);
+  const qc = useQueryClient();
+  const [mode, setMode] = useState<'view' | 'quick' | 'office'>('view');
+  const current = props.versionNumber == null;
+  const canQuick = current && !!doc.data && can(doc.data.permissions, 'upload_version');
+  const canOffice =
+    current &&
+    !!status.data?.available &&
+    (status.data.editable_extensions ?? []).includes(extensionOf(props.name));
+  const refresh = () => {
+    for (const k of ['document', 'versions', 'children', 'recent', 'preview-url'])
+      void qc.invalidateQueries({ queryKey: [k] });
+  };
+
+  if (mode === 'quick')
+    return (
+      <TextEditor
+        documentId={props.documentId}
+        name={props.name}
+        onClose={() => {
+          setMode('view');
+          refresh();
+        }}
+      />
+    );
+  if (mode === 'office')
+    return (
+      <OfficeViewer
+        documentId={props.documentId}
+        name={props.name}
+        initialMode="edit"
+        onUnavailable={() => setMode('view')}
+        onClose={() => {
+          setMode('view');
+          refresh();
+        }}
+      />
+    );
+  return (
+    <div className="grid gap-2">
+      {(canQuick || canOffice) && (
+        <div className="flex flex-wrap justify-end gap-2">
+          {canQuick && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setMode('quick')}
+              data-testid="edit-text"
+            >
+              <Pencil /> Edit
+            </Button>
+          )}
+          {canOffice && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setMode('office')}
+              data-testid="edit-text-office"
+            >
+              Open in office editor
+            </Button>
+          )}
+        </div>
+      )}
+      <InlinePreview {...props} />
+    </div>
+  );
+}
+
+/**
  * Entry point for every preview. Picks the viewer from the file type: pdf.js for PDF, the office suite for
  * Word/Excel/PowerPoint/ODF, and light viewers for images, text and CSV. Callers are unchanged.
  */
@@ -133,5 +212,6 @@ export function PreviewPanel(props: Props) {
         reason="This file type cannot be previewed. Download it to open it."
       />
     );
+  if (kind === 'text' || kind === 'csv') return <EditableTextPreview {...props} kind={kind} />;
   return <InlinePreview {...props} kind={kind} />;
 }

@@ -37,7 +37,10 @@ function Avatar({ name }: { name: string }) {
     .map((s) => s[0]!.toUpperCase())
     .join('');
   return (
-    <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full bg-accent-soft text-[11px] font-semibold text-accent-soft-fg">
+    <span
+      aria-hidden
+      className="grid size-7 shrink-0 place-items-center rounded-full bg-accent-soft text-[11px] font-semibold text-accent-soft-fg"
+    >
       {initials || '?'}
     </span>
   );
@@ -91,7 +94,11 @@ export function Composer({
         value={text}
         disabled={disabled}
         aria-invalid={tooLong || !!error}
-        placeholder={disabled ? (disabledReason ?? 'Commenting is not available') : (placeholder ?? 'Write a comment…')}
+        placeholder={
+          disabled
+            ? (disabledReason ?? 'Commenting is not available')
+            : (placeholder ?? 'Write a comment…')
+        }
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -109,7 +116,11 @@ export function Composer({
       )}
       <div className="flex items-center gap-2">
         <span className={cn('text-xs', tooLong ? 'text-danger' : 'text-faint')} aria-live="polite">
-          {text.length > MAX_COMMENT - 200 ? `${text.length}/${MAX_COMMENT}` : disabled ? '' : 'Ctrl+Enter to send'}
+          {text.length > MAX_COMMENT - 200
+            ? `${text.length}/${MAX_COMMENT}`
+            : disabled
+              ? ''
+              : 'Ctrl+Enter to send'}
         </span>
         <span className="ml-auto flex gap-1.5">
           {onCancel && (
@@ -117,7 +128,13 @@ export function Composer({
               Cancel
             </Button>
           )}
-          <Button size="sm" variant="primary" disabled={disabled || !trimmed || tooLong || pending} onClick={send} data-testid="comment-send">
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={disabled || !trimmed || tooLong || pending}
+            onClick={send}
+            data-testid="comment-send"
+          >
             <Send /> {submitLabel}
           </Button>
         </span>
@@ -148,12 +165,21 @@ function CommentItem({
   const pendingTemp = c.id.startsWith('tmp-');
 
   return (
-    <li className={cn('flex gap-2.5', isReply && 'ml-9')} data-testid="comment" data-deleted={c.deleted || undefined} data-comment-id={c.id}>
+    <li
+      className={cn('flex gap-2.5', isReply && 'ml-9')}
+      data-testid="comment"
+      data-deleted={c.deleted || undefined}
+      data-comment-id={c.id}
+    >
       <Avatar name={name} />
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-baseline gap-x-2">
           <span className="text-[13px] font-semibold">{c.deleted ? 'Deleted comment' : name}</span>
-          <time dateTime={c.created_at} title={formatDateTime(c.created_at)} className="text-xs text-muted">
+          <time
+            dateTime={c.created_at}
+            title={formatDateTime(c.created_at)}
+            className="text-xs text-muted"
+          >
             {pendingTemp ? 'sending…' : formatRelative(c.created_at)}
           </time>
           {c.edited_at && !c.deleted && (
@@ -176,7 +202,10 @@ function CommentItem({
             onSubmit={(body) =>
               edit.mutate(
                 { id: c.id, body },
-                { onSuccess: () => (setEditing(false), setError(null)), onError: (e) => setError(commentErrorText(e)) },
+                {
+                  onSuccess: () => (setEditing(false), setError(null)),
+                  onError: (e) => setError(commentErrorText(e)),
+                },
               )
             }
           />
@@ -189,7 +218,13 @@ function CommentItem({
         {!c.deleted && !editing && (
           <div className="mt-0.5 flex items-center gap-1">
             {canReply && !isReply && onReply && (
-              <Button size="sm" variant="ghost" className="h-6 px-1.5 text-xs" onClick={onReply} aria-label={`Reply to ${name}`}>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-1.5 text-xs"
+                onClick={onReply}
+                aria-label={`Reply to ${name}`}
+              >
                 <Reply /> Reply
               </Button>
             )}
@@ -243,7 +278,10 @@ function CommentItem({
 export function CommentThread({ target }: { target: CommentTarget }) {
   const q = useComments(target);
   const { data: me } = useMe();
-  const add = useAddComment(target, me ? { id: me.user_id, name: me.display_name ?? me.email, email: me.email } : null);
+  const add = useAddComment(
+    target,
+    me ? { id: me.user_id, name: me.display_name ?? me.email, email: me.email } : null,
+  );
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [replyError, setReplyError] = useState<string | null>(null);
@@ -267,14 +305,26 @@ export function CommentThread({ target }: { target: CommentTarget }) {
         <div className="grid justify-items-center gap-1 py-6 text-center">
           <MessageSquare className="size-6 text-faint" aria-hidden />
           <p className="text-[13px] font-medium">No comments yet</p>
-          <p className="text-xs text-muted">{can_comment ? 'Start the conversation about this item.' : 'Comments from people with access will appear here.'}</p>
+          <p className="text-xs text-muted">
+            {can_comment
+              ? 'Start the conversation about this item.'
+              : 'Comments from people with access will appear here.'}
+          </p>
         </div>
       ) : (
         <ul className="grid gap-4" aria-label="Comment thread">
           {threads.map(({ root, replies }) => (
             <li key={root.id} className="grid gap-3">
               <ul className="grid gap-3">
-                <CommentItem c={root} target={target} canReply={can_comment && !root.deleted} onReply={() => (setReplyTo(replyTo === root.id ? null : root.id), setReplyError(null))} />
+                <CommentItem
+                  c={root}
+                  target={target}
+                  canReply={can_comment && !root.deleted}
+                  onReply={() => (
+                    setReplyTo(replyTo === root.id ? null : root.id),
+                    setReplyError(null)
+                  )}
+                />
                 {replies.map((r) => (
                   <CommentItem key={r.id} c={r} target={target} canReply={false} isReply />
                 ))}
@@ -290,7 +340,13 @@ export function CommentThread({ target }: { target: CommentTarget }) {
                     error={replyError}
                     onCancel={() => setReplyTo(null)}
                     onSubmit={(body) =>
-                      add.mutate({ body, parent_id: root.id }, { onSuccess: () => setReplyTo(null), onError: (e) => setReplyError(commentErrorText(e)) })
+                      add.mutate(
+                        { body, parent_id: root.id },
+                        {
+                          onSuccess: () => setReplyTo(null),
+                          onError: (e) => setReplyError(commentErrorText(e)),
+                        },
+                      )
                     }
                   />
                 </div>
@@ -302,7 +358,11 @@ export function CommentThread({ target }: { target: CommentTarget }) {
 
       <div className="border-t border-line pt-3">
         {!can_comment && (
-          <p role="note" className="mb-2 rounded-md bg-surface-2 px-3 py-2 text-xs text-muted" data-testid="cannot-comment">
+          <p
+            role="note"
+            className="mb-2 rounded-md bg-surface-2 px-3 py-2 text-xs text-muted"
+            data-testid="cannot-comment"
+          >
             {reason}
           </p>
         )}
@@ -312,7 +372,10 @@ export function CommentThread({ target }: { target: CommentTarget }) {
           disabledReason={reason}
           pending={add.isPending}
           error={error}
-          onSubmit={(body) => (setError(null), add.mutate({ body }, { onError: (e) => setError(commentErrorText(e)) }))}
+          onSubmit={(body) => (
+            setError(null),
+            add.mutate({ body }, { onError: (e) => setError(commentErrorText(e)) })
+          )}
         />
       </div>
     </section>
@@ -325,7 +388,10 @@ export function CommentCount({ kind, id }: { kind: 'document' | 'folder'; id: st
   const n = liveCount(q.data);
   if (!n) return null;
   return (
-    <span className="ml-1.5 rounded-full bg-accent-soft px-1.5 text-[11px] text-accent-soft-fg" data-testid="comment-count">
+    <span
+      className="ml-1.5 rounded-full bg-accent-soft px-1.5 text-[11px] text-accent-soft-fg"
+      data-testid="comment-count"
+    >
       {n}
     </span>
   );

@@ -72,3 +72,25 @@ backend (offline unless stated).
 Controls that need a missing backend capability (mobile devices, email, backups, password reset,
 profile image, watermark) are shown disabled or labelled "not enforced yet", never faked. The
 backend matrix is `enterprise-dms-backend/docs/requirements/admin-user-management.md`.
+
+## Automations, comparison, access check, color tags
+
+`/admin/automations` (Manage Workflows table + wizard + run history + dry-run test + publish), the visual
+editor at `/admin/automations/<id>` (React Flow canvas with a keyboard List tab), Version history →
+Compare (inline / side by side), Manage access → Check access and grant impact preview, right-click →
+Apply color tag / Download as PDF. Code: `src/features/automations/`,
+`src/components/file-browser/compare-versions.tsx`, `src/components/sharing/access-check.tsx`.
+
+## v3 addendum: hover toolbar, Team Folders, Share Link and Permissions dialogs
+
+| Area | Status |
+| --- | --- |
+| Row hover toolbar (explorer) | Done, same handlers as the context menu |
+| Team Folders page `/team-folders` and sidebar entry | Done; administrators add or remove listed top-level folders |
+| Share Link dialog (options, history, invite, groups, matrix, link on/off/new) | Done |
+| Folder Permissions dialog (Security, inheritance, Check Access) | Done |
+| `/s/[token]` landing page | Done; anonymous view only when the organization allows public links |
+| Sync permission | Stored only, no sync client |
+| Pixel-identical visual parity | Not claimed, no reference screenshots |
+
+Details and backend mapping: `enterprise-dms-backend/docs/requirements/folder-hover-context-menu-sharing-v3.md`.

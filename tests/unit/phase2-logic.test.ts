@@ -244,25 +244,49 @@ describe('governance, signatures, notifications, reports helpers', () => {
     expect(signatureUnavailableReason(undefined, false)).toMatch(/Checking/);
     expect(
       signatureUnavailableReason(
-        { available: false, enabled: false, allow_external_signers: false, provider: null },
+        {
+          available: false,
+          enabled: false,
+          allow_external_signers: false,
+          builtin_available: false,
+          provider: null,
+        },
         true,
       ),
     ).toMatch(/no signing provider/);
     expect(
       signatureUnavailableReason(
-        { available: true, enabled: false, allow_external_signers: false, provider: 'x' },
+        {
+          available: true,
+          enabled: false,
+          allow_external_signers: false,
+          builtin_available: false,
+          provider: 'x',
+        },
         true,
       ),
     ).toMatch(/Settings/);
     expect(
       signatureUnavailableReason(
-        { available: true, enabled: false, allow_external_signers: false, provider: 'x' },
+        {
+          available: true,
+          enabled: false,
+          allow_external_signers: false,
+          builtin_available: false,
+          provider: 'x',
+        },
         false,
       ),
     ).toMatch(/Ask an administrator/);
     expect(
       signatureUnavailableReason(
-        { available: true, enabled: true, allow_external_signers: false, provider: 'x' },
+        {
+          available: true,
+          enabled: true,
+          allow_external_signers: false,
+          builtin_available: false,
+          provider: 'x',
+        },
         false,
       ),
     ).toBeNull();

@@ -4,7 +4,6 @@ import { Bot, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Dialog as D } from 'radix-ui';
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { ChatPanel, type ChatContext } from './chat-panel';
 import { useChatStatus } from './hooks';
 
@@ -49,16 +48,24 @@ export function ChatLauncherProvider({ children }: { children: React.ReactNode }
     <Ctx.Provider value={value}>
       {children}
       {enabled && !onAssistantPage && (
-        <Button
-          variant="primary"
-          size="lg"
-          className="fixed bottom-4 right-4 z-30 rounded-full shadow-pop"
+        <button
+          type="button"
+          className="chat-float fixed bottom-5 right-5 z-30 size-16 rounded-[1.1rem] transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           aria-label="Ask the assistant"
+          title="Ask the assistant"
           data-testid="chat-launcher"
           onClick={() => open(contextFromPath(pathname))}
         >
-          <Bot /> <span className="hidden sm:inline">Assistant</span>
-        </Button>
+          {/* eslint-disable-next-line @next/next/no-img-element -- small static brand image */}
+          <img
+            src="/assistant-icon.png"
+            alt=""
+            width={64}
+            height={61}
+            className="size-full object-contain drop-shadow-[0_8px_16px_rgba(37,99,235,0.45)]"
+            draggable={false}
+          />
+        </button>
       )}
       <D.Root open={openState} onOpenChange={setOpen}>
         <D.Portal>

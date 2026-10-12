@@ -17,7 +17,9 @@ export function ItemIcon({
   teamFolder?: boolean;
   size?: number;
 }) {
-  return <TypeIcon kind={kind} contentType={contentType} name={name} size={size} className={className} />;
+  return (
+    <TypeIcon kind={kind} contentType={contentType} name={name} size={size} className={className} />
+  );
 }
 
 /** Honest document state. `available` renders nothing. */

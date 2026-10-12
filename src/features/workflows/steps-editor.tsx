@@ -13,6 +13,9 @@ export type AssigneeDraft = {
   id?: string;
   role?: 'owner' | 'admin' | 'member' | 'auditor';
   label: string;
+  /** Approval-chain flags (kept as they are when a generated workflow is edited here). */
+  optional?: boolean;
+  superApprover?: boolean;
 };
 export type StepDraft = {
   key: string;
@@ -60,17 +63,19 @@ export function stepsToDrafts(
     escalate: s.escalate_to_user_id
       ? { id: s.escalate_to_user_id, label: `user ${s.escalate_to_user_id.slice(0, 8)}` }
       : null,
-    assignees: s.assignees.map((a) =>
-      a.type === 'role'
-        ? { type: 'role', role: a.role ?? 'member', label: `Role: ${a.role}` }
+    assignees: s.assignees.map((a) => {
+      const flags = { optional: a.optional, superApprover: a.is_super_approver };
+      return a.type === 'role'
+        ? { type: 'role', role: a.role ?? 'member', label: `Role: ${a.role}`, ...flags }
         : a.type === 'group'
           ? {
               type: 'group',
               id: a.id ?? '',
               label: `Group: ${groupNames[a.id ?? ''] ?? (a.id ?? '').slice(0, 8)}`,
+              ...flags,
             }
-          : { type: 'user', id: a.id ?? '', label: `user ${(a.id ?? '').slice(0, 8)}` },
-    ),
+          : { type: 'user', id: a.id ?? '', label: `user ${(a.id ?? '').slice(0, 8)}`, ...flags };
+    }),
     condEnabled: !!s.condition,
     condField: s.condition?.field ?? 'classification',
     condKey: s.condition?.key ?? '',
@@ -111,9 +116,12 @@ export function draftsToSteps(drafts: StepDraft[]): StepSpec[] {
     const step: StepSpec = {
       name: d.name.trim(),
       rule: d.rule,
-      assignees: d.assignees.map((a) =>
-        a.type === 'role' ? { type: 'role', role: a.role } : { type: a.type, id: a.id },
-      ),
+      assignees: d.assignees.map((a) => {
+        const flags = { optional: !!a.optional, is_super_approver: !!a.superApprover };
+        return a.type === 'role'
+          ? { type: 'role', role: a.role, ...flags }
+          : { type: a.type, id: a.id, ...flags };
+      }),
       due_days: d.dueDays ? Number(d.dueDays) : null,
       escalate_to_user_id: d.escalate?.id ?? null,
       condition: null,

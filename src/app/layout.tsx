@@ -6,7 +6,7 @@ import { themeInitScript } from '@/components/theme';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
-  title: { default: 'Enterprise DMS', template: '%s - Enterprise DMS' },
+  title: { default: 'NZM DMS', template: '%s - NZM DMS' },
   description: 'Secure document management for your organization.',
 };
 

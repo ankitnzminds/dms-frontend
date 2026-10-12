@@ -10,6 +10,7 @@ import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui
 import { Field, Input } from '@/components/ui/input';
 import { useCreateFolder, useDocument, useFolder, useUpdateItem } from '@/features/files/hooks';
 import { nameSchema, type NameForm } from '@/features/files/schemas';
+import { useUploads } from '@/features/upload/upload-manager';
 import { friendlyMessage, isApiError } from '@/lib/api-client';
 
 /** Map a server error onto form fields (422 field errors / name_conflict). Returns true when handled inline. */
@@ -33,10 +34,13 @@ export function NewFolderDialog({
   parentId,
   open,
   onOpenChange,
+  onCreated,
 }: {
   parentId: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  /** Runs after the server created the folder (e.g. to list it as a team folder). */
+  onCreated?: (folder: { id: string; name: string }) => void;
 }) {
   const create = useCreateFolder();
   const form = useForm<NameForm>({
@@ -58,6 +62,7 @@ export function NewFolderDialog({
               {
                 onSuccess: (f) => {
                   toast.success(`Created folder "${f.name}"`);
+                  onCreated?.(f);
                   onOpenChange(false);
                 },
                 onError: (e) => {
@@ -83,6 +88,70 @@ export function NewFolderDialog({
             <Button type="submit" variant="primary" disabled={create.isPending}>
               {create.isPending && <Loader2 className="animate-spin" aria-hidden />}
               Create folder
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const FILE_TYPES: Record<string, string> = {
+  txt: 'text/plain',
+  md: 'text/markdown',
+  csv: 'text/csv',
+  json: 'application/json',
+};
+
+/**
+ * "Create File": makes a small text document in a folder through the normal upload pipeline, so quota,
+ * scanning, versioning, permissions and name-conflict handling are exactly those of any upload. (Uploads
+ * cannot be empty, so the new file holds a single line break.)
+ */
+export function NewFileDialog({
+  parentId,
+  open,
+  onOpenChange,
+}: {
+  parentId: string;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
+  const { engine } = useUploads();
+  const form = useForm<NameForm>({
+    resolver: zodResolver(nameSchema),
+    defaultValues: { name: 'New Text Document.txt' },
+  });
+  useEffect(() => {
+    if (open) form.reset({ name: 'New Text Document.txt' });
+  }, [open, form]);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        title="Create file"
+        description="Creates a text file in this folder. You can upload a new version with real content afterwards."
+      >
+        <form
+          noValidate
+          onSubmit={form.handleSubmit((v) => {
+            const ext = v.name.includes('.') ? v.name.split('.').pop()!.toLowerCase() : '';
+            const file = new File(['\n'], v.name, { type: FILE_TYPES[ext] ?? 'text/plain' });
+            engine.enqueueFiles([file], parentId, 'create_file');
+            toast.message(`Creating "${v.name}"…`);
+            onOpenChange(false);
+          })}
+        >
+          <DialogBody>
+            <Field id="new-file-name" label="File name" error={form.formState.errors.name?.message}>
+              {(p) => <Input {...p} autoFocus autoComplete="off" {...form.register('name')} />}
+            </Field>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary">
+              Create file
             </Button>
           </DialogFooter>
         </form>

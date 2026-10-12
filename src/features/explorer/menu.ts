@@ -2,6 +2,8 @@ import { itemAvailability, type ActionItem, type ItemAction } from '@/features/f
 import type { SortKey } from '@/features/files/hooks';
 import type { TreeItem } from '@/lib/api-client';
 import { can } from '@/lib/permissions';
+import { COLOR_TAGS } from '@/features/files/hooks';
+import { previewKind } from '@/features/preview/kinds';
 import type { ClipboardState } from './clipboard';
 import type { ViewMode } from './prefs';
 
@@ -28,17 +30,21 @@ export type ExplorerAction =
   | 'unfavorite'
   | 'delete'
   | 'new-folder'
+  | 'create-file'
   | 'upload-files'
   | 'upload-folder'
   | 'refresh'
   | 'select-all'
   | 'clear-selection'
   | 'request-access'
+  | 'export-pdf'
+  | 'create-workflow'
+  | `color:${string}`
   | `sort:${SortKey}`
   | `view:${ViewMode}`;
 
 export interface MenuEntry {
-  id: ExplorerAction | 'sort' | 'view' | 'header';
+  id: ExplorerAction | 'sort' | 'view' | 'header' | 'color-tag';
   label: string;
   shortcut?: string;
   enabled: boolean;
@@ -58,6 +64,8 @@ export interface MenuContext {
   clipboard: ClipboardState | null;
   sort: SortKey;
   view: ViewMode;
+  /** "list": rows outside a folder view (Recent, Team Folders, shares): no entries that need a folder context. */
+  scope?: 'folder' | 'list';
   /** The caller's own user id is not needed: `locked_by_me` comes from the API. */
 }
 
@@ -81,6 +89,60 @@ const gate = (a: { enabled: boolean; reason?: string }): Pick<MenuEntry, 'enable
   enabled: a.enabled,
   reason: a.enabled ? undefined : a.reason,
 });
+
+/** Who may lock: the right to change the item (documents: new versions; folders: rename). */
+export const canLock = (t: TreeItem) =>
+  !t.locked && can(t.permissions, t.kind === 'document' ? 'upload_version' : 'rename');
+/** Who may unlock: the holder, or an administrator (breaking the lock). */
+export const canUnlock = (t: TreeItem) =>
+  t.locked && (t.locked_by_me || can(t.permissions, 'administer'));
+
+function lockEntry(t: TreeItem): MenuEntry {
+  if (t.locked)
+    return t.locked_by_me
+      ? E('unlock', 'Unlock (check in)')
+      : E('unlock', 'Unlock (break lock)', {
+          ...gate({
+            enabled: canUnlock(t),
+            reason: `Locked by someone else. Only an administrator can break the lock.`,
+          }),
+        });
+  return E('lock', 'Lock (check out)', {
+    ...gate({
+      enabled: canLock(t),
+      reason: `You cannot lock this ${t.kind === 'document' ? 'document' : 'folder'}.`,
+    }),
+  });
+}
+
+/** "Create Workflow…": building a workflow is an administrator task (the server enforces it too). */
+function workflowEntry(t: TreeItem): MenuEntry {
+  const allowed = can(t.permissions, 'administer');
+  return E('create-workflow', 'Create Workflow…', {
+    ...gate({ enabled: allowed, reason: 'Creating workflows needs administrator access.' }),
+  });
+}
+
+/** "Apply color tag" submenu (needs the right to edit the item's details; folders: rename). */
+function colorEntry(t: TreeItem): MenuEntry {
+  const allowed =
+    t.kind === 'document' ? can(t.permissions, 'edit_metadata') : can(t.permissions, 'rename');
+  return E('color-tag', 'Apply color tag', {
+    ...gate({ enabled: allowed, reason: 'You cannot edit this item.' }),
+    separatorBefore: true,
+    submenu: [
+      ...COLOR_TAGS.map((c) =>
+        E(`color:${c}` as ExplorerAction, c[0]!.toUpperCase() + c.slice(1), {
+          checked: t.color_tag === c,
+        }),
+      ),
+      E('color:none' as ExplorerAction, 'Remove tag', {
+        enabled: !!t.color_tag,
+        separatorBefore: true,
+      }),
+    ],
+  });
+}
 
 const SORT_LABELS: [SortKey, string][] = [
   ['name', 'Name'],
@@ -121,24 +183,39 @@ function pasteEntry(ctx: MenuContext, targetCanCreate: boolean, label = 'Paste')
 
 /** The single source of truth for what each context menu offers (and why something is disabled). */
 export function buildMenu(ctx: MenuContext): MenuEntry[] {
-  const canCreateHere = can(ctx.folderPermissions, 'create_child');
+  const all = buildFolderMenu(ctx);
+  if (ctx.scope !== 'list') return all;
+  const doc = ctx.items[0]?.kind === 'document';
+  return all.filter((e) => e.id !== 'duplicate' && !(doc && e.id === 'paste'));
+}
+
+function buildFolderMenu(ctx: MenuContext): MenuEntry[] {
+  const canFolderHere = can(ctx.folderPermissions, 'create_folder');
+  const canFileHere = can(ctx.folderPermissions, 'create_file');
+  const canUploadHere = can(ctx.folderPermissions, 'upload');
+  const canCreateHere = canFolderHere || canFileHere || canUploadHere;
+  const noRight = 'You do not have permission to do this in this folder.';
 
   if (ctx.target === 'background') {
     return [
       E('new-folder', 'New folder', {
         shortcut: 'Ctrl+Shift+N',
-        enabled: canCreateHere,
-        reason: canCreateHere ? undefined : 'You cannot add items to this folder.',
+        enabled: canFolderHere,
+        reason: canFolderHere ? undefined : noRight,
+      }),
+      E('create-file', 'Create file…', {
+        enabled: canFileHere,
+        reason: canFileHere ? undefined : noRight,
       }),
       E('upload-files', 'Upload files…', {
-        enabled: canCreateHere,
-        reason: canCreateHere ? undefined : 'You cannot add items to this folder.',
+        enabled: canUploadHere,
+        reason: canUploadHere ? undefined : noRight,
       }),
       E('upload-folder', 'Upload folder…', {
-        enabled: canCreateHere,
-        reason: canCreateHere ? undefined : 'You cannot add items to this folder.',
+        enabled: canUploadHere && canFolderHere,
+        reason: canUploadHere && canFolderHere ? undefined : noRight,
       }),
-      { ...pasteEntry(ctx, canCreateHere), separatorBefore: true },
+      { ...pasteEntry(ctx, canUploadHere || canFolderHere), separatorBefore: true },
       E('sort', 'Sort by', {
         separatorBefore: true,
         enabled: true,
@@ -181,6 +258,19 @@ export function buildMenu(ctx: MenuContext): MenuEntry[] {
       }),
       E('move-to', 'Move to…', gate({ enabled: all('move'), reason: firstBlock('move') })),
       E('copy-to', 'Copy to…', gate({ enabled: all('copy'), reason: firstBlock('copy') })),
+      E('lock', 'Lock', {
+        separatorBefore: true,
+        ...gate({
+          enabled: ctx.items.some(canLock),
+          reason: 'Nothing selected can be locked (already locked, or you cannot change it).',
+        }),
+      }),
+      E('unlock', 'Unlock', {
+        ...gate({
+          enabled: ctx.items.some(canUnlock),
+          reason: 'Nothing selected is locked by you (administrators can unlock any).',
+        }),
+      }),
       E('download', 'Download', {
         enabled: false,
         reason: allDocs
@@ -207,21 +297,6 @@ export function buildMenu(ctx: MenuContext): MenuEntry[] {
   const fav = !!t.starred;
 
   if (isDoc) {
-    const lockEntry = t.locked
-      ? t.locked_by_me
-        ? E('unlock', 'Check in', { enabled: true })
-        : E('unlock', 'Check in (break lock)', {
-            enabled: can(t.permissions, 'administer'),
-            reason: can(t.permissions, 'administer')
-              ? undefined
-              : 'Checked out by someone else. Only an administrator can break the lock.',
-          })
-      : E('lock', 'Check out', {
-          enabled: can(t.permissions, 'upload_version'),
-          reason: can(t.permissions, 'upload_version')
-            ? undefined
-            : 'You cannot check out this document.',
-        });
     return [
       E('open', 'Open', { shortcut: 'Enter', ...gate(av.open) }),
       E('preview', 'Preview', gate(av.preview)),
@@ -229,10 +304,11 @@ export function buildMenu(ctx: MenuContext): MenuEntry[] {
       E('download', 'Download', gate(av.download)),
       E('cut', 'Cut', { shortcut: 'Ctrl+X', separatorBefore: true, ...gate(av.move) }),
       E('copy', 'Copy', { shortcut: 'Ctrl+C', ...gate(av.copy) }),
-      pasteEntry(ctx, canCreateHere, 'Paste here'),
+      pasteEntry(ctx, canUploadHere || canFolderHere, 'Paste here'),
       E('rename', 'Rename', { shortcut: 'F2', separatorBefore: true, ...gate(av.rename) }),
       E('share', 'Share…', gate(av.share)),
       E('access', 'Manage access…', gate(av.access)),
+      workflowEntry(t),
       E('copy-link', 'Copy link'),
       E('move-to', 'Move to…', { separatorBefore: true, ...gate(av.move) }),
       E('copy-to', 'Copy to…', gate(av.copy)),
@@ -245,8 +321,19 @@ export function buildMenu(ctx: MenuContext): MenuEntry[] {
         }),
       ),
       E('properties', 'Properties', { shortcut: 'Alt+Enter', separatorBefore: true }),
-      E('versions', 'Version history'),
-      lockEntry,
+      E('versions', 'Version history & compare'),
+      ...(previewKind(t.content_type ?? '', t.name) === 'office'
+        ? [
+            E('export-pdf', 'Download as PDF', {
+              ...gate({
+                enabled: can(t.permissions, 'download'),
+                reason: 'You do not have permission to download this file.',
+              }),
+            }),
+          ]
+        : []),
+      colorEntry(t),
+      lockEntry(t),
       E(fav ? 'unfavorite' : 'favorite', fav ? 'Remove from Quick Access' : 'Add to Quick Access', {
         separatorBefore: true,
       }),
@@ -263,29 +350,49 @@ export function buildMenu(ctx: MenuContext): MenuEntry[] {
   return [
     E('open', 'Open', { shortcut: 'Enter', ...gate(av.open) }),
     E('open-tab', 'Open in new tab', gate(av.open)),
+    E('download', 'Download as ZIP', gate(av.download)),
     E('new-folder', 'New folder inside', {
       separatorBefore: true,
-      enabled: can(t.permissions, 'create_child'),
-      reason: can(t.permissions, 'create_child')
+      enabled: can(t.permissions, 'create_folder'),
+      reason: can(t.permissions, 'create_folder')
         ? undefined
-        : 'You cannot add items to this folder.',
+        : 'You do not have permission to do this in this folder.',
+    }),
+    E('create-file', 'Create file here…', {
+      enabled: can(t.permissions, 'create_file'),
+      reason: can(t.permissions, 'create_file')
+        ? undefined
+        : 'You do not have permission to do this in this folder.',
     }),
     E('upload-files', 'Upload files here…', {
-      enabled: can(t.permissions, 'create_child'),
-      reason: can(t.permissions, 'create_child')
+      enabled: can(t.permissions, 'upload'),
+      reason: can(t.permissions, 'upload')
         ? undefined
-        : 'You cannot add items to this folder.',
+        : 'You do not have permission to do this in this folder.',
+    }),
+    E('upload-folder', 'Upload folder here…', {
+      enabled: can(t.permissions, 'upload'),
+      reason: can(t.permissions, 'upload')
+        ? undefined
+        : 'You do not have permission to do this in this folder.',
     }),
     E('cut', 'Cut', { shortcut: 'Ctrl+X', separatorBefore: true, ...gate(av.move) }),
     E('copy', 'Copy', { shortcut: 'Ctrl+C', enabled: true }),
-    pasteEntry(ctx, can(t.permissions, 'create_child'), 'Paste into'),
+    pasteEntry(
+      ctx,
+      can(t.permissions, 'upload') || can(t.permissions, 'create_folder'),
+      'Paste into',
+    ),
     E('rename', 'Rename', { shortcut: 'F2', separatorBefore: true, ...gate(av.rename) }),
     E('share', 'Share…', gate(av.share)),
     E('access', 'Manage access…', gate(av.access)),
+    workflowEntry(t),
     E('copy-link', 'Copy link'),
     E('move-to', 'Move to…', { separatorBefore: true, ...gate(av.move) }),
     E('copy-to', 'Copy to…', { enabled: true }),
     E('properties', 'Properties', { shortcut: 'Alt+Enter', separatorBefore: true }),
+    colorEntry(t),
+    lockEntry(t),
     E(fav ? 'unfavorite' : 'favorite', fav ? 'Remove from Quick Access' : 'Add to Quick Access'),
     ...(lackAccess ? [E('request-access', 'Request access…')] : []),
     E('delete', 'Move to Trash', {

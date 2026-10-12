@@ -33,11 +33,15 @@ export function useComments(t: CommentTarget | null) {
 }
 
 /** Number of non-deleted comments (for the tab badge). */
-export const liveCount = (l: CommentList | undefined) => (l ? l.items.filter((c) => !c.deleted).length : 0);
+export const liveCount = (l: CommentList | undefined) =>
+  l ? l.items.filter((c) => !c.deleted).length : 0;
 
 type Ctx = { previous?: CommentList };
 
-export function useAddComment(t: CommentTarget, me: { id: string; name: string; email: string } | null) {
+export function useAddComment(
+  t: CommentTarget,
+  me: { id: string; name: string; email: string } | null,
+) {
   const qc = useQueryClient();
   return useMutation<Comment, unknown, { body: string; parent_id?: string | null }, Ctx>({
     mutationFn: (v) =>
@@ -72,7 +76,11 @@ export function useAddComment(t: CommentTarget, me: { id: string; name: string; 
           can_edit: false,
           can_delete: false,
         };
-        qc.setQueryData<CommentList>(key(t), { ...previous, items: [...previous.items, temp], total: previous.total + 1 });
+        qc.setQueryData<CommentList>(key(t), {
+          ...previous,
+          items: [...previous.items, temp],
+          total: previous.total + 1,
+        });
       }
       return { previous };
     },
@@ -85,14 +93,21 @@ export function useEditComment(t: CommentTarget) {
   const qc = useQueryClient();
   return useMutation<Comment, unknown, { id: string; body: string }, Ctx>({
     mutationFn: (v) =>
-      call<Comment>(api.PATCH('/api/v1/comments/{comment_id}', { params: { path: { comment_id: v.id } }, body: { body: v.body } })),
+      call<Comment>(
+        api.PATCH('/api/v1/comments/{comment_id}', {
+          params: { path: { comment_id: v.id } },
+          body: { body: v.body },
+        }),
+      ),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: key(t) });
       const previous = qc.getQueryData<CommentList>(key(t));
       if (previous)
         qc.setQueryData<CommentList>(key(t), {
           ...previous,
-          items: previous.items.map((c) => (c.id === v.id ? { ...c, body: v.body, edited_at: new Date().toISOString() } : c)),
+          items: previous.items.map((c) =>
+            c.id === v.id ? { ...c, body: v.body, edited_at: new Date().toISOString() } : c,
+          ),
         });
       return { previous };
     },
@@ -113,7 +128,9 @@ export function useDeleteComment(t: CommentTarget) {
       if (previous)
         qc.setQueryData<CommentList>(key(t), {
           ...previous,
-          items: previous.items.map((c) => (c.id === id ? { ...c, body: '', deleted: true, can_edit: false, can_delete: false } : c)),
+          items: previous.items.map((c) =>
+            c.id === id ? { ...c, body: '', deleted: true, can_edit: false, can_delete: false } : c,
+          ),
         });
       return { previous };
     },
@@ -124,7 +141,8 @@ export function useDeleteComment(t: CommentTarget) {
 
 export function commentErrorText(e: unknown): string {
   if (isApiError(e)) {
-    if (e.code === 'comment_deleted') return 'That comment was deleted, so it cannot be changed or replied to.';
+    if (e.code === 'comment_deleted')
+      return 'That comment was deleted, so it cannot be changed or replied to.';
     if (e.status === 403) return 'You do not have permission to comment here.';
     if (e.status === 404) return 'This item was not found, or you do not have access.';
     if (e.status === 422) return `Comments must be between 1 and ${MAX_COMMENT} characters.`;
@@ -136,9 +154,15 @@ export function commentErrorText(e: unknown): string {
 /** Group a flat list into top-level comments with their (single level of) replies, oldest first. */
 export function threadify(items: Comment[]): Array<{ root: Comment; replies: Comment[] }> {
   const byParent = new Map<string, Comment[]>();
-  for (const c of items) if (c.parent_id) byParent.set(c.parent_id, [...(byParent.get(c.parent_id) ?? []), c]);
+  for (const c of items)
+    if (c.parent_id) byParent.set(c.parent_id, [...(byParent.get(c.parent_id) ?? []), c]);
   return items
     .filter((c) => !c.parent_id)
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
-    .map((root) => ({ root, replies: (byParent.get(root.id) ?? []).sort((a, b) => a.created_at.localeCompare(b.created_at)) }));
+    .map((root) => ({
+      root,
+      replies: (byParent.get(root.id) ?? []).sort((a, b) =>
+        a.created_at.localeCompare(b.created_at),
+      ),
+    }));
 }

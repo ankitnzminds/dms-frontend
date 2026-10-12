@@ -4,6 +4,7 @@ import { Download, Eye, FolderOpen } from 'lucide-react';
 import { accessLevel } from '@/features/sharing/schemas';
 import Link from 'next/link';
 import { PathTrail } from '@/components/navigation/path-trail';
+import { ResourceHover, ResourceTr } from '@/components/explorer/resource-actions';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DisabledReason } from '@/components/ui/tooltip';
@@ -11,7 +12,7 @@ import { ItemIcon } from '@/components/file-browser/file-bits';
 import { isPreviewableType } from '@/features/files/availability';
 import { can, actionLabel } from '@/lib/permissions';
 import type { ReceivedShare } from '@/lib/api-client';
-import { formatBytes, formatDate, formatExpiry } from '@/lib/format';
+import { formatBytes, formatDateTime, formatExpiry } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { ShareStatusBadge } from './share-bits';
 
@@ -35,10 +36,17 @@ export interface ReceivedShareRowProps {
   share: ReceivedShare;
   onPreview?: (s: ReceivedShare) => void;
   onDownload?: (s: ReceivedShare) => void;
+  /** Inside a ResourceActionsProvider: adds the shared right-click menu and hover toolbar. */
+  interactive?: boolean;
 }
 
 /** One row of "Shared with me". Inactive (expired/revoked) rows are never openable. */
-export function ReceivedShareRow({ share: s, onPreview, onDownload }: ReceivedShareRowProps) {
+export function ReceivedShareRow({
+  share: s,
+  onPreview,
+  onDownload,
+  interactive,
+}: ReceivedShareRowProps) {
   const active = s.status === 'active';
   const isDoc = s.resource_type === 'document';
   const href = isDoc ? `/documents/${s.resource_id}` : `/files/${s.resource_id}`;
@@ -54,15 +62,35 @@ export function ReceivedShareRow({ share: s, onPreview, onDownload }: ReceivedSh
       : s.content_type && !isPreviewableType(s.content_type, s.name)
         ? 'This file type cannot be previewed.'
         : null;
-  return (
-    <tr
-      className={cn('border-b border-line align-top last:border-0', !active && 'bg-surface-2/60')}
-      data-testid="received-share-row"
-      data-status={s.status}
-    >
-      <td className="px-3 py-2.5">
-        <div className="flex min-w-0 items-start gap-2.5">
-          <ItemIcon kind={s.resource_type} contentType={s.content_type} className="mt-0.5" />
+  const rowClass = cn(
+    'border-b border-line align-middle last:border-0',
+    !active && 'bg-surface-2/60',
+  );
+  const wrap = (children: React.ReactNode) =>
+    interactive && active ? (
+      <ResourceTr
+        item={{ kind: s.resource_type, id: s.resource_id, name: s.name }}
+        className={cn(rowClass, 'hover:bg-surface-2')}
+        data-testid="received-share-row"
+        data-status={s.status}
+      >
+        {children}
+      </ResourceTr>
+    ) : (
+      <tr className={rowClass} data-testid="received-share-row" data-status={s.status}>
+        {children}
+      </tr>
+    );
+  return wrap(
+    <>
+      <td className="px-4 py-3">
+        <div className="@container flex min-w-0 items-start gap-2.5">
+          <ItemIcon
+            kind={s.resource_type}
+            contentType={s.content_type}
+            name={s.name}
+            className="mt-0.5"
+          />
           <div className="min-w-0">
             {active ? (
               <Link
@@ -85,13 +113,16 @@ export function ReceivedShareRow({ share: s, onPreview, onDownload }: ReceivedSh
             )}
             {s.message && <p className="mt-0.5 text-xs italic text-muted">“{s.message}”</p>}
           </div>
+          {interactive && active && <ResourceHover compact />}
         </div>
       </td>
-      <td className="hidden px-3 py-2.5 lg:table-cell">
-        <span className="block truncate">{s.shared_by.display_name ?? s.shared_by.email}</span>
-        <span className="text-xs text-muted">{formatDate(s.shared_at)}</span>
+      <td className="hidden px-3 py-3 lg:table-cell">
+        <span className="block truncate" title={s.shared_by.email ?? undefined}>
+          {s.shared_by.display_name ?? s.shared_by.email}
+        </span>
+        <span className="text-xs text-muted">{formatDateTime(s.shared_at)}</span>
       </td>
-      <td className="hidden px-3 py-2.5 md:table-cell">
+      <td className="hidden px-3 py-3 md:table-cell">
         {active ? (
           <span className="flex flex-wrap gap-1">
             <Badge tone="info" data-testid="access-level">
@@ -111,16 +142,16 @@ export function ReceivedShareRow({ share: s, onPreview, onDownload }: ReceivedSh
           <span className="mt-1 block text-xs text-faint">{formatBytes(s.size_bytes)}</span>
         )}
       </td>
-      <td className="px-3 py-2.5">
+      <td className="px-3 py-3">
         <ShareStatusBadge status={s.status} />
-        <span className="mt-1 block text-xs text-muted">{formatExpiry(s.expires_at)}</span>
+        <span className="mt-1 block truncate text-xs text-muted">{formatExpiry(s.expires_at)}</span>
       </td>
-      <td className="px-3 py-2.5 text-right">
+      <td className="px-3 py-3 text-right">
         {active ? (
-          <span className="inline-flex gap-1">
-            <Button asChild size="sm">
-              <Link href={href}>
-                <FolderOpen /> Open
+          <span className="inline-flex items-center justify-end gap-1">
+            <Button asChild size="icon-sm" variant="ghost">
+              <Link href={href} aria-label={`Open ${s.name}`} title="Open">
+                <FolderOpen />
               </Link>
             </Button>
             {isDoc && (
@@ -154,6 +185,6 @@ export function ReceivedShareRow({ share: s, onPreview, onDownload }: ReceivedSh
           <span className="text-xs text-muted">Not openable</span>
         )}
       </td>
-    </tr>
+    </>,
   );
 }

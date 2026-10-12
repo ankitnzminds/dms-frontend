@@ -15,7 +15,15 @@ export const PRESETS = {
   editor: {
     label: 'Editor',
     hint: 'Commenter, and can upload new versions, edit details and rename',
-    actions: ['view', 'preview', 'download', 'comment', 'upload_version', 'edit_metadata', 'rename'],
+    actions: [
+      'view',
+      'preview',
+      'download',
+      'comment',
+      'upload_version',
+      'edit_metadata',
+      'rename',
+    ],
   },
   custom: { label: 'Custom', hint: 'Pick individual permissions', actions: [] as ActionName[] },
 } as const;
@@ -103,7 +111,9 @@ export function buildShareRequest(v: ShareFormValues, now = Date.now()): ShareCr
 }
 
 /** Human access level for a set of granted actions: the highest preset fully contained, else Custom. */
-export function accessLevel(actions: readonly string[]): 'Editor' | 'Commenter' | 'Viewer' | 'Custom' {
+export function accessLevel(
+  actions: readonly string[],
+): 'Editor' | 'Commenter' | 'Viewer' | 'Custom' {
   const has = (a: readonly string[]) => a.every((x) => actions.includes(x));
   if (has(PRESETS.editor.actions)) return 'Editor';
   if (has(PRESETS.commenter.actions)) return 'Commenter';

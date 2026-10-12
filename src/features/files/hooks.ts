@@ -122,13 +122,17 @@ export function useStarred(limit = 50, offset = 0) {
   });
 }
 
-export function useTrash(limit = 50, offset = 0) {
+export function useTrash(limit = 50, offset = 0, search = '') {
+  const q = search.trim();
   return useQuery({
-    queryKey: ['trash', limit, offset],
+    queryKey: ['trash', limit, offset, q],
     placeholderData: keepPreviousData,
     queryFn: ({ signal }) =>
       call<Page<TrashItem>>(
-        api.GET('/api/v1/trash', { params: { query: { limit, offset } }, signal }),
+        api.GET('/api/v1/trash', {
+          params: { query: { limit, offset, q: q || undefined } },
+          signal,
+        }),
       ),
   });
 }
@@ -302,28 +306,59 @@ export function useToggleStar() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (v: { id: string; starred: boolean; kind?: 'folder' | 'document' }) => {
+      // `call` throws on a failed request so a refused star is reported, never silently ignored.
       if (v.kind === 'folder') {
-        if (v.starred)
-          await api.PUT('/api/v1/folders/{folder_id}/favorite', {
-            params: { path: { folder_id: v.id } },
-          });
-        else
-          await api.DELETE('/api/v1/folders/{folder_id}/favorite', {
-            params: { path: { folder_id: v.id } },
-          });
-      } else if (v.starred)
-        await api.PUT('/api/v1/documents/{document_id}/star', {
-          params: { path: { document_id: v.id } },
-        });
-      else
-        await api.DELETE('/api/v1/documents/{document_id}/star', {
-          params: { path: { document_id: v.id } },
-        });
+        const params = { params: { path: { folder_id: v.id } } };
+        await call(
+          v.starred
+            ? api.PUT('/api/v1/folders/{folder_id}/favorite', params)
+            : api.DELETE('/api/v1/folders/{folder_id}/favorite', params),
+        );
+      } else {
+        const params = { params: { path: { document_id: v.id } } };
+        await call(
+          v.starred
+            ? api.PUT('/api/v1/documents/{document_id}/star', params)
+            : api.DELETE('/api/v1/documents/{document_id}/star', params),
+        );
+      }
     },
     onSuccess: () => {
       inv();
       void qc.invalidateQueries({ queryKey: ['favorites'] });
     },
+  });
+}
+
+export const COLOR_TAGS = [
+  'red',
+  'orange',
+  'yellow',
+  'green',
+  'blue',
+  'purple',
+  'pink',
+  'gray',
+] as const;
+export type ColorTag = (typeof COLOR_TAGS)[number];
+
+/** Searchable color label on a document or folder (null clears it). */
+export function useColorTag() {
+  const inv = useInvalidateFiles();
+  return useMutation({
+    mutationFn: async (v: { id: string; kind: 'folder' | 'document'; color: ColorTag | null }) => {
+      if (v.kind === 'folder')
+        await api.PUT('/api/v1/folders/{folder_id}/color-tag', {
+          params: { path: { folder_id: v.id } },
+          body: { color: v.color },
+        });
+      else
+        await api.PUT('/api/v1/documents/{document_id}/color-tag', {
+          params: { path: { document_id: v.id } },
+          body: { color: v.color },
+        });
+    },
+    onSuccess: inv,
   });
 }
 

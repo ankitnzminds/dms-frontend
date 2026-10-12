@@ -59,13 +59,11 @@ export function itemAvailability(item: ActionItem): Record<ItemAction, Availabil
           : item.content_type && !isPreviewableType(item.content_type, item.name)
             ? NO('This file type cannot be previewed. Download it instead.')
             : YES,
-    download: !isDoc
-      ? NO('Folder download is not available.')
-      : !can(p, 'download')
-        ? NO('You do not have permission to download this file.')
-        : !ready
-          ? NO(notReady)
-          : YES,
+    download: !can(p, 'download')
+      ? NO(`You do not have permission to download this ${isDoc ? 'file' : 'folder'}.`)
+      : !ready
+        ? NO(notReady)
+        : YES, // folders download as a ZIP of what you may download
     rename: can(p, 'rename') ? YES : NO('You do not have permission to rename this.'),
     move: can(p, 'move') ? YES : NO('You do not have permission to move this.'),
     copy: !isDoc

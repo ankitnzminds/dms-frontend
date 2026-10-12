@@ -44,7 +44,14 @@ function Row({ e }: { e: AuditEvent }) {
         <td className="hidden px-3 py-2 sm:table-cell">
           {e.actor_email ?? <span className="text-faint">system</span>}
         </td>
-        <td className="hidden px-3 py-2 text-muted md:table-cell">{e.resource_type ?? '-'}</td>
+        <td className="hidden px-3 py-2 text-muted md:table-cell">
+          {e.resource_type ?? '-'}
+          {e.resource_id && (
+            <span className="ml-1.5 font-mono text-xs text-faint" title={e.resource_id}>
+              {e.resource_id.slice(0, 8)}
+            </span>
+          )}
+        </td>
         <td className="px-3 py-2">
           <OutcomeBadge outcome={e.outcome} />
         </td>

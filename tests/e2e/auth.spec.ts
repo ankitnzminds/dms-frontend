@@ -8,19 +8,19 @@ async function openAccountMenu(page: Page) {
 test.describe('login, session lifecycle and authorization', () => {
   test('a wrong password shows an inline error and stays on the login page', async ({ page }) => {
     await page.goto('/login');
-    await page.getByLabel('Work email').fill('alice@acme.test');
+    await page.getByLabel('Email address').fill('alice@acme.test');
     await page.getByLabel('Password', { exact: true }).fill('definitely-wrong');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await page.getByRole('button', { name: 'Sign in as User', exact: true }).click();
     await expect(page.getByTestId('login-error')).toContainText('Incorrect email or password');
     await expect(page).toHaveURL(/\/login/);
   });
 
   test('validation: empty and malformed input is explained before any request', async ({ page }) => {
     await page.goto('/login');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await page.getByRole('button', { name: 'Sign in as User', exact: true }).click();
     await expect(page.getByText('Enter your email')).toBeVisible();
-    await page.getByLabel('Work email').fill('nope');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await page.getByLabel('Email address').fill('nope');
+    await page.getByRole('button', { name: 'Sign in as User', exact: true }).click();
     await expect(page.getByText('Enter a valid email address')).toBeVisible();
   });
 
@@ -33,7 +33,7 @@ test.describe('login, session lifecycle and authorization', () => {
     await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'password');
     await page.getByRole('button', { name: 'Show password' }).click();
     await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'text');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await page.getByRole('button', { name: 'Sign in as User', exact: true }).click();
     await expect(page).toHaveURL(/\/trash/);
   });
 

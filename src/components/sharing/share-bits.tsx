@@ -26,18 +26,25 @@ export function ShareStatusBadge({ status }: { status: 'active' | 'expired' | 'r
   );
 }
 
-export function ActionChips({ actions }: { actions: string[] }) {
+export function ActionChips({ actions, max }: { actions: string[]; max?: number }) {
   if (actions.length === 0) return <span className="text-xs text-muted">No permissions</span>;
+  const shown = max ? actions.slice(0, max) : actions;
+  const hidden = max ? actions.slice(max) : [];
   return (
-    <span className="flex flex-wrap gap-1">
+    <span className="flex flex-wrap items-center gap-1">
       <Badge tone="info" data-testid="access-level">
         {accessLevel(actions)}
       </Badge>
-      {actions.map((a) => (
+      {shown.map((a) => (
         <Badge key={a} tone="neutral">
           {actionLabel(a)}
         </Badge>
       ))}
+      {hidden.length > 0 && (
+        <span className="text-xs text-muted" title={hidden.map(actionLabel).join(', ')}>
+          +{hidden.length} more
+        </span>
+      )}
     </span>
   );
 }
@@ -51,9 +58,12 @@ export function recipientLabel(r: Share['recipients'][number]) {
 export function RevokeShareButton({
   share,
   label = 'Revoke',
+  iconOnly,
 }: {
   share: Pick<Share, 'id' | 'resource_name' | 'status'>;
   label?: string;
+  /** Just the icon (the accessible name and tooltip still say "Revoke"). */
+  iconOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const revoke = useRevokeShare();
@@ -61,12 +71,14 @@ export function RevokeShareButton({
   return (
     <>
       <Button
-        size="sm"
+        size={iconOnly ? 'icon-sm' : 'sm'}
         variant="danger-ghost"
         onClick={() => setOpen(true)}
         aria-label={`Revoke share of ${share.resource_name ?? 'item'}`}
+        title={iconOnly ? label : undefined}
       >
-        {revoke.isPending ? <Loader2 className="animate-spin" /> : <Ban />} {label}
+        {revoke.isPending ? <Loader2 className="animate-spin" /> : <Ban />}
+        {!iconOnly && ` ${label}`}
       </Button>
       <ConfirmDialog
         open={open}

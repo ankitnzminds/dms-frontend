@@ -17,6 +17,12 @@ import { Button } from '@/components/ui/button';
 import { Input, Label, Select } from '@/components/ui/input';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
+import {
+  ResourceActionsCell,
+  ResourceHover,
+  ResourceActionsProvider,
+  ResourceTr,
+} from '@/components/explorer/resource-actions';
 import { useSearch } from '@/features/files/hooks';
 import { formatBytes, formatRelative } from '@/lib/format';
 
@@ -72,7 +78,7 @@ export function SearchView() {
   };
 
   return (
-    <>
+    <ResourceActionsProvider>
       <PageHeader
         title={q ? `Results for “${q}”` : 'Search'}
         description={
@@ -220,9 +226,11 @@ export function SearchView() {
           <>
             <ul className="divide-y divide-line" aria-label="Search results" aria-live="polite">
               {res.data.items.map((r) => (
-                <li
+                <ResourceTr
+                  as="li"
                   key={r.id}
-                  className="flex items-start gap-3 px-3 py-2.5"
+                  item={r}
+                  className="flex items-start gap-3 px-3 py-2.5 hover:bg-surface-2"
                   data-testid="search-result"
                 >
                   {r.kind === 'document' &&
@@ -233,20 +241,31 @@ export function SearchView() {
                       name={r.name}
                       className="mt-0.5 size-10"
                       fallback={
-                        <ItemIcon kind={r.kind} contentType={r.content_type} className="mt-0.5" />
+                        <ItemIcon
+                          kind={r.kind}
+                          contentType={r.content_type}
+                          name={r.name}
+                          className="mt-0.5"
+                        />
                       }
                     />
                   ) : (
-                    <ItemIcon kind={r.kind} contentType={r.content_type} className="mt-0.5" />
+                    <ItemIcon
+                      kind={r.kind}
+                      contentType={r.content_type}
+                      name={r.name}
+                      className="mt-0.5"
+                    />
                   )}
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-center gap-2">
+                  <div className="@container min-w-0 flex-1">
+                    <p className="flex items-center gap-2">
                       <Link
                         className="truncate text-[13px] font-medium hover:text-accent hover:underline"
                         href={r.kind === 'folder' ? `/files/${r.id}` : `/documents/${r.id}`}
                       >
                         {r.name}
                       </Link>
+                      <ResourceHover />
                       <StatusChip status={r.status} />
                       {r.match && (
                         <Badge
@@ -274,7 +293,8 @@ export function SearchView() {
                     <p>{r.kind === 'document' ? formatBytes(r.size_bytes) : 'Folder'}</p>
                     <p>{formatRelative(r.updated_at)}</p>
                   </div>
-                </li>
+                  <ResourceActionsCell as="div" className="px-0 py-0" />
+                </ResourceTr>
               ))}
             </ul>
             <PaginationBar
@@ -287,6 +307,6 @@ export function SearchView() {
           </>
         )}
       </Panel>
-    </>
+    </ResourceActionsProvider>
   );
 }

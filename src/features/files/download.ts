@@ -37,3 +37,39 @@ export async function downloadDocument(documentId: string, versionNumber?: numbe
   a.click();
   a.remove();
 }
+
+/** Server-side conversion by the office server. Needs download permission; nothing is stored. */
+export async function downloadAsPdf(documentId: string, name: string) {
+  const r = await api.POST('/api/v1/documents/{document_id}/export-pdf', {
+    params: { path: { document_id: documentId } },
+    parseAs: 'blob',
+  });
+  const url = URL.createObjectURL(r.data as Blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${name.replace(/\.[^.]+$/, '') || 'document'}.pdf`;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+/** A folder as a ZIP. Only files you may download are included; the server reports how many were skipped. */
+export async function downloadFolderZip(folderId: string, name: string) {
+  const r = await api.POST('/api/v1/folders/{folder_id}/download-zip', {
+    params: { path: { folder_id: folderId } },
+    parseAs: 'blob',
+  });
+  const url = URL.createObjectURL(r.data as Blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${name || 'folder'}.zip`;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  const skipped = Number(r.response.headers.get('x-archive-skipped') ?? 0);
+  return { skipped };
+}

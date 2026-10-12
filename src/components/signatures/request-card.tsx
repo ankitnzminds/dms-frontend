@@ -1,6 +1,6 @@
 'use client';
 
-import { Ban, CheckCircle2, FileSignature, Loader2, RefreshCw } from 'lucide-react';
+import { Ban, CheckCircle2, FileSignature, Loader2, RefreshCw, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -17,6 +17,7 @@ import {
 } from '@/features/signatures/hooks';
 import { friendlyMessage } from '@/lib/api-client';
 import { formatBytes, formatDateTime, titleCase } from '@/lib/format';
+import { BuiltinSignDialog } from './builtin-sign-dialog';
 import { SigningOverlay } from './signing-overlay';
 
 const TONE = {
@@ -54,6 +55,9 @@ export function SignatureRequestCard({
   const [signingUrl, setSigningUrl] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [builtinOpen, setBuiltinOpen] = useState(false);
+  const isBuiltin = r.provider === 'builtin';
+  const chained = r.signers.some((s) => s.level > 1 || s.optional || s.is_super_signer);
   const closeOverlay = useCallback(() => setSigningUrl(null), []);
 
   // After signing, the provider may need a little while to seal the document. Webhooks cannot reach every
@@ -118,11 +122,17 @@ export function SignatureRequestCard({
         </span>
         <span className="ml-auto flex flex-wrap gap-1.5">
           {r.my_signing_available && !isTerminal(r.state) && (
-            <Button size="sm" variant="primary" disabled={opening} onClick={openSigning}>
-              {opening ? <Loader2 className="animate-spin" /> : <FileSignature />} Sign
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={opening}
+              onClick={isBuiltin ? () => setBuiltinOpen(true) : openSigning}
+            >
+              {opening ? <Loader2 className="animate-spin" /> : <FileSignature />}{' '}
+              {isBuiltin ? 'Review and sign' : 'Sign'}
             </Button>
           )}
-          {!isTerminal(r.state) && (
+          {!isTerminal(r.state) && !isBuiltin && (
             <Button
               size="sm"
               disabled={refresh.isPending}
@@ -171,29 +181,58 @@ export function SignatureRequestCard({
         </p>
       )}
 
-      <ul className="mt-3 grid gap-1" aria-label="Signers">
+      <ul className="mt-3 grid gap-1.5" aria-label="Signers">
         {r.signers.map((s) => (
           <li
             key={s.email}
-            className="flex flex-wrap items-center gap-2 text-[13px]"
+            className="flex items-center gap-3 rounded-md border border-line px-3 py-2 text-[13px]"
             data-status={s.status}
           >
-            <span className="font-medium">{s.name || s.email}</span>
-            <span className="text-xs text-muted">
-              {s.email}
-              {s.internal ? '' : ' (external)'}
+            <span
+              aria-hidden
+              className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-2 text-xs font-semibold text-muted"
+            >
+              {(s.name || s.email).slice(0, 1).toUpperCase()}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                {(chained || s.level > 1) && (
+                  <span className="text-xs font-semibold text-muted">L{s.level}</span>
+                )}
+                <span className="font-medium">{s.name || s.email}</span>
+                {s.is_super_signer && (
+                  <Badge tone="accent" title="Signing fast-forwards the remaining signers">
+                    <Zap /> Super signer
+                  </Badge>
+                )}
+                {s.optional && <Badge tone="outline">Optional</Badge>}
+                {s.waiting && <Badge tone="neutral">Waiting for an earlier level</Badge>}
+              </span>
+              <span className="block truncate text-xs text-muted">
+                {s.email}
+                {s.internal ? '' : ' (external)'}
+                {s.signed_at && ` · signed ${formatDateTime(s.signed_at)}`}
+              </span>
             </span>
             <Badge
               tone={s.status === 'signed' ? 'ok' : s.status === 'declined' ? 'danger' : 'neutral'}
             >
               {titleCase(s.status)}
             </Badge>
-            {s.signed_at && (
-              <span className="text-xs text-muted">{formatDateTime(s.signed_at)}</span>
-            )}
           </li>
         ))}
       </ul>
+
+      {isBuiltin && r.state === 'completed' && (
+        <p
+          className="mt-3 rounded-md bg-ok-soft px-3 py-2 text-[13px] text-ok"
+          data-testid="builtin-record"
+        >
+          Signed electronically inside this system (typed-name consent, recorded against version{' '}
+          {r.source_version_number ?? ''}). No new document version is created, and this is not a
+          certificate-based PDF signature.
+        </p>
+      )}
 
       {r.artifact && (
         <p
@@ -223,6 +262,9 @@ export function SignatureRequestCard({
         </details>
       )}
 
+      {isBuiltin && builtinOpen && (
+        <BuiltinSignDialog request={r} open={builtinOpen} onOpenChange={setBuiltinOpen} />
+      )}
       {signingUrl && (
         <SigningOverlay
           url={signingUrl}

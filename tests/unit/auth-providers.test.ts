@@ -28,7 +28,7 @@ describe('DevAuthProvider', () => {
   it('signs in with email + password and keeps only the token (never the password)', async () => {
     const fetchImpl = tokenFetch('jwt-alice');
     const storage = memoryStorage();
-    const p = new DevAuthProvider('http://x/api/v1', fetchImpl, storage, false);
+    const p = new DevAuthProvider('http://x/api/v1', fetchImpl, storage, false, null);
     const listener = vi.fn();
     p.onChange(listener);
 
@@ -47,14 +47,14 @@ describe('DevAuthProvider', () => {
   it('restores the session after a reload from the stored token, but cannot silently refresh', async () => {
     const storage = memoryStorage();
     storage.setItem('dms.dev.token', 'jwt-bob');
-    const p = new DevAuthProvider('http://x/api/v1', tokenFetch('other'), storage, false);
+    const p = new DevAuthProvider('http://x/api/v1', tokenFetch('other'), storage, false, null);
     expect(await p.getAccessToken()).toBe('jwt-bob');
     expect(await p.refresh()).toBeNull();
   });
 
   it('signOut clears the token and notifies', async () => {
     const storage = memoryStorage();
-    const p = new DevAuthProvider('http://x/api/v1', tokenFetch(), storage, false);
+    const p = new DevAuthProvider('http://x/api/v1', tokenFetch(), storage, false, null);
     const listener = vi.fn();
     p.onChange(listener);
     await p.signIn({ email: 'alice@acme.test', password: 'pw' });
@@ -70,7 +70,7 @@ describe('DevAuthProvider', () => {
     [429, /Too many attempts/],
   ])('maps HTTP %s to a clear message', async (status, msg) => {
     const fetchImpl = vi.fn(async () => new Response('{}', { status })) as unknown as typeof fetch;
-    const p = new DevAuthProvider('http://x/api/v1', fetchImpl, memoryStorage(), false);
+    const p = new DevAuthProvider('http://x/api/v1', fetchImpl, memoryStorage(), false, null);
     await expect(p.signIn({ email: 'a@b.c', password: 'x' })).rejects.toThrow(msg);
     await expect(p.signIn({ email: 'a@b.c', password: 'x' })).rejects.toBeInstanceOf(AuthError);
   });
@@ -154,5 +154,79 @@ describe('SupabaseAuthProvider (mocked client; not tested against a live project
     expect(m.auth.resetPasswordForEmail).toHaveBeenCalledWith('a@b.c', {
       redirectTo: 'http://app/login',
     });
+  });
+});
+
+function recoveryMock() {
+  const m = mockSupabase();
+  let onEvent: ((e: string, s: unknown) => void) | undefined;
+  const auth = m.auth as unknown as Record<string, ReturnType<typeof vi.fn>>;
+  auth.onAuthStateChange = vi.fn((fn: typeof onEvent) => {
+    onEvent = fn;
+    return { data: { subscription: { unsubscribe: vi.fn() } } };
+  });
+  auth.getUser = vi.fn(async () => ({ data: { user: { email: 'a@b.c' } }, error: null }));
+  auth.updateUser = vi.fn(async () => ({ data: {}, error: null }));
+  return { client: { auth } as never, auth, fire: (e: string) => onEvent?.(e, null) };
+}
+
+describe('SupabaseAuthProvider password recovery and change (mocked client)', () => {
+  it('remembers a recovery link opened before the page subscribed, and notifies later listeners', () => {
+    const m = recoveryMock();
+    const p = new SupabaseAuthProvider(m.client, 'http://app/reset-password');
+    expect(p.isPasswordRecovery()).toBe(false);
+    const l = vi.fn();
+    const off = p.onPasswordRecovery(l);
+    m.fire('SIGNED_IN');
+    expect(l).not.toHaveBeenCalled();
+    m.fire('PASSWORD_RECOVERY');
+    expect(l).toHaveBeenCalledTimes(1);
+    expect(p.isPasswordRecovery()).toBe(true);
+    off();
+  });
+
+  it('updatePassword sets the password and surfaces a rejection', async () => {
+    const m = recoveryMock();
+    const p = new SupabaseAuthProvider(m.client);
+    await p.updatePassword('new-secret-1');
+    expect(m.auth.updateUser).toHaveBeenCalledWith({ password: 'new-secret-1' });
+    m.auth.updateUser.mockResolvedValueOnce({
+      data: {},
+      error: { message: 'Password should be at least 12 characters' },
+    });
+    await expect(p.updatePassword('short')).rejects.toThrow('at least 12');
+  });
+
+  it('changePassword rejects a wrong current password without touching the password', async () => {
+    const m = recoveryMock();
+    m.auth.signInWithPassword.mockResolvedValueOnce({
+      data: {},
+      error: { message: 'Invalid login credentials' },
+    });
+    const p = new SupabaseAuthProvider(m.client);
+    await expect(p.changePassword('wrong', 'new-secret-1')).rejects.toThrow(
+      'Your current password is incorrect.',
+    );
+    expect(m.auth.updateUser).not.toHaveBeenCalled();
+    expect(m.auth.signOut).not.toHaveBeenCalled();
+  });
+
+  it('changePassword verifies, updates, then signs out the other sessions', async () => {
+    const m = recoveryMock();
+    const p = new SupabaseAuthProvider(m.client);
+    await p.changePassword('old-secret', 'new-secret-1');
+    expect(m.auth.signInWithPassword).toHaveBeenCalledWith({
+      email: 'a@b.c',
+      password: 'old-secret',
+    });
+    expect(m.auth.updateUser).toHaveBeenCalledWith({ password: 'new-secret-1' });
+    expect(m.auth.signOut).toHaveBeenCalledWith({ scope: 'others' });
+  });
+
+  it('changePassword needs a signed-in session', async () => {
+    const m = recoveryMock();
+    m.auth.getUser.mockResolvedValueOnce({ data: { user: null }, error: null });
+    const p = new SupabaseAuthProvider(m.client);
+    await expect(p.changePassword('a', 'b')).rejects.toThrow('session expired');
   });
 });

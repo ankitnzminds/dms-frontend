@@ -26,7 +26,11 @@ const mk = (over: Record<string, unknown>) => ({
   can_delete: false,
   ...over,
 });
-const list = (items: unknown[], can_comment = true) => ({ items, total: items.length, can_comment });
+const list = (items: unknown[], can_comment = true) => ({
+  items,
+  total: items.length,
+  can_comment,
+});
 const target = { kind: 'document' as const, id: 'doc-1' };
 
 describe('threadify', () => {
@@ -54,7 +58,9 @@ describe('Composer', () => {
   });
 
   it('is disabled and explains why when commenting is not allowed', () => {
-    renderApp(<Composer label="New comment" disabled disabledReason="No permission" onSubmit={vi.fn()} />);
+    renderApp(
+      <Composer label="New comment" disabled disabledReason="No permission" onSubmit={vi.fn()} />,
+    );
     expect(screen.getByLabelText('New comment')).toBeDisabled();
     expect(screen.getByLabelText('New comment')).toHaveAttribute('placeholder', 'No permission');
   });
@@ -62,10 +68,14 @@ describe('Composer', () => {
 
 describe('CommentThread', () => {
   it('shows a view-only notice and a disabled composer when can_comment is false', async () => {
-    server.use(http.get(`${API}/documents/doc-1/comments`, () => HttpResponse.json(list([mk({})], false))));
+    server.use(
+      http.get(`${API}/documents/doc-1/comments`, () => HttpResponse.json(list([mk({})], false))),
+    );
     renderApp(<CommentThread target={target} />);
     expect(await screen.findByText('First!')).toBeInTheDocument();
-    expect(screen.getByTestId('cannot-comment')).toHaveTextContent(/do not have permission to comment/);
+    expect(screen.getByTestId('cannot-comment')).toHaveTextContent(
+      /do not have permission to comment/,
+    );
     expect(screen.getByLabelText('New comment')).toBeDisabled();
     expect(screen.queryByRole('button', { name: /^Reply to/ })).toBeNull();
   });
@@ -75,7 +85,10 @@ describe('CommentThread', () => {
       http.get(`${API}/documents/doc-1/comments`, () => HttpResponse.json(list([]))),
       http.post(`${API}/documents/doc-1/comments`, async () => {
         await new Promise((r) => setTimeout(r, 50));
-        return HttpResponse.json({ error: { code: 'forbidden', message: 'no', request_id: 'r', details: null } }, { status: 403 });
+        return HttpResponse.json(
+          { error: { code: 'forbidden', message: 'no', request_id: 'r', details: null } },
+          { status: 403 },
+        );
       }),
     );
     renderApp(<CommentThread target={target} />);
@@ -90,20 +103,26 @@ describe('CommentThread', () => {
   it('offers edit and delete only when the server says so, and soft-deletes with a confirmation', async () => {
     let deleted = false;
     const rows = () => [
-      mk({ id: 'mine', body: deleted ? '' : 'my note', deleted, can_edit: !deleted, can_delete: !deleted }),
+      mk({
+        id: 'mine',
+        body: deleted ? '' : 'my note',
+        deleted,
+        can_edit: !deleted,
+        can_delete: !deleted,
+      }),
       mk({ id: 'theirs', body: 'their note', created_at: '2026-01-01T11:00:00Z' }),
     ];
     server.use(
-      http.get(`${API}/documents/doc-1/comments`, () =>
-        HttpResponse.json(list(rows())),
-      ),
+      http.get(`${API}/documents/doc-1/comments`, () => HttpResponse.json(list(rows()))),
       http.delete(`${API}/comments/mine`, () => {
         deleted = true;
         return new HttpResponse(null, { status: 204 });
       }),
     );
     renderApp(<CommentThread target={target} />);
-    const mine = (await screen.findByText('my note')).closest('[data-testid=comment]') as HTMLElement;
+    const mine = (await screen.findByText('my note')).closest(
+      '[data-testid=comment]',
+    ) as HTMLElement;
     const theirs = screen.getByText('their note').closest('[data-testid=comment]') as HTMLElement;
     expect(within(theirs).queryByRole('button', { name: /Comment actions/ })).toBeNull();
     await userEvent.click(within(mine).getByRole('button', { name: /Comment actions/ }));

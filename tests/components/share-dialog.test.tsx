@@ -93,7 +93,9 @@ describe('ShareDialog', () => {
 
   it('limits presets to what the caller holds', () => {
     open(['view', 'preview', 'download', 'comment', 'share']);
-    expect(screen.getByRole('radio', { name: /^Viewers*Can view, preview and download/ })).toBeEnabled();
+    expect(
+      screen.getByRole('radio', { name: /^Viewers*Can view, preview and download/ }),
+    ).toBeEnabled();
     expect(screen.getByRole('radio', { name: /Commenter/ })).toBeEnabled();
     expect(screen.getByRole('radio', { name: /Editor/ })).toBeDisabled();
   });

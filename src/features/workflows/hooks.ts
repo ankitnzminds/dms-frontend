@@ -153,3 +153,48 @@ export function describeAssignee(a: AssigneeSpec, names: Record<string, string> 
   const label = a.id ? (names[a.id] ?? a.id.slice(0, 8)) : '?';
   return a.type === 'group' ? `Group: ${label}` : label;
 }
+
+export type ApprovalChain = Schemas['ApprovalChainOut'];
+
+/** The folder's approval chain (levels of approvers). Empty `levels` = pick a workflow manually. */
+export function useApprovalChain(folderId: string | undefined) {
+  return useQuery({
+    queryKey: ['approval-chain', folderId],
+    enabled: !!folderId,
+    queryFn: ({ signal }) =>
+      call<ApprovalChain>(
+        api.GET('/api/v1/folders/{folder_id}/approval-chain', {
+          params: { path: { folder_id: folderId! } },
+          signal,
+        }),
+      ),
+  });
+}
+
+export function useSetApprovalChain() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { folderId: string; body: Schemas['ApprovalChainIn'] }) =>
+      call<ApprovalChain>(
+        api.PUT('/api/v1/folders/{folder_id}/approval-chain', {
+          params: { path: { folder_id: v.folderId } },
+          body: v.body,
+        }),
+      ),
+    onSuccess: (_d, v) => {
+      void qc.invalidateQueries({ queryKey: ['approval-chain', v.folderId] });
+      void qc.invalidateQueries({ queryKey: ['workflows'] });
+    },
+  });
+}
+
+/** Submit the file to its folder's approval chain (no approver to choose). */
+export const useSubmitForApproval = (documentId: string) =>
+  useWf((b: Schemas['SubmitForApprovalIn']) =>
+    call<Run>(
+      api.POST('/api/v1/documents/{document_id}/submit-for-approval', {
+        params: { path: { document_id: documentId } },
+        body: b,
+      }),
+    ),
+  );

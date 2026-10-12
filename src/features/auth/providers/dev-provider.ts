@@ -21,13 +21,17 @@ export class DevAuthProvider implements AuthProvider {
       ? window.sessionStorage
       : null,
     isProduction: boolean = process.env.NODE_ENV === 'production',
+    /** Where a "remembered" token goes (survives closing the browser). */
+    private readonly persistent: Store | null = typeof window !== 'undefined'
+      ? window.localStorage
+      : null,
   ) {
     if (isProduction) throw new Error('DevAuthProvider cannot be used in a production build.');
   }
 
   private read(): string | null {
     try {
-      return this.storage?.getItem(STORAGE_KEY) ?? null;
+      return this.storage?.getItem(STORAGE_KEY) ?? this.persistent?.getItem(STORAGE_KEY) ?? null;
     } catch {
       return null;
     }
@@ -53,7 +57,10 @@ export class DevAuthProvider implements AuthProvider {
         body: JSON.stringify({ email: c.email, password: c.password }),
       });
     } catch {
-      throw new AuthError('Cannot reach the server. Check your connection and try again.', 'network_error');
+      throw new AuthError(
+        'Cannot reach the server. Check your connection and try again.',
+        'network_error',
+      );
     }
     if (!res.ok) {
       if (res.status === 404)
@@ -71,7 +78,10 @@ export class DevAuthProvider implements AuthProvider {
     if (!body.access_token) throw new AuthError('The sign-in response was malformed.');
     this.memory = body.access_token;
     try {
-      this.storage?.setItem(STORAGE_KEY, body.access_token);
+      // "Remember me" keeps the (short-lived) token across browser restarts; otherwise it ends with the tab.
+      const keep = c.remember !== false && this.persistent;
+      (keep ? this.persistent : this.storage)?.setItem(STORAGE_KEY, body.access_token);
+      (keep ? this.storage : this.persistent)?.removeItem(STORAGE_KEY);
     } catch {
       /* storage unavailable: the session lasts until reload */
     }
@@ -82,6 +92,7 @@ export class DevAuthProvider implements AuthProvider {
     this.memory = null;
     try {
       this.storage?.removeItem(STORAGE_KEY);
+      this.persistent?.removeItem(STORAGE_KEY);
     } catch {
       /* ignore */
     }

@@ -18,13 +18,19 @@ export function OfficeViewer({
   documentId,
   name,
   onUnavailable,
+  initialMode = 'view',
+  onClose,
 }: {
   documentId: string;
   name: string;
+  /** Open straight into editing (used by "Edit" on text files). */
+  initialMode?: 'view' | 'edit';
+  /** When given, "Done editing" leaves the editor through this instead of switching to view mode. */
+  onClose?: () => void;
   /** The office server cannot handle this (not configured/unreachable/unsupported): use a fallback. */
   onUnavailable: (reason: string) => void;
 }) {
-  const [mode, setMode] = useState<'view' | 'edit'>('view');
+  const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
   const session = useOfficeSession();
   const frameName = `office-${useId().replace(/:/g, '')}`;
   const formRef = useRef<HTMLFormElement>(null);
@@ -80,6 +86,11 @@ export function OfficeViewer({
         {data?.mode === 'edit' && (
           <span className="text-muted">Changes are saved as a new version.</span>
         )}
+        {data?.mode === 'edit' && /\.(txt|md|csv)$/i.test(name) && (
+          <span className="text-muted" data-testid="text-edit-hint">
+            To type, choose Editing Mode (top right), then Continue editing.
+          </span>
+        )}
         {data && !data.can_edit && data.reason && <span className="text-muted">{data.reason}</span>}
         <span className="flex-1" />
         {mode === 'view' ? (
@@ -95,7 +106,7 @@ export function OfficeViewer({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => changeMode('view')}
+            onClick={() => (onClose ? onClose() : changeMode('view'))}
             disabled={session.isPending}
           >
             <Eye /> Done editing

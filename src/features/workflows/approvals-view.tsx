@@ -8,6 +8,7 @@ import { PaginationBar } from '@/components/file-browser/pagination-bar';
 import { PageHeader, Panel } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Field, Select, Textarea } from '@/components/ui/input';
 import { SkeletonRows } from '@/components/ui/skeleton';
@@ -28,79 +29,115 @@ const TASK_ERR: Record<string, string> = {
 const taskError = (e: unknown) =>
   isApiError(e) && TASK_ERR[e.code] ? TASK_ERR[e.code]! : friendlyMessage(e);
 
-function DecisionDialog({ task, onClose }: { task: Task; onClose: () => void }) {
+export function DecisionDialog({ task, onClose }: { task: Task; onClose: () => void }) {
   const decide = useDecideTask();
   const [decision, setDecision] = useState<'approve' | 'reject'>('approve');
   const [comment, setComment] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [confirmSuper, setConfirmSuper] = useState(false);
+  const override = task.is_super_approver && decision === 'approve';
+
+  function run() {
+    setError(null);
+    decide.mutate(
+      { id: task.id, decision, comment: comment.trim() },
+      {
+        onSuccess: () => {
+          toast.success(decision === 'approve' ? 'Approved' : 'Rejected');
+          onClose();
+        },
+        onError: (er) => setError(taskError(er)),
+      },
+    );
+  }
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent
-        title={`Decide on "${task.document_name}"`}
-        description={`${task.step_name} - version ${task.document_version_number ?? ''}`}
-      >
-        <form
-          noValidate
-          onSubmit={(e) => {
-            e.preventDefault();
-            setError(null);
-            decide.mutate(
-              { id: task.id, decision, comment: comment.trim() },
-              {
-                onSuccess: () => {
-                  toast.success(decision === 'approve' ? 'Approved' : 'Rejected');
-                  onClose();
-                },
-                onError: (er) => setError(taskError(er)),
-              },
-            );
-          }}
+    <>
+      <Dialog open onOpenChange={(o) => !o && onClose()}>
+        <DialogContent
+          title={`Decide on "${task.document_name}"`}
+          description={`${task.step_name} - version ${task.document_version_number ?? ''}`}
         >
-          <DialogBody className="grid gap-3">
-            <Field id="dec" label="Decision">
-              {(p) => (
-                <Select
-                  {...p}
-                  value={decision}
-                  onChange={(e) => setDecision(e.target.value as 'approve' | 'reject')}
+          <form
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (override) setConfirmSuper(true);
+              else run();
+            }}
+          >
+            <DialogBody className="grid gap-3">
+              {task.is_super_approver && (
+                <p
+                  role="note"
+                  className="rounded-md border border-warn bg-warn-soft px-3 py-2 text-xs text-warn"
                 >
-                  <option value="approve">Approve</option>
-                  <option value="reject">Reject</option>
-                </Select>
+                  You are a super approver on this step: approving it instantly approves the
+                  document and skips everyone else remaining in the chain.
+                </p>
               )}
-            </Field>
-            <Field id="dec-comment" label="Comment (optional)">
-              {(p) => (
-                <Textarea
-                  {...p}
-                  rows={3}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                />
+              {task.optional && (
+                <p className="text-xs text-muted">
+                  You are an optional approver: your decision does not block this step.
+                </p>
               )}
-            </Field>
-            {error && (
-              <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-xs text-danger">
-                {error}
-              </p>
-            )}
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="secondary" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant={decision === 'reject' ? 'danger' : 'primary'}
-              disabled={decide.isPending}
-            >
-              {decide.isPending && <Loader2 className="animate-spin" aria-hidden />}
-              {decision === 'approve' ? 'Approve' : 'Reject'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+              <Field id="dec" label="Decision">
+                {(p) => (
+                  <Select
+                    {...p}
+                    value={decision}
+                    onChange={(e) => setDecision(e.target.value as 'approve' | 'reject')}
+                  >
+                    <option value="approve">Approve</option>
+                    <option value="reject">Reject</option>
+                  </Select>
+                )}
+              </Field>
+              <Field id="dec-comment" label="Comment (optional)">
+                {(p) => (
+                  <Textarea
+                    {...p}
+                    rows={3}
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                  />
+                )}
+              </Field>
+              {error && (
+                <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-xs text-danger">
+                  {error}
+                </p>
+              )}
+            </DialogBody>
+            <DialogFooter>
+              <Button variant="secondary" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant={decision === 'reject' ? 'danger' : 'primary'}
+                disabled={decide.isPending}
+              >
+                {decide.isPending && <Loader2 className="animate-spin" aria-hidden />}
+                {decision === 'approve' ? 'Approve' : 'Reject'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <ConfirmDialog
+        open={confirmSuper}
+        onOpenChange={setConfirmSuper}
+        title="Approve as super approver?"
+        description="You have super-approver override power on this request. Approving it will immediately bypass every other pending approver at this level and every approver at every level below - the document will be approved right away. This can't be undone. Continue?"
+        confirmLabel="Approve and bypass the rest"
+        destructive
+        pending={decide.isPending}
+        onConfirm={() => {
+          setConfirmSuper(false);
+          run();
+        }}
+      />
+    </>
   );
 }
 

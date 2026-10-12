@@ -48,7 +48,7 @@ export function FolderPicker({
     ? {
         id: folder.data.id,
         name: folder.data.name,
-        canCreate: can(folder.data.permissions, 'create_child'),
+        canCreate: can(folder.data.permissions, 'upload') || can(folder.data.permissions, 'create_folder'),
       }
     : null;
 
@@ -101,7 +101,7 @@ export function FolderPicker({
                   >
                     <FolderIcon className="size-4 text-accent" aria-hidden />
                     <span className="flex-1 truncate">{f.name}</span>
-                    {!can(f.permissions, 'create_child') && (
+                    {!(can(f.permissions, 'upload') || can(f.permissions, 'create_folder')) && (
                       <Lock className="size-3 text-faint" aria-label="You cannot add items here" />
                     )}
                     <ChevronRight className="size-4 text-faint" aria-hidden />

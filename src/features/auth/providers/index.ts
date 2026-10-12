@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { apiBaseUrl, authMode, supabaseConfig } from '@/lib/config';
 import { DevAuthProvider } from './dev-provider';
+import { rememberStorage } from './remember-storage';
 import { SupabaseAuthProvider } from './supabase-provider';
 import type { AuthProvider } from './types';
 
@@ -21,11 +22,16 @@ export function getAuthProvider(): AuthProvider | null {
       return null;
     }
     const client = createClient(supabaseConfig.url, supabaseConfig.publishableKey, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storage: rememberStorage,
+      },
     });
     instance = new SupabaseAuthProvider(
       client,
-      typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined,
+      typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined,
     );
   }
   return instance;

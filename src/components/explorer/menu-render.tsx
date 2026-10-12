@@ -5,10 +5,17 @@ import { ContextMenu as C, DropdownMenu as D } from 'radix-ui';
 import type { ExplorerAction, MenuEntry } from '@/features/explorer/menu';
 import { cn } from '@/lib/utils';
 
+// Radix measures the room left in the viewport (`--radix-*-content-available-height`); a menu taller than
+// that is capped to it and scrolls inside, so every entry stays reachable. Collision handling flips it
+// up/left/right when there is no room below/right, and the panel is portalled so no parent clips it.
+const scrollCtx =
+  'max-h-[var(--radix-context-menu-content-available-height)] overflow-y-auto overscroll-contain';
+const scrollDrop =
+  'max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto overscroll-contain';
 const contentCls =
   'animate-pop z-[65] min-w-52 max-w-[calc(100vw-1rem)] rounded-lg border border-line bg-surface p-1 shadow-pop';
 const itemCls =
-  'relative flex cursor-default select-none items-center gap-2 rounded-md px-2 py-1.5 text-[13px] outline-none data-[disabled]:opacity-50 data-[highlighted]:bg-surface-2';
+  'relative flex cursor-default select-none items-center gap-2 rounded-md px-2 py-1 text-[13px] outline-none data-[disabled]:opacity-50 data-[highlighted]:bg-surface-2';
 
 type Kit = typeof C | typeof D;
 
@@ -26,7 +33,7 @@ function Entries({
     <>
       {entries.map((e, i) => (
         <span key={`${e.id}-${i}`} className="contents">
-          {e.separatorBefore && i > 0 && <K.Separator className="-mx-1 my-1 h-px bg-line" />}
+          {e.separatorBefore && i > 0 && <K.Separator className="-mx-1 my-0.5 h-px bg-line" />}
           {e.id === 'header' ? (
             <K.Label className="px-2 py-1.5 text-xs font-medium text-muted">{e.label}</K.Label>
           ) : e.submenu ? (
@@ -36,7 +43,11 @@ function Entries({
                 <span aria-hidden>›</span>
               </K.SubTrigger>
               <K.Portal>
-                <K.SubContent className={contentCls} sideOffset={4}>
+                <K.SubContent
+                  className={cn(contentCls, kit === C ? scrollCtx : scrollDrop)}
+                  sideOffset={4}
+                  collisionPadding={8}
+                >
                   <Entries kit={kit} entries={e.submenu} onRun={onRun} />
                 </K.SubContent>
               </K.Portal>
@@ -73,7 +84,11 @@ export function ContextMenuContent({
 }) {
   return (
     <C.Portal>
-      <C.Content className={contentCls} collisionPadding={8} data-testid="context-menu">
+      <C.Content
+        className={cn(contentCls, scrollCtx)}
+        collisionPadding={8}
+        data-testid="context-menu"
+      >
         <Entries kit={C} entries={entries} onRun={onRun} />
       </C.Content>
     </C.Portal>
@@ -89,7 +104,15 @@ export function DropdownMenuEntries({
 }) {
   return (
     <D.Portal>
-      <D.Content className={contentCls} align="end" sideOffset={4} collisionPadding={8}>
+      <D.Content
+        className={cn(contentCls, scrollDrop)}
+        // Opens beside the "..." button (not below it), so a tall menu slides up/down to fit the screen
+        // instead of being squeezed under the button.
+        side="left"
+        align="start"
+        sideOffset={4}
+        collisionPadding={8}
+      >
         <Entries kit={D} entries={entries} onRun={onRun} />
       </D.Content>
     </D.Portal>

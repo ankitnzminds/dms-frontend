@@ -1,5 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
+import { ExplorerOpsProvider } from '@/components/explorer/ops';
+import { UploadPickersProvider } from '@/components/upload/pickers';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { UploadProvider } from '@/features/upload/upload-manager';
 import type { UploadEngine } from '@/features/upload/upload-engine';
@@ -13,7 +15,11 @@ export function renderApp(ui: React.ReactElement, opts: { engine?: UploadEngine 
     ...render(
       <QueryClientProvider client={client}>
         <TooltipProvider>
-          <UploadProvider engine={opts.engine}>{ui}</UploadProvider>
+          <UploadProvider engine={opts.engine}>
+            <ExplorerOpsProvider>
+              <UploadPickersProvider>{ui}</UploadPickersProvider>
+            </ExplorerOpsProvider>
+          </UploadProvider>
         </TooltipProvider>
       </QueryClientProvider>,
     ),

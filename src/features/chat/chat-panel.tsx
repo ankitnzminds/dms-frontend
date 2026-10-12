@@ -2,15 +2,17 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  Archive,
-  ArchiveRestore,
+  BarChart3,
   Bot,
   Check,
   Copy,
+  FileText,
+  HelpCircle,
   Loader2,
   MessageSquarePlus,
-  Pencil,
+  PanelLeft,
   RotateCcw,
+  Search,
   Send,
   Square,
   ThumbsDown,
@@ -20,14 +22,15 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/dialog';
-import { Field, Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
+import { useMe } from '@/features/auth/session';
 import { friendlyMessage, isApiError } from '@/lib/api-client';
-import { formatRelative } from '@/lib/format';
+import { isAdminRole } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 import { Blocks } from './blocks';
+import { ConversationList } from './conversation-list';
+import { Welcome } from './welcome';
 import { MessageText } from './format';
 import {
   isRunSettled,
@@ -38,11 +41,9 @@ import {
   useCreateConversation,
   useFeedback,
   useMessages,
-  usePatchConversation,
   useRun,
   useSendMessage,
   type ChatMessage,
-  type Conversation,
 } from './hooks';
 
 export interface ChatContext {
@@ -50,12 +51,6 @@ export interface ChatContext {
   folderId?: string;
   label?: string;
 }
-
-const SUGGESTIONS = [
-  'Find documents about contracts',
-  'What is waiting for my approval?',
-  'What can you help me with?',
-];
 
 function Bubble({
   m,
@@ -131,143 +126,6 @@ function Bubble({
   );
 }
 
-function RenameDialog({ c, onClose }: { c: Conversation; onClose: () => void }) {
-  const patch = usePatchConversation();
-  const [title, setTitle] = useState(c.title);
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent title="Rename conversation">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!title.trim()) return;
-            patch.mutate(
-              { id: c.id, body: { title: title.trim() } },
-              { onSuccess: onClose, onError: (er) => toast.error(friendlyMessage(er)) },
-            );
-          }}
-        >
-          <DialogBody>
-            <Field id="conv-title" label="Title">
-              {(p) => (
-                <Input {...p} autoFocus value={title} onChange={(e) => setTitle(e.target.value)} />
-              )}
-            </Field>
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="secondary" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" disabled={!title.trim() || patch.isPending}>
-              Save
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function ConversationList({
-  activeId,
-  onSelect,
-  onNew,
-  className,
-}: {
-  activeId: string | null;
-  onSelect: (id: string) => void;
-  onNew: () => void;
-  className?: string;
-}) {
-  const [archived, setArchived] = useState(false);
-  const q = useConversations(archived);
-  const patch = usePatchConversation();
-  const [renaming, setRenaming] = useState<Conversation | null>(null);
-  return (
-    <nav aria-label="Conversations" className={cn('flex min-h-0 flex-col', className)}>
-      <div className="flex items-center gap-1 p-2">
-        <Button
-          size="sm"
-          variant="primary"
-          className="flex-1"
-          onClick={onNew}
-          data-testid="chat-new"
-        >
-          <MessageSquarePlus /> New chat
-        </Button>
-      </div>
-      <ul className="scroll-thin min-h-0 flex-1 overflow-y-auto px-1 pb-2">
-        {q.isPending ? (
-          <li className="p-2">
-            <Skeleton className="h-8" />
-          </li>
-        ) : q.isError ? (
-          <li className="p-2 text-xs text-danger" role="alert">
-            Could not load conversations.{' '}
-            <button className="underline" onClick={() => q.refetch()}>
-              Retry
-            </button>
-          </li>
-        ) : q.data.items.length === 0 ? (
-          <li className="p-3 text-xs text-muted">No conversations yet.</li>
-        ) : (
-          q.data.items.map((c) => (
-            <li
-              key={c.id}
-              className={cn(
-                'group flex items-center rounded-md',
-                activeId === c.id ? 'bg-accent-soft' : 'hover:bg-surface-2',
-              )}
-              data-testid="chat-conversation"
-            >
-              <button
-                type="button"
-                className="min-w-0 flex-1 px-2 py-1.5 text-left"
-                onClick={() => onSelect(c.id)}
-                aria-current={activeId === c.id ? 'true' : undefined}
-              >
-                <span className="block truncate text-[13px] font-medium">
-                  {c.title || 'New conversation'}
-                </span>
-                <span className="block text-xs text-muted">
-                  {formatRelative(c.updated_at)}
-                  {c.status === 'archived' ? ' · archived' : ''}
-                </span>
-              </button>
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                aria-label={`Rename ${c.title}`}
-                onClick={() => setRenaming(c)}
-              >
-                <Pencil />
-              </Button>
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                aria-label={`${c.status === 'archived' ? 'Restore' : 'Archive'} ${c.title}`}
-                onClick={() =>
-                  patch.mutate(
-                    { id: c.id, body: { status: c.status === 'archived' ? 'active' : 'archived' } },
-                    { onError: (e) => toast.error(friendlyMessage(e)) },
-                  )
-                }
-              >
-                {c.status === 'archived' ? <ArchiveRestore /> : <Archive />}
-              </Button>
-            </li>
-          ))
-        )}
-      </ul>
-      <label className="flex items-center gap-2 border-t border-line px-3 py-2 text-xs text-muted">
-        <input type="checkbox" checked={archived} onChange={(e) => setArchived(e.target.checked)} />{' '}
-        Show archived
-      </label>
-      {renaming && <RenameDialog c={renaming} onClose={() => setRenaming(null)} />}
-    </nav>
-  );
-}
-
 /**
  * The assistant. Runs are asynchronous: after sending we poll the run (~700 ms) and show its current step;
  * we never fake token streaming. Message content lives only in the React Query cache (cleared on sign-out) and
@@ -288,6 +146,8 @@ export function ChatPanel({
   const status = useChatStatus();
   const [activeId, setActiveId] = useState<string | null>(initialConversationId);
   const [showList, setShowList] = useState(variant === 'page');
+  const [mobileList, setMobileList] = useState(false);
+  const { data: me } = useMe();
   const [draft, setDraft] = useState('');
   const [runId, setRunId] = useState<string | null>(null);
   const [note, setNote] = useState<null | { kind: 'failed' | 'cancelled'; code?: string | null }>(
@@ -306,6 +166,7 @@ export function ChatPanel({
   const feedback = useFeedback();
 
   const items = messages.data?.items ?? [];
+  const convTitle = useConversations(false).data?.items.find((c) => c.id === activeId)?.title;
 
   // Resume a run that is still active when a conversation is opened (last message is the user's).
   useEffect(() => {
@@ -422,16 +283,46 @@ export function ChatPanel({
 
   return (
     <div
-      className={cn('flex min-h-0 flex-1', variant === 'page' ? 'gap-0' : 'flex-col')}
+      className={cn('relative flex min-h-0 flex-1', variant === 'page' ? 'gap-0' : 'flex-col')}
       data-testid="chat-panel"
     >
       {variant === 'page' ? (
-        <ConversationList
-          activeId={activeId}
-          onSelect={(id) => (setActiveId(id), setRunId(null), setNote(null))}
-          onNew={() => (setActiveId(null), setRunId(null), setNote(null))}
-          className="hidden w-64 shrink-0 border-r border-line md:flex"
-        />
+        <>
+          {showList && (
+            <ConversationList
+              activeId={activeId}
+              onSelect={(id) => (setActiveId(id), setRunId(null), setNote(null))}
+              onNew={() => (setActiveId(null), setRunId(null), setNote(null))}
+              className="hidden w-72 shrink-0 border-r border-line bg-surface-2/40 md:flex"
+            />
+          )}
+          {mobileList && (
+            <div className="absolute inset-0 z-30 flex md:hidden" data-testid="chat-mobile-list">
+              <ConversationList
+                activeId={activeId}
+                onSelect={(id) => (
+                  setActiveId(id),
+                  setMobileList(false),
+                  setRunId(null),
+                  setNote(null)
+                )}
+                onNew={() => (
+                  setActiveId(null),
+                  setMobileList(false),
+                  setRunId(null),
+                  setNote(null)
+                )}
+                className="w-72 max-w-[85%] border-r border-line bg-surface shadow-xl"
+              />
+              <button
+                type="button"
+                aria-label="Close conversations"
+                className="flex-1 bg-black/40"
+                onClick={() => setMobileList(false)}
+              />
+            </div>
+          )}
+        </>
       ) : (
         showList && (
           <div className="max-h-56 border-b border-line">
@@ -449,6 +340,32 @@ export function ChatPanel({
         )
       )}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {variant === 'page' && (
+          <div className="flex items-center gap-2 border-b border-line px-3 py-1.5">
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              className="md:hidden"
+              aria-label="Open conversations"
+              onClick={() => setMobileList(true)}
+            >
+              <PanelLeft />
+            </Button>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              className="hidden md:inline-flex"
+              aria-label={showList ? 'Hide conversations' : 'Show conversations'}
+              aria-expanded={showList}
+              onClick={() => setShowList((v) => !v)}
+            >
+              <PanelLeft />
+            </Button>
+            <p className="truncate text-[13px] font-medium">
+              {(activeId && convTitle) || 'New conversation'}
+            </p>
+          </div>
+        )}
         {variant === 'drawer' && (
           <div className="flex items-center justify-between border-b border-line px-3 py-1.5">
             <Button
@@ -476,20 +393,12 @@ export function ChatPanel({
           className="scroll-thin min-h-0 flex-1 overflow-y-auto p-3"
         >
           {!activeId && items.length === 0 && !pendingUser ? (
-            <div className="grid gap-3 py-6 text-center">
-              <Bot className="mx-auto size-8 text-muted" aria-hidden />
-              <p className="text-sm font-semibold">Ask about your documents</p>
-              <p className="mx-auto max-w-sm text-[13px] text-muted">
-                I only see what you are allowed to see, and I always ask before changing anything.
-              </p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {SUGGESTIONS.map((s) => (
-                  <Button key={s} size="sm" onClick={() => setDraft(s)}>
-                    {s}
-                  </Button>
-                ))}
-              </div>
-            </div>
+            <Welcome
+              name={me?.display_name}
+              admin={isAdminRole(me?.role)}
+              disabled={busy}
+              onAsk={(t) => void submit(t)}
+            />
           ) : messages.isPending && activeId ? (
             <Skeleton className="h-24" />
           ) : messages.isError ? (
@@ -584,57 +493,89 @@ export function ChatPanel({
             )}
           </p>
         )}
-        <form
-          className="flex items-end gap-2 border-t border-line p-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void submit(draft);
-          }}
-        >
-          <label htmlFor="chat-input" className="sr-only">
-            Message the assistant
-          </label>
-          <textarea
-            id="chat-input"
-            rows={2}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                e.preventDefault();
-                void submit(draft);
-              }
+        <div className="px-3 pb-2 pt-2 sm:px-4">
+          <form
+            className="rounded-2xl border border-line-strong bg-surface shadow-sm focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/25"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void submit(draft);
             }}
-            placeholder="Ask a question or tell me what to do"
-            className="min-h-10 flex-1 resize-none rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-[13px] placeholder:text-faint"
-            data-testid="chat-input"
-          />
-          {busy && runId ? (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() =>
-                cancel.mutate(runId, { onError: (e) => toast.error(friendlyMessage(e)) })
-              }
-              data-testid="chat-stop"
-            >
-              <Square /> Stop
-            </Button>
-          ) : (
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={!draft.trim() || busy}
-              data-testid="chat-send"
-            >
-              <Send /> Send
-            </Button>
-          )}
-        </form>
-        <p className="px-3 pb-2 text-[11px] text-faint">
-          <Check className="mr-1 inline size-3" aria-hidden />
-          Answers can be wrong. Check the cited sources before relying on them.
-        </p>
+          >
+            <label htmlFor="chat-input" className="sr-only">
+              Message the assistant
+            </label>
+            <textarea
+              id="chat-input"
+              rows={2}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  void submit(draft);
+                }
+              }}
+              placeholder="Ask a question or tell me what to do…"
+              className="block max-h-40 min-h-14 w-full resize-none bg-transparent px-4 pt-3 text-[14px] outline-none placeholder:text-faint"
+              data-testid="chat-input"
+            />
+            <div className="flex items-center justify-between gap-2 px-3 pb-2.5 pt-1">
+              <div className="flex min-w-0 flex-wrap gap-1.5" aria-label="Prompt starters">
+                {(
+                  [
+                    [Search, 'Search', 'Find documents about '],
+                    [FileText, 'Summarize', 'Summarize '],
+                    [BarChart3, 'Analyze', 'Compare and analyze '],
+                    [HelpCircle, 'Help', 'What can you help me with?'],
+                  ] as const
+                ).map(([Icon, label, text]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setDraft(text);
+                      document.getElementById('chat-input')?.focus();
+                    }}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-full border border-line px-3 text-xs font-medium text-muted transition-colors hover:border-line-strong hover:bg-surface-2 hover:text-text focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-50"
+                  >
+                    <Icon className="size-3.5" aria-hidden />
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {busy && runId ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="shrink-0 rounded-xl"
+                  onClick={() =>
+                    cancel.mutate(runId, { onError: (e) => toast.error(friendlyMessage(e)) })
+                  }
+                  data-testid="chat-stop"
+                >
+                  <Square /> Stop
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="icon"
+                  className="shrink-0 rounded-xl"
+                  aria-label="Send message"
+                  disabled={!draft.trim() || busy}
+                  data-testid="chat-send"
+                >
+                  <Send />
+                </Button>
+              )}
+            </div>
+          </form>
+          <p className="mt-2 text-center text-[11px] text-faint">
+            <Check className="mr-1 inline size-3" aria-hidden />
+            Answers can be wrong. Check the cited sources before relying on them.
+          </p>
+        </div>
       </div>
     </div>
   );

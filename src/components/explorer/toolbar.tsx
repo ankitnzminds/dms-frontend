@@ -7,6 +7,10 @@ import {
   Copy,
   Download,
   FilePlus2,
+  KeyRound,
+  Lock,
+  LockOpen,
+  MoreHorizontal,
   FolderPlus,
   FolderUp,
   LayoutGrid,
@@ -23,6 +27,8 @@ import {
   X,
 } from 'lucide-react';
 import { useState } from 'react';
+import type { ExplorerAction, MenuEntry } from '@/features/explorer/menu';
+import { DropdownMenuEntries, DropdownRoot, DropdownTrigger } from './menu-render';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -45,6 +51,10 @@ import { cn } from '@/lib/utils';
 
 export interface ToolbarState {
   canCreate: boolean;
+  /** Finer rights inside this folder; each disables only its own menu entries. */
+  canFolder: boolean;
+  canFile: boolean;
+  canUpload: boolean;
   hasSelection: boolean;
   single: boolean;
   /** Reasons (null = enabled) */
@@ -55,11 +65,15 @@ export interface ToolbarState {
   share: string | null;
   download: string | null;
   del: string | null;
+  access: string | null;
+  lock: string | null;
+  unlock: string | null;
   createReason: string | null;
 }
 
 export type ToolbarAction =
   | 'new-folder'
+  | 'create-file'
   | 'upload-files'
   | 'upload-folder'
   | 'cut'
@@ -68,6 +82,9 @@ export type ToolbarAction =
   | 'rename'
   | 'share'
   | 'download'
+  | 'access'
+  | 'lock'
+  | 'unlock'
   | 'delete'
   | 'refresh'
   | 'properties'
@@ -222,6 +239,8 @@ export function ExplorerHeader({
   selectionCount,
   hasClipboard,
   onAsk,
+  selectionMenu,
+  onSelectionMenu,
 }: {
   title: React.ReactNode;
   trail?: React.ReactNode;
@@ -231,6 +250,9 @@ export function ExplorerHeader({
   prefs: ViewPrefs;
   onPrefs: (p: Partial<ViewPrefs>) => void;
   onAction: (a: ToolbarAction) => void;
+  /** The same entries the right-click menu offers for the current selection (shown under "More"). */
+  selectionMenu?: MenuEntry[];
+  onSelectionMenu?: (a: ExplorerAction) => void;
   onSearch: (q: string) => void;
   propertiesOpen: boolean;
   selectionCount: number;
@@ -240,7 +262,7 @@ export function ExplorerHeader({
 }) {
   const [q, setQ] = useState('');
   return (
-    <header className="mb-3">
+    <header className="sticky -top-3 z-20 -mx-3 -mt-3 bg-bg px-3 pt-3 sm:-mx-5 sm:-top-5 sm:-mt-5 sm:px-5 sm:pt-5 mb-1 pb-2">
       {trail && <div className="mb-1.5 text-[13px]">{trail}</div>}
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
@@ -267,12 +289,14 @@ export function ExplorerHeader({
             </DisabledReason>
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuItem
+                disabled={!st.canUpload}
                 onSelect={() => onAction('upload-files')}
                 data-testid="tb-upload-files"
               >
                 <FilePlus2 /> Upload files
               </DropdownMenuItem>
               <DropdownMenuItem
+                disabled={!st.canUpload || !st.canFolder}
                 onSelect={() => onAction('upload-folder')}
                 data-testid="tb-upload-folder"
               >
@@ -280,15 +304,28 @@ export function ExplorerHeader({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
+                disabled={!st.canFolder}
                 onSelect={() => onAction('new-folder')}
                 data-testid="tb-new-folder"
               >
                 <FolderPlus /> New folder
               </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={!st.canFile}
+                onSelect={() => onAction('create-file')}
+                data-testid="tb-create-file"
+              >
+                <FilePlus2 /> Create file
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           {onAsk && (
-            <Button variant="secondary" onClick={onAsk} data-testid="tb-ask" aria-label="Ask about this folder">
+            <Button
+              variant="secondary"
+              onClick={onAsk}
+              data-testid="tb-ask"
+              aria-label="Ask about this folder"
+            >
               <Bot /> <span className="hidden sm:inline">Ask</span>
             </Button>
           )}
@@ -332,14 +369,88 @@ export function ExplorerHeader({
             >
               {selectionCount} selected
             </span>
-            <Btn reason={st.download} icon={Download} label="Download" onClick={() => onAction('download')} testId="tb-download" />
-            <Btn reason={st.share} icon={Share2} label="Share" onClick={() => onAction('share')} testId="tb-share" />
-            <Btn reason={st.copy} icon={Copy} label="Copy" onClick={() => onAction('copy')} testId="tb-copy" />
-            <Btn reason={st.cut} icon={Scissors} label="Cut" onClick={() => onAction('cut')} testId="tb-cut" />
-            <Btn reason={st.rename} icon={Pencil} label="Rename" onClick={() => onAction('rename')} testId="tb-rename" />
-            <Btn reason={st.del} icon={Trash2} label="Delete" onClick={() => onAction('delete')} testId="tb-delete" />
+            <Btn
+              reason={st.download}
+              icon={Download}
+              label="Download"
+              onClick={() => onAction('download')}
+              testId="tb-download"
+            />
+            <Btn
+              reason={st.share}
+              icon={Share2}
+              label="Share"
+              onClick={() => onAction('share')}
+              testId="tb-share"
+            />
+            <Btn
+              reason={st.copy}
+              icon={Copy}
+              label="Copy"
+              onClick={() => onAction('copy')}
+              testId="tb-copy"
+            />
+            <Btn
+              reason={st.cut}
+              icon={Scissors}
+              label="Cut"
+              onClick={() => onAction('cut')}
+              testId="tb-cut"
+            />
+            <Btn
+              reason={st.rename}
+              icon={Pencil}
+              label="Rename"
+              onClick={() => onAction('rename')}
+              testId="tb-rename"
+            />
+            <Btn
+              reason={st.del}
+              icon={Trash2}
+              label="Delete"
+              onClick={() => onAction('delete')}
+              testId="tb-delete"
+            />
+            <Btn
+              reason={st.lock}
+              icon={Lock}
+              label="Lock"
+              onClick={() => onAction('lock')}
+              testId="tb-lock"
+            />
+            <Btn
+              reason={st.unlock}
+              icon={LockOpen}
+              label="Unlock"
+              onClick={() => onAction('unlock')}
+              testId="tb-unlock"
+            />
+            <Btn
+              reason={st.access}
+              icon={KeyRound}
+              label="Permissions"
+              onClick={() => onAction('access')}
+              testId="tb-access"
+            />
+            {selectionMenu && onSelectionMenu && (
+              <DropdownRoot>
+                <DropdownTrigger asChild>
+                  <Button size="sm" variant="ghost" aria-label="More actions" data-testid="tb-more">
+                    <MoreHorizontal />
+                    <span className="hidden lg:inline">More</span>
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenuEntries entries={selectionMenu} onRun={onSelectionMenu} />
+              </DropdownRoot>
+            )}
             {hasClipboard && (
-              <Btn reason={st.paste} icon={ClipboardPaste} label="Paste" onClick={() => onAction('paste')} testId="tb-paste" />
+              <Btn
+                reason={st.paste}
+                icon={ClipboardPaste}
+                label="Paste"
+                onClick={() => onAction('paste')}
+                testId="tb-paste"
+              />
             )}
             <Button
               size="icon-sm"
@@ -354,7 +465,14 @@ export function ExplorerHeader({
         ) : (
           <>
             {hasClipboard && (
-              <Btn reason={st.paste} icon={ClipboardPaste} label="Paste" onClick={() => onAction('paste')} testId="tb-paste" variant="secondary" />
+              <Btn
+                reason={st.paste}
+                icon={ClipboardPaste}
+                label="Paste"
+                onClick={() => onAction('paste')}
+                testId="tb-paste"
+                variant="secondary"
+              />
             )}
             <form
               role="search"

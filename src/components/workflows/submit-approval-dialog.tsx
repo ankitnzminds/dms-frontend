@@ -6,7 +6,12 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Field, Select, Textarea } from '@/components/ui/input';
-import { useStartRun, useWorkflows } from '@/features/workflows/hooks';
+import {
+  useApprovalChain,
+  useStartRun,
+  useSubmitForApproval,
+  useWorkflows,
+} from '@/features/workflows/hooks';
 import { friendlyMessage, isApiError } from '@/lib/api-client';
 
 const CODE_TEXT: Record<string, string> = {
@@ -21,14 +26,21 @@ export function SubmitApprovalDialog({
   documentName,
   open,
   onOpenChange,
+  folderId,
 }: {
   documentId: string;
   documentName: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  /** The document's folder: when it has an approval chain, the chain decides the approvers. */
+  folderId?: string;
 }) {
   const defs = useWorkflows(false);
-  const start = useStartRun(documentId);
+  const startManual = useStartRun(documentId);
+  const startChain = useSubmitForApproval(documentId);
+  const chain = useApprovalChain(folderId);
+  const hasChain = (chain.data?.levels.length ?? 0) > 0;
+  const start = hasChain ? startChain : startManual;
   const [defId, setDefId] = useState('');
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -45,26 +57,45 @@ export function SubmitApprovalDialog({
           onSubmit={(e) => {
             e.preventDefault();
             setError(null);
-            start.mutate(
-              { definition_id: defId, note: note.trim() || null },
-              {
-                onSuccess: () => {
-                  toast.success('Submitted for approval');
-                  onOpenChange(false);
-                  setNote('');
-                },
-                onError: (er) =>
-                  setError(
-                    isApiError(er) && CODE_TEXT[er.code]
-                      ? CODE_TEXT[er.code]!
-                      : friendlyMessage(er),
-                  ),
+            const handlers = {
+              onSuccess: () => {
+                toast.success('Submitted for approval');
+                onOpenChange(false);
+                setNote('');
               },
-            );
+              onError: (er: unknown) =>
+                setError(
+                  isApiError(er) && CODE_TEXT[er.code] ? CODE_TEXT[er.code]! : friendlyMessage(er),
+                ),
+            };
+            if (hasChain) startChain.mutate({ note: note.trim() || null }, handlers);
+            else startManual.mutate({ definition_id: defId, note: note.trim() || null }, handlers);
           }}
         >
           <DialogBody className="grid gap-3">
-            {defs.isPending ? (
+            {hasChain && chain.data ? (
+              <div className="grid gap-1.5 text-[13px]" data-testid="approval-chain-preview">
+                <p className="text-xs font-medium text-muted">
+                  This folder has an approval chain. Levels approve in order; everyone inside a
+                  level is asked in parallel.
+                </p>
+                {chain.data.levels.map((lv, i) => (
+                  <p key={i} className="flex flex-wrap items-center gap-1.5">
+                    <strong>L{i + 1}:</strong>
+                    {lv.map((a) => (
+                      <span
+                        key={a.user_id}
+                        className="rounded-sm bg-accent-soft px-1.5 py-0.5 text-xs text-accent-soft-fg"
+                      >
+                        {a.is_super_approver ? '⚡ ' : ''}
+                        {a.name}
+                        {a.optional ? ' (optional)' : ''}
+                      </span>
+                    ))}
+                  </p>
+                ))}
+              </div>
+            ) : defs.isPending ? (
               <p className="text-xs text-muted">Loading workflows…</p>
             ) : list.length === 0 ? (
               <p className="text-[13px] text-muted">
@@ -100,7 +131,11 @@ export function SubmitApprovalDialog({
             <Button variant="secondary" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={!defId || start.isPending}>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={(!hasChain && !defId) || start.isPending}
+            >
               {start.isPending && <Loader2 className="animate-spin" aria-hidden />} Submit for
               approval
             </Button>

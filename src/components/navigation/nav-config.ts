@@ -1,4 +1,5 @@
 import {
+  ArchiveRestore,
   Activity,
   Archive,
   BarChart3,
@@ -15,6 +16,7 @@ import {
   LayoutDashboard,
   ListChecks,
   Network,
+  ScrollText,
   Settings,
   ShieldAlert,
   ShieldCheck,
@@ -25,6 +27,7 @@ import {
   Users,
   UsersRound,
   Workflow,
+  Zap,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -50,6 +53,7 @@ export const mainNav: NavSection[] = [
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/my-files', label: 'My Files', icon: FolderTree },
+      { href: '/team-folders', label: 'Team Folders', icon: Users },
       { href: '/recent', label: 'Recent', icon: Clock },
       { href: '/starred', label: 'Quick Access', icon: Star },
     ],
@@ -59,6 +63,7 @@ export const mainNav: NavSection[] = [
     items: [
       { href: '/shared-with-me', label: 'Shared with me', icon: Share2 },
       { href: '/shared-by-me', label: 'Shared by me', icon: Share2 },
+      { href: '/my-access', label: 'My access', icon: KeyRound },
       { href: '/requests', label: 'Access requests', icon: Inbox },
     ],
   },
@@ -88,19 +93,27 @@ export const adminNav: NavSection[] = [
   {
     title: 'Administration',
     requires: 'admin',
+    collapsible: true,
     items: [
       { href: '/admin', label: 'Overview', icon: Activity },
+      { href: '/admin/permissions', label: 'Permissions', icon: ShieldCheck },
+      { href: '/admin/policies', label: 'Policies', icon: ScrollText },
       { href: '/admin/directory', label: 'Directory sync', icon: Network },
-      { href: '/admin/workflows', label: 'Workflows', icon: Workflow },
+      { href: '/admin/workflows', label: 'Approval workflows', icon: Workflow },
+      { href: '/admin/approval-chains', label: 'Approval chains', icon: ListChecks },
+      { href: '/admin/signature-chains', label: 'Signature chains', icon: FileSignature },
+      { href: '/admin/automations', label: 'Automations', icon: Zap },
       { href: '/admin/metadata', label: 'Metadata fields', icon: Tags },
       { href: '/admin/quarantine', label: 'Quarantine', icon: ShieldAlert },
       { href: '/admin/storage', label: 'Storage', icon: Database },
+      { href: '/admin/recycle-bin', label: 'Recycle Bin', icon: ArchiveRestore },
       { href: '/admin/settings', label: 'Settings', icon: Settings },
     ],
   },
   {
     title: 'Oversight',
     requires: 'auditor-or-admin',
+    collapsible: true,
     items: [
       { href: '/admin/governance', label: 'Governance', icon: Gavel },
       { href: '/admin/activity', label: 'Activity', icon: History },

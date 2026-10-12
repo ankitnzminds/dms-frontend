@@ -54,6 +54,7 @@ export function createLiveDeps(onDone: (i: UploadItem) => void): UploadDeps {
         size_bytes: item.file.size,
         content_type: item.file.type || null,
         sha256,
+        intent: item.intent ?? ('upload' as const),
       };
       const header = { 'Idempotency-Key': idempotencyKey };
       if (item.documentId) {
