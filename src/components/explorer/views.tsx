@@ -237,7 +237,7 @@ function Row({ t, p }: { t: TreeItem; p: ViewProps }) {
         role="gridcell"
         className={cn('hidden text-right tabular text-muted sm:block', !col('size') && 'sm:hidden')}
       >
-        {col('size') ? (t.kind === 'folder' ? '-' : formatBytes(t.size_bytes)) : null}
+        {col('size') ? formatBytes(t.size_bytes) : null}
       </span>
     </div>
   );
@@ -349,7 +349,11 @@ function Tile({ t, p, large }: { t: TreeItem; p: ViewProps; large: boolean }) {
           )}
         </p>
         <p className="truncate text-xs text-muted">
-          {t.kind === 'folder' ? 'Folder' : `${typeLabel(t)} · ${formatBytes(t.size_bytes)}`}
+          {t.kind === 'folder'
+            ? t.size_bytes == null
+              ? 'Folder'
+              : `Folder · ${formatBytes(t.size_bytes)}`
+            : `${typeLabel(t)} · ${formatBytes(t.size_bytes)}`}
           {cut && ' · Cut'}
         </p>
         <span className="flex flex-wrap justify-center gap-1">

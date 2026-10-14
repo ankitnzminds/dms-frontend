@@ -1,15 +1,25 @@
 'use client';
 
-import { Maximize, Minus, Plus, RotateCw } from 'lucide-react';
+import { Maximize, Maximize2, Minimize2, Minus, Plus, RotateCw } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useFullscreen } from './use-fullscreen';
 
 /** Image preview with zoom and rotate. */
 export function ImageViewer({ url, name }: { url: string; name: string }) {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const { ref: fsRef, isFullscreen, toggle: toggleFullscreen } = useFullscreen<HTMLDivElement>();
   return (
-    <div className="grid gap-2" data-testid="image-viewer">
+    <div
+      ref={fsRef}
+      className={
+        isFullscreen
+          ? 'grid h-screen grid-rows-[auto_minmax(0,1fr)] gap-2 bg-surface p-3'
+          : 'grid gap-2'
+      }
+      data-testid="image-viewer"
+    >
       <div
         role="toolbar"
         aria-label="Image tools"
@@ -38,8 +48,15 @@ export function ImageViewer({ url, name }: { url: string; name: string }) {
         <Button variant="ghost" size="sm" onClick={() => setRotation((r) => (r + 90) % 360)}>
           <RotateCw /> Rotate
         </Button>
+        <span className="flex-1" />
+        <Button variant="ghost" size="sm" onClick={toggleFullscreen} aria-pressed={isFullscreen}>
+          {isFullscreen ? <Minimize2 /> : <Maximize2 />}{' '}
+          {isFullscreen ? 'Exit full screen' : 'Full screen'}
+        </Button>
       </div>
-      <div className="grid h-[72vh] place-items-center overflow-auto rounded-md border border-line bg-surface-2">
+      <div
+        className={`grid place-items-center overflow-auto rounded-md border border-line bg-surface-2 ${isFullscreen ? 'h-full' : 'h-[72vh]'}`}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={url}
@@ -48,7 +65,7 @@ export function ImageViewer({ url, name }: { url: string; name: string }) {
           style={{
             transform: `scale(${zoom}) rotate(${rotation}deg)`,
             maxWidth: zoom === 1 ? '100%' : 'none',
-            maxHeight: zoom === 1 ? '70vh' : 'none',
+            maxHeight: zoom === 1 ? (isFullscreen ? '90vh' : '70vh') : 'none',
           }}
           className="object-contain transition-transform"
         />

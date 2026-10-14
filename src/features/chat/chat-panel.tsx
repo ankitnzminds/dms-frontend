@@ -2,6 +2,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  ArrowLeft,
   BarChart3,
   Bot,
   Check,
@@ -10,6 +11,7 @@ import {
   HelpCircle,
   Loader2,
   MessageSquarePlus,
+  Minimize2,
   PanelLeft,
   RotateCcw,
   Search,
@@ -136,15 +138,22 @@ export function ChatPanel({
   onClearContext,
   variant = 'page',
   initialConversationId = null,
+  onActiveChange,
+  onMinimize,
 }: {
   context?: ChatContext | null;
   onClearContext?: () => void;
   variant?: 'page' | 'drawer';
   initialConversationId?: string | null;
+  /** Reports the open conversation (null = new) so the host can hand it to the full-screen view. */
+  onActiveChange?: (id: string | null) => void;
+  /** Full-page view only: shrink back to the side drawer on the page the user came from. */
+  onMinimize?: (activeId: string | null) => void;
 }) {
   const qc = useQueryClient();
   const status = useChatStatus();
   const [activeId, setActiveId] = useState<string | null>(initialConversationId);
+  useEffect(() => onActiveChange?.(activeId), [activeId, onActiveChange]);
   const [showList, setShowList] = useState(variant === 'page');
   const [mobileList, setMobileList] = useState(false);
   const { data: me } = useMe();
@@ -325,8 +334,32 @@ export function ChatPanel({
         </>
       ) : (
         showList && (
-          <div className="max-h-56 border-b border-line">
+          // Compact window: the list takes over the chat area (with a way back) instead of being
+          // squeezed above the messages.
+          <div
+            className="absolute inset-0 z-20 flex flex-col bg-surface"
+            data-testid="chat-list-view"
+          >
+            <div className="flex items-center justify-between border-b border-line px-3 py-1.5">
+              <Button size="sm" variant="ghost" onClick={() => setShowList(false)}>
+                <ArrowLeft /> Back to chat
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => (
+                  setActiveId(null),
+                  setShowList(false),
+                  setRunId(null),
+                  setNote(null)
+                )}
+              >
+                <MessageSquarePlus /> New
+              </Button>
+            </div>
             <ConversationList
+              compact
+              className="flex-1"
               activeId={activeId}
               onSelect={(id) => (
                 setActiveId(id),
@@ -361,9 +394,21 @@ export function ChatPanel({
             >
               <PanelLeft />
             </Button>
-            <p className="truncate text-[13px] font-medium">
+            <p className="min-w-0 flex-1 truncate text-[13px] font-medium">
               {(activeId && convTitle) || 'New conversation'}
             </p>
+            {onMinimize && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onMinimize(activeId)}
+                aria-label="Minimize assistant to side panel"
+                title="Back to side panel"
+                data-testid="chat-minimize"
+              >
+                <Minimize2 /> Minimize
+              </Button>
+            )}
           </div>
         )}
         {variant === 'drawer' && (

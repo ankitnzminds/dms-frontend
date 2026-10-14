@@ -95,11 +95,14 @@ export function ConversationList({
   onSelect,
   onNew,
   className,
+  compact = false,
 }: {
   activeId: string | null;
   onSelect: (id: string) => void;
   onNew: () => void;
   className?: string;
+  /** Small floating window: no branding block or big button, just search and the list. */
+  compact?: boolean;
 }) {
   const [archived, setArchived] = useState(false);
   const [search, setSearch] = useState('');
@@ -122,24 +125,28 @@ export function ConversationList({
 
   return (
     <nav aria-label="Conversations" className={cn('flex min-h-0 flex-col', className)}>
-      <div className="flex items-start gap-3 p-4 pb-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-accent-fg">
-          <Sparkles className="size-5" aria-hidden />
-        </span>
-        <div className="min-w-0">
-          <p className="flex items-center gap-2 text-[15px] font-semibold leading-tight">
-            DMS Assistant
-            <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-medium text-accent-soft-fg">
-              Beta
-            </span>
-          </p>
-          <p className="text-xs text-muted">Ask about your documents, policies and workflows</p>
+      {!compact && (
+        <div className="flex items-start gap-3 p-4 pb-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-accent-fg">
+            <Sparkles className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <p className="flex items-center gap-2 text-[15px] font-semibold leading-tight">
+              DMS Assistant
+              <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-medium text-accent-soft-fg">
+                Beta
+              </span>
+            </p>
+            <p className="text-xs text-muted">Ask about your documents, policies and workflows</p>
+          </div>
         </div>
-      </div>
-      <div className="grid gap-2 px-4 pb-3">
-        <Button variant="primary" onClick={onNew} data-testid="chat-new">
-          <MessageSquarePlus /> New Conversation
-        </Button>
+      )}
+      <div className={cn('grid gap-2 px-4 pb-3', compact && 'pt-3')}>
+        {!compact && (
+          <Button variant="primary" onClick={onNew} data-testid="chat-new">
+            <MessageSquarePlus /> New Conversation
+          </Button>
+        )}
         <div className="relative">
           <Search
             className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-faint"

@@ -8,8 +8,20 @@ import {
   PDFViewer,
 } from 'pdfjs-dist/web/pdf_viewer.mjs';
 import 'pdfjs-dist/web/pdf_viewer.css';
-import { ChevronDown, ChevronUp, Download, Minus, Plus, Printer, Search, X } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronUp,
+  Download,
+  Maximize2,
+  Minimize2,
+  Minus,
+  Plus,
+  Printer,
+  Search,
+  X,
+} from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFullscreen } from './use-fullscreen';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { downloadDocument } from '@/features/files/download';
@@ -138,6 +150,19 @@ export function PdfViewer({
     document.body.appendChild(frame);
   };
 
+  // Re-fit pages to the new viewport size when entering/leaving full screen (pdf.js does not watch it).
+  const refit = useCallback(() => {
+    setTimeout(() => {
+      const v = viewerRef.current;
+      if (v) v.currentScaleValue = v.currentScaleValue;
+    }, 150);
+  }, []);
+  const {
+    ref: fsRef,
+    isFullscreen,
+    toggle: toggleFullscreen,
+  } = useFullscreen<HTMLDivElement>(refit);
+
   const setScale = (v: number | 'page-width' | 'page-fit') => {
     if (viewerRef.current) viewerRef.current.currentScaleValue = String(v);
   };
@@ -151,7 +176,15 @@ export function PdfViewer({
   };
 
   return (
-    <div className="grid gap-2" data-testid="pdf-viewer">
+    <div
+      ref={fsRef}
+      className={
+        isFullscreen
+          ? 'grid h-screen grid-rows-[auto_minmax(0,1fr)] gap-2 bg-surface p-3'
+          : 'grid gap-2'
+      }
+      data-testid="pdf-viewer"
+    >
       <div
         role="toolbar"
         aria-label={`PDF tools for ${name}`}
@@ -260,6 +293,16 @@ export function PdfViewer({
           )}
         </form>
         <span className="flex-1" />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleFullscreen}
+          aria-pressed={isFullscreen}
+          data-testid="pdf-fullscreen"
+        >
+          {isFullscreen ? <Minimize2 /> : <Maximize2 />}{' '}
+          {isFullscreen ? 'Exit full screen' : 'Full screen'}
+        </Button>
         {canDownload && (
           <>
             <Button variant="ghost" size="sm" onClick={() => void print()}>
@@ -272,7 +315,9 @@ export function PdfViewer({
         )}
       </div>
 
-      <div className="relative h-[72vh] overflow-hidden rounded-md border border-line bg-surface-2">
+      <div
+        className={`relative overflow-hidden rounded-md border border-line bg-surface-2 ${isFullscreen ? 'h-full' : 'h-[72vh]'}`}
+      >
         {state === 'loading' && <Skeleton className="absolute inset-0 z-10" />}
         {state === 'error' && (
           <p

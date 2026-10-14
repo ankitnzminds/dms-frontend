@@ -176,11 +176,7 @@ export function ItemsTable({
         : [
             col.accessor('size_bytes', {
               header: () => sortHeader('Size', 'size'),
-              cell: (c) => (
-                <span className="tabular text-muted">
-                  {c.row.original.kind === 'folder' ? '-' : formatBytes(c.getValue())}
-                </span>
-              ),
+              cell: (c) => <span className="tabular text-muted">{formatBytes(c.getValue())}</span>,
               meta: { className: 'hidden sm:table-cell w-28 text-right' },
             }),
           ]),
