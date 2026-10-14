@@ -11,11 +11,23 @@ if (isProd && authMode === 'dev') {
   );
 }
 
-const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000/api/v1';
+// An empty value counts as "not set" (Docker builds pass an empty string when the build arg is missing).
+const apiBaseRaw = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+if (isProd && !apiBaseRaw) {
+  throw new Error(
+    'NEXT_PUBLIC_API_BASE_URL is required for a production build, e.g. https://your-api.onrender.com/api/v1. ' +
+      'Set it in the service environment variables (it is compiled into the browser bundle) and rebuild.',
+  );
+}
+const apiBase = apiBaseRaw || 'http://localhost:8000/api/v1';
 const apiOrigin = new URL(apiBase).origin;
-const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL
-  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
-  : '';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+if (isProd && authMode === 'supabase' && !supabaseUrl) {
+  throw new Error(
+    'NEXT_PUBLIC_SUPABASE_URL is required for a production build (sign-in uses Supabase), e.g. https://<project-ref>.supabase.co.',
+  );
+}
+const supabaseOrigin = supabaseUrl ? new URL(supabaseUrl).origin : '';
 
 // Optional same-origin proxy (server-side env, never exposed to the browser). Handy when the API does not
 // CORS-allow the origin the app runs on (e.g. another app already owns :3000), and for single-origin deployments.
