@@ -1,0 +1,31 @@
+# Render Blueprint for the DMS web app (Next.js, built from ./Dockerfile).
+#
+# Tracks the `main` branch and redeploys automatically on every push or merge to main.
+# Setup steps and the order to deploy things in: docs/deploy-render.md
+#
+# IMPORTANT: NEXT_PUBLIC_* values are compiled into the browser bundle at BUILD time. After changing
+# any of them in the Render dashboard, trigger a new deploy ("Clear build cache & deploy") for the
+# change to take effect. They are public values: never put a secret or a service-role key here.
+
+services:
+  - type: web
+    name: dms-web
+    runtime: docker
+    plan: starter
+    region: singapore
+    branch: main
+    autoDeploy: true
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /login
+    envVars:
+      - key: PORT
+        value: "3000"
+      # Public URL of the API INCLUDING the prefix, e.g. https://dms-api.onrender.com/api/v1
+      - key: NEXT_PUBLIC_API_BASE_URL
+        sync: false
+      # Supabase project URL and its publishable (anon) key - the same project the API uses.
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+        sync: false
